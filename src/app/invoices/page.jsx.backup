@@ -1,0 +1,1239 @@
+"use client";
+import React, {useEffect, useRef, useState, useMemo} from "react";
+import {
+    Alert,
+    Box,
+    Button,
+    Card,
+    CardContent,
+    Chip,
+    CircularProgress,
+    Collapse,
+    Container,
+    FormControl,
+    Grid,
+    InputLabel,
+    MenuItem,
+    Paper,
+    Select,
+    Snackbar,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    TextField,
+    Typography,
+} from "@mui/material";
+import {
+    Home,
+    Business,
+    Build,
+    Description,
+    Security,
+    Receipt,
+    Payment,
+    Pending,
+    CheckCircle,
+    Warning,
+    AccountBalance,
+    TrendingDown,
+    Visibility,
+    Assessment,
+    FilterList,
+    GetApp,
+    Notifications,
+    Email,
+    WhatsApp,
+    Search,
+    Clear
+} from '@mui/icons-material';
+import {DatePicker, LocalizationProvider} from "@mui/x-date-pickers";
+import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
+import {useReactToPrint} from "react-to-print";
+import dayjs from "dayjs";
+import "dayjs/locale/en-gb";
+import InvoicePrint from "./InvoicePrint";
+import {formatCurrencyAED} from "@/helpers/functions/convertMoneyToArabic";
+
+const invoiceTypeMapping = {
+    ALL: "كل الفواتير",
+    RENT: "إيجارات",
+    INSURANCE: "تأمين",
+    REGISTRATION: "تسجيل",
+    MAINTENANCE: "صيانة",
+    MANAGEMENT_COMMISSION: "عمولة إدارة",
+    CONTRACT_EXPENSE: "مصاريف عقد",
+    OTHER_EXPENSE: "مصاريف أخرى",
+    TAX: "ضرائب",
+    OTHER: "أخرى",
+};
+
+// إعداد الأيقونات والألوان الاحترافية
+const getInvoiceTypeConfig = (invoiceType) => {
+    const configs = {
+        'RENT': { 
+            icon: <Home />, 
+            color: '#1976d2', 
+            bgColor: '#e3f2fd', 
+            label: 'إيجار',
+            purpose: 'توثيق'
+        },
+        'MANAGEMENT_COMMISSION': { 
+            icon: <Business />, 
+            color: '#388e3c', 
+            bgColor: '#e8f5e8', 
+            label: 'عمولة إدارة',
+            purpose: 'دخل'
+        },
+        'MAINTENANCE': { 
+            icon: <Build />, 
+            color: '#d32f2f', 
+            bgColor: '#ffebee', 
+            label: 'صيانة',
+            purpose: 'مصروف'
+        },
+        'REGISTRATION': { 
+            icon: <Description />, 
+            color: '#388e3c', 
+            bgColor: '#e8f5e8', 
+            label: 'تسجيل',
+            purpose: 'دخل'
+        },
+        'INSURANCE': { 
+            icon: <Security />, 
+            color: '#388e3c', 
+            bgColor: '#e8f5e8', 
+            label: 'تأمين',
+            purpose: 'دخل'
+        },
+        'TAX': { 
+            icon: <Receipt />, 
+            color: '#f57c00', 
+            bgColor: '#fff8e1', 
+            label: 'ضرائب',
+            purpose: 'توثيق'
+        },
+        'CONTRACT_EXPENSE': { 
+            icon: <Description />, 
+            color: '#d32f2f', 
+            bgColor: '#ffebee', 
+            label: 'مصاريف عقد',
+            purpose: 'مصروف'
+        },
+        'OTHER_EXPENSE': { 
+            icon: <TrendingDown />, 
+            color: '#d32f2f', 
+            bgColor: '#ffebee', 
+            label: 'مصاريف أخرى',
+            purpose: 'مصروف'
+        },
+        'OTHER': { 
+            icon: <Description />, 
+            color: '#757575', 
+            bgColor: '#f5f5f5', 
+            label: 'أخرى',
+            purpose: 'أخرى'
+        }
+    };
+    return configs[invoiceType] || configs.OTHER;
+};
+
+// مكون عرض نوع الفاتورة مع الأيقونة
+const InvoiceTypeChip = ({ invoiceType, showLabel = true }) => {
+    const config = getInvoiceTypeConfig(invoiceType);
+
+    return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box 
+                sx={{ 
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    backgroundColor: config.bgColor,
+                    color: config.color
+                }}
+            >
+                {React.cloneElement(config.icon, { fontSize: 'small' })}
+            </Box>
+            {showLabel && (
+                <Box>
+                    <Typography variant="body2" fontWeight="medium">
+                        {config.label}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                        {config.purpose}
+                    </Typography>
+                </Box>
+            )}
+        </Box>
+    );
+};
+
+// مكون عرض حالة الدفع
+const PaymentStatusChip = ({ isPaid, dueDate }) => {
+    const isOverdue = dueDate && new Date(dueDate) < new Date();
+    
+    const config = isPaid ? {
+        icon: <CheckCircle />,
+        label: 'مدفوعة',
+        color: '#388e3c',
+        bgColor: '#e8f5e8'
+    } : isOverdue ? {
+        icon: <Warning />,
+        label: 'متأخرة',
+        color: '#d32f2f',
+        bgColor: '#ffebee'
+    } : {
+        icon: <Pending />,
+        label: 'معلقة',
+        color: '#f57c00',
+        bgColor: '#fff8e1'
+    };
+
+    return (
+        <Chip
+            icon={config.icon}
+            label={config.label}
+            size="small"
+            sx={{
+                backgroundColor: config.bgColor,
+                color: config.color,
+                fontWeight: 'medium',
+                '& .MuiChip-icon': {
+                    color: config.color
+                }
+            }}
+        />
+    );
+};
+
+// مكون بطاقات الإحصائيات
+const InvoiceStatsCards = ({ invoices }) => {
+    const stats = useMemo(() => {
+        const result = {
+            companyIncome: { amount: 0, count: 0 },
+            ownerExpenses: { amount: 0, count: 0 },
+            documentation: { amount: 0, count: 0 },
+            total: { amount: 0, count: invoices.length }
+        };
+
+        invoices.forEach(invoice => {
+            result.total.amount += invoice.amount;
+            
+            switch(invoice.invoiceType) {
+                case 'MANAGEMENT_COMMISSION':
+                case 'REGISTRATION':
+                case 'INSURANCE':
+                    result.companyIncome.amount += invoice.amount;
+                    result.companyIncome.count++;
+                    break;
+                case 'MAINTENANCE':
+                case 'CONTRACT_EXPENSE':
+                case 'OTHER_EXPENSE':
+                    result.ownerExpenses.amount += invoice.amount;
+                    result.ownerExpenses.count++;
+                    break;
+                case 'RENT':
+                case 'TAX':
+                    result.documentation.amount += invoice.amount;
+                    result.documentation.count++;
+                    break;
+            }
+        });
+
+        return result;
+    }, [invoices]);
+
+    const cards = [
+        {
+            title: 'دخل الشركة',
+            icon: <AccountBalance />,
+            amount: stats.companyIncome.amount,
+            count: stats.companyIncome.count,
+            color: '#388e3c',
+            bgColor: '#e8f5e8'
+        },
+        {
+            title: 'مصروفات المُلاك',
+            icon: <TrendingDown />,
+            amount: stats.ownerExpenses.amount,
+            count: stats.ownerExpenses.count,
+            color: '#d32f2f',
+            bgColor: '#ffebee'
+        },
+        {
+            title: 'للتوثيق والمتابعة',
+            icon: <Visibility />,
+            amount: stats.documentation.amount,
+            count: stats.documentation.count,
+            color: '#1976d2',
+            bgColor: '#e3f2fd'
+        },
+        {
+            title: 'إجمالي الفواتير',
+            icon: <Assessment />,
+            amount: stats.total.amount,
+            count: stats.total.count,
+            color: '#7b1fa2',
+            bgColor: '#f3e5f5'
+        }
+    ];
+
+    return (
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+            {cards.map((card, index) => (
+                <Grid item xs={12} sm={6} md={3} key={index}>
+                    <Card 
+                        sx={{ 
+                            height: '100%',
+                            background: `linear-gradient(135deg, ${card.bgColor} 0%, white 100%)`,
+                            border: `1px solid ${card.color}20`,
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                            '&:hover': {
+                                transform: 'translateY(-2px)',
+                                boxShadow: 3
+                            }
+                        }}
+                    >
+                        <CardContent>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <Box 
+                                    sx={{ 
+                                        p: 1, 
+                                        borderRadius: 2, 
+                                        backgroundColor: card.color,
+                                        color: 'white',
+                                        mr: 2
+                                    }}
+                                >
+                                    {card.icon}
+                                </Box>
+                                <Typography variant="h6" color={card.color} fontWeight="bold">
+                                    {card.title}
+                                </Typography>
+                            </Box>
+                            <Typography variant="h4" color={card.color} fontWeight="bold" gutterBottom>
+                                {formatCurrencyAED(card.amount)}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {card.count} فاتورة
+                            </Typography>
+                        </CardContent>
+                    </Card>
+                </Grid>
+            ))}
+        </Grid>
+    );
+};
+
+const InvoicePage = () => {
+    const [properties, setProperties] = useState([]);
+    const [selectedProperty, setSelectedProperty] = useState("");
+    const [owners, setOwners] = useState([]);
+    const [selectedOwner, setSelectedOwner] = useState("");
+    const [units, setUnits] = useState([]);
+    const [selectedUnits, setSelectedUnits] = useState([]);
+    const [startDate, setStartDate] = useState(dayjs().startOf("month"));
+    const [endDate, setEndDate] = useState(dayjs().endOf("month"));
+    const [invoices, setInvoices] = useState([]);
+    const [currentInvoice, setCurrentInvoice] = useState(null);
+    const [invoiceType, setInvoiceType] = useState("ALL");
+    const [paymentStatusFilter, setPaymentStatusFilter] = useState("ALL");
+    const [searchTerm, setSearchTerm] = useState("");
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const componentRef = useRef();
+    const printRef = useRef();
+    const [loading, setLoading] = useState(true);
+    const [submitLoading, setSubmitLoading] = useState(false);
+    const [printLoading, setPrintLoading] = useState(false);
+    const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [authError, setAuthError] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
+    
+    // فلترة العقارات بناءً على المالك المختار
+    const filteredProperties = useMemo(() => {
+        console.log("🔗 فلترة العقارات بناءً على المالك:", selectedOwner);
+        console.log("📋 جميع العقارات:", properties.length);
+        
+        if (!selectedOwner || selectedOwner === "") {
+            console.log("❌ لا يوجد مالك مختار، عرض جميع العقارات");
+            return properties;
+        }
+        
+        const filtered = properties.filter(property => {
+            // طرق مختلفة للوصول لمعرف المالك في العقار
+            const ownerIdMethods = [
+                property.client?.id,
+                property.clientId,
+                property.ownerId,
+                property.owner?.id
+            ];
+            
+            console.log(`🏢 العقار ${property.id} (${property.name}):`, {
+                'client.id': property.client?.id,
+                'clientId': property.clientId,
+                'ownerId': property.ownerId,
+                'owner.id': property.owner?.id,
+                'المالك المطلوب': selectedOwner
+            });
+            
+            const propertyOwnerId = ownerIdMethods.find(id => id != null && id !== undefined);
+            const matches = propertyOwnerId && String(propertyOwnerId) === String(selectedOwner);
+            
+            console.log(`${matches ? '✅' : '❌'} العقار ${property.id}: ${propertyOwnerId} ${matches ? '==' : '!='} ${selectedOwner}`);
+            
+            return matches;
+        });
+        
+        console.log("🎯 العقارات المفلترة:", filtered.length, "من أصل", properties.length);
+        return filtered;
+    }, [properties, selectedOwner]);
+
+    // تحديث العقار المختار عند تغيير المالك
+    useEffect(() => {
+        console.log("🔄 تحقق من صحة العقار المختار عند تغيير المالك");
+        
+        if (selectedOwner && selectedProperty) {
+            console.log("🔍 التحقق من ملكية العقار:", {
+                selectedOwner,
+                selectedProperty,
+                filteredPropertiesCount: filteredProperties.length
+            });
+            
+            // التحقق من أن العقار المختار ينتمي للمالك المختار
+            const propertyBelongsToOwner = filteredProperties.find(p => 
+                String(p.id) === String(selectedProperty)
+            );
+            
+            if (!propertyBelongsToOwner) {
+                console.log("❌ العقار المختار لا ينتمي للمالك المختار، إعادة تعيين");
+                setSelectedProperty("");
+            } else {
+                console.log("✅ العقار المختار ينتمي للمالك المختار");
+            }
+        } else if (selectedOwner && !selectedProperty) {
+            console.log("ℹ️ تم اختيار مالك لكن لم يتم اختيار عقار بعد");
+        } else if (!selectedOwner && selectedProperty) {
+            console.log("🔄 تم إلغاء اختيار المالك، إعادة تعيين العقار");
+            setSelectedProperty("");
+        }
+    }, [selectedOwner, selectedProperty, filteredProperties]);
+    useEffect(() => {
+        async function fetchProperties() {
+            setLoading(true);
+            try {
+                console.log("🚀 بدء جلب البيانات...");
+                
+                const resProperties = await fetch("/api/fast-handler?id=properties");
+                const dataProperties = await resProperties.json();
+                console.log("📊 Properties response status:", resProperties.status);
+                console.log("🏢 Properties data:", dataProperties); 
+                console.log("🏢 Properties data type:", typeof dataProperties);
+                console.log("🏢 Is properties array:", Array.isArray(dataProperties));
+                
+                if (dataProperties && Array.isArray(dataProperties)) {
+                    console.log("✅ Setting properties array with", dataProperties.length, "items");
+                    setProperties(dataProperties);
+                } else if (dataProperties && typeof dataProperties === 'object') {
+                    console.log("🔧 Properties data is object, checking for array property...");
+                    if (dataProperties.value && Array.isArray(dataProperties.value)) {
+                        console.log("✅ Found properties in value property with", dataProperties.value.length, "items");
+                        setProperties(dataProperties.value);
+                    } else if (dataProperties.data && Array.isArray(dataProperties.data)) {
+                        console.log("✅ Found properties in data property with", dataProperties.data.length, "items");
+                        setProperties(dataProperties.data);
+                    } else {
+                        console.log("❌ No valid properties array found in response");
+                        setProperties([]);
+                    }
+                } else {
+                    console.log("❌ Invalid properties data format");
+                    setProperties([]);
+                }
+
+                // جلب المُلاك أيضاً
+                const resOwners = await fetch("/api/fast-handler?id=owner");
+                const dataOwners = await resOwners.json();
+                console.log("📊 Owners response status:", resOwners.status);
+                console.log("👥 Owners data:", dataOwners); 
+                console.log("👥 Owners data type:", typeof dataOwners);
+                console.log("👥 Is owners array:", Array.isArray(dataOwners));
+                
+                if (dataOwners && Array.isArray(dataOwners)) {
+                    console.log("✅ Setting owners array with", dataOwners.length, "items");
+                    setOwners(dataOwners);
+                } else if (dataOwners && typeof dataOwners === 'object') {
+                    console.log("🔧 Owners data is object, checking for array property...");
+                    // التحقق من خاصية value أولاً
+                    if (dataOwners.value && Array.isArray(dataOwners.value)) {
+                        console.log("✅ Found owners in value property with", dataOwners.value.length, "items");
+                        setOwners(dataOwners.value);
+                    } else if (dataOwners.data && Array.isArray(dataOwners.data)) {
+                        console.log("✅ Found owners in data property with", dataOwners.data.length, "items");
+                        setOwners(dataOwners.data);
+                    } else if (dataOwners.owners && Array.isArray(dataOwners.owners)) {
+                        console.log("✅ Found owners in owners property with", dataOwners.owners.length, "items");
+                        setOwners(dataOwners.owners);
+                    } else {
+                        console.log("❌ No valid owners array found in response");
+                        setOwners([]);
+                    }
+                } else {
+                    console.log("❌ Invalid owners data format");
+                    setOwners([]);
+                }
+                
+                console.log("✅ تم جلب البيانات بنجاح");
+            } catch (error) {
+                console.error("❌ فشل في جلب البيانات:", error);
+                setProperties([]);
+                setOwners([]);
+            }
+            setLoading(false);
+        }
+
+        fetchProperties();
+    }, []);
+
+    const handleGenerateInvoices = async () => {
+        setSubmitLoading(true);
+        setErrorMessage("");
+        setAuthError(false);
+        
+        console.log("🔄 بدء عملية جلب الفواتير...");
+        console.log("📊 الحالة الحالية:");
+        console.log("   المالك المختار:", selectedOwner);
+        console.log("   العقار المختار:", selectedProperty);
+        console.log("   نوع الفاتورة:", invoiceType);
+        console.log("   العقارات المفلترة:", filteredProperties.length);
+        console.log("   جميع العقارات:", properties.length);
+        
+        // منطق تحديد العقار للفلترة
+        let targetProperties = [];
+        
+        if (selectedProperty) {
+            // عقار محدد
+            targetProperties = [selectedProperty];
+            console.log("🎯 استخدام العقار المختار:", selectedProperty);
+        } else if (selectedOwner && filteredProperties.length > 0) {
+            // جميع عقارات المالك المختار
+            targetProperties = filteredProperties.map(p => p.id);
+            console.log("� استخدام جميع عقارات المالك:", targetProperties);
+        } else if (properties.length > 0) {
+            // جميع العقارات
+            targetProperties = properties.map(p => p.id);
+            console.log("🏘️ استخدام جميع العقارات:", targetProperties.length, "عقار");
+        }
+        
+        if (targetProperties.length === 0) {
+            console.log("❌ لا توجد عقارات متاحة لجلب الفواتير");
+            setErrorMessage("لا توجد عقارات متاحة لجلب الفواتير");
+            setSnackbarOpen(true);
+            setSubmitLoading(false);
+            return;
+        }
+        
+        // جلب الفواتير لكل عقار وجمعها
+        let allInvoices = [];
+        
+        for (const propertyId of targetProperties) {
+            console.log(`🔍 جلب فواتير العقار: ${propertyId}`);
+            
+            const filters = {
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
+                propertyId: parseInt(propertyId), // تأكد من أنه رقم
+                invoiceType: invoiceType === "ALL" ? undefined : invoiceType,
+            };
+
+            try {
+                const res = await fetch(
+                      `/api/main/invoices?filters=${JSON.stringify(filters)}`,
+                );
+                
+                if (!res.ok) {
+                    if (res.status === 401) {
+                        throw new Error("غير مخول للوصول - يرجى تسجيل الدخول أولاً");
+                    } else if (res.status === 404) {
+                        throw new Error("API غير موجود");
+                    } else {
+                        throw new Error(`خطأ في الخادم: ${res.status}`);
+                    }
+                }
+                
+                const data = await res.json();
+                console.log(`📋 فواتير العقار ${propertyId}:`, data.data?.length || 0, "فاتورة");
+                
+                if (data.data && Array.isArray(data.data)) {
+                    allInvoices = allInvoices.concat(data.data);
+                }
+                
+            } catch (error) {
+                console.error(`❌ فشل في جلب فواتير العقار ${propertyId}:`, error);
+                // نتابع مع العقارات الأخرى
+            }
+        }
+        
+        console.log("📋 إجمالي الفواتير المجلبة:", allInvoices.length);
+        
+        if (allInvoices.length > 0) {
+            console.log("📋 عينة فاتورة (الأولى):", JSON.stringify(allInvoices[0], null, 2));
+            setInvoices(allInvoices);
+            console.log("✅ تم تعيين الفواتير بنجاح");
+        } else {
+            console.log("⚠️ لا توجد فواتير في النتيجة");
+            setInvoices([]);
+            setErrorMessage("لا توجد فواتير في الفترة المحددة");
+            setSnackbarOpen(true);
+        }
+        
+        setSubmitLoading(false);
+            
+            console.log("📡 استجابة الخادم - status:", res.status);
+            console.log("📡 استجابة الخادم - ok:", res.ok);
+            
+            if (!res.ok) {
+                if (res.status === 401) {
+                    throw new Error("غير مخول للوصول - يرجى تسجيل الدخول أولاً");
+                } else if (res.status === 404) {
+                    throw new Error("API غير موجود");
+                } else {
+                    throw new Error(`خطأ في الخادم: ${res.status}`);
+                }
+            }
+            
+            const data = await res.json();
+            console.log("📋 استجابة الفواتير الكاملة:", data);
+            console.log("📋 نوع البيانات:", typeof data);
+            console.log("📋 بيانات الفواتير:", data.data); 
+            console.log("📋 عدد الفواتير:", data.data ? data.data.length : 0);
+            
+            if (data.data && data.data.length > 0) {
+                console.log("📋 عينة فاتورة (الأولى):", JSON.stringify(data.data[0], null, 2));
+                console.log("📋 عينة فاتورة - العقار:", data.data[0].property);
+                console.log("📋 عينة فاتورة - المالك في العقار:", data.data[0].property?.client);
+                console.log("📋 عينة فاتورة - اتفاقية الإيجار:", data.data[0].rentAgreement);
+                setInvoices(data.data);
+                console.log("✅ تم تعيين الفواتير بنجاح");
+            } else {
+                console.log("⚠️ لا توجد فواتير في النتيجة");
+                setInvoices([]);
+            }
+        } catch (error) {
+            console.error("❌ فشل في جلب الفواتير:", error);
+            setInvoices([]);
+            
+            // التعامل مع أخطاء مختلفة
+            if (error.message.includes("غير مخول")) {
+                setAuthError(true);
+                setErrorMessage("يرجى تسجيل الدخول أولاً للوصول إلى الفواتير");
+            } else {
+                setErrorMessage(`خطأ في جلب الفواتير: ${error.message}`);
+            }
+            
+            setSnackbarOpen(true);
+        }
+        setSubmitLoading(false);
+    };
+
+    const handlePrint = useReactToPrint({
+        content: () => printRef.current,
+        documentTitle: "فاتورة",
+        onBeforeGetContent: () => setPrintLoading(true),
+        onAfterPrint: () => setPrintLoading(false),
+    });
+
+    const renderInvoices = (invoices) => (
+          <TableContainer component={Paper} sx={{mb: 4}}>
+              <Table>
+                  <TableHead>
+                      <TableRow sx={{backgroundColor: "primary.main"}}>
+                          <TableCell sx={{ color: "white"}}>رقم الفاتورة</TableCell>
+                          <TableCell sx={{ color: "white"}}>نوع الفاتورة</TableCell>
+                          <TableCell sx={{ color: "white"}}>العقار</TableCell>
+                          <TableCell sx={{ color: "white"}}>رقم الوحدة</TableCell>
+                          <TableCell sx={{ color: "white"}}>المبلغ</TableCell>
+                          <TableCell sx={{ color: "white"}}>حالة الدفع</TableCell>
+                          <TableCell sx={{ color: "white"}}>تاريخ الفاتورة</TableCell>
+                          <TableCell sx={{ color: "white"}}>الإجراءات</TableCell>
+                      </TableRow>
+                  </TableHead>
+                  <TableBody>
+                      {invoices?.map((invoice) => (
+                            <TableRow 
+                                key={invoice.id}
+                                sx={{
+                                    borderLeft: `4px solid ${getInvoiceTypeConfig(invoice.invoiceType).color}`,
+                                    '&:hover': {
+                                        backgroundColor: `${getInvoiceTypeConfig(invoice.invoiceType).bgColor}40`
+                                    }
+                                }}
+                            >
+                                <TableCell>
+                                    <Typography variant="body2" fontWeight="medium">
+                                        #{invoice.id}
+                                    </Typography>
+                                </TableCell>
+                                
+                                <TableCell>
+                                    <InvoiceTypeChip invoiceType={invoice.invoiceType} />
+                                </TableCell>
+                                
+                                <TableCell>{invoice.property?.name || "N/A"}</TableCell>
+                                
+                                <TableCell>
+                                    {invoice.rentAgreement?.unit?.number || "N/A"}
+                                </TableCell>
+                                
+                                <TableCell>
+                                    <Typography variant="body2" fontWeight="bold">
+                                        {formatCurrencyAED(invoice.amount)}
+                                    </Typography>
+                                </TableCell>
+                                
+                                <TableCell>
+                                    <PaymentStatusChip 
+                                        isPaid={!!invoice.paymentId} 
+                                        dueDate={invoice.dueDate}
+                                    />
+                                </TableCell>
+                                
+                                <TableCell>
+                                    {new Date(invoice.createdAt).toLocaleDateString('ar-SA')}
+                                </TableCell>
+                                
+                                <TableCell>
+                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            startIcon={<GetApp />}
+                                            onClick={() => {
+                                                setCurrentInvoice(invoice);
+                                                setTimeout(handlePrint, 500);
+                                            }}
+                                        >
+                                            طباعة
+                                        </Button>
+                                        
+                                        {!invoice.paymentId && (
+                                            <>
+                                                <Button
+                                                    variant="outlined"
+                                                    size="small"
+                                                    color="warning"
+                                                    startIcon={<Email />}
+                                                    onClick={() => handleSendReminder(invoice)}
+                                                >
+                                                    تذكير
+                                                </Button>
+                                                
+                                                <Button
+                                                    variant="outlined"
+                                                    size="small"
+                                                    color="success"
+                                                    startIcon={<WhatsApp />}
+                                                    onClick={() => handleSendWhatsApp(invoice)}
+                                                >
+                                                    واتساب
+                                                </Button>
+                                            </>
+                                        )}
+                                    </Box>
+                                </TableCell>
+                            </TableRow>
+                      ))}
+                  </TableBody>
+              </Table>
+          </TableContainer>
+    );
+
+    // فلترة الفواتير المحسنة
+    const filteredInvoices = useMemo(() => {
+        console.log("=== بدء فلترة الفواتير ===");
+        console.log("إجمالي الفواتير:", invoices.length);
+        console.log("المالك المختار:", selectedOwner, "(نوع:", typeof selectedOwner, ")");
+        console.log("العقار المختار:", selectedProperty);
+        console.log("نوع الفاتورة:", invoiceType);
+        
+        if (!invoices || invoices.length === 0) {
+            console.log("لا توجد فواتير للفلترة");
+            return [];
+        }
+        
+        const result = invoices.filter((invoice, index) => {
+            console.log(`--- فحص الفاتورة ${index + 1}: ${invoice.id} ---`);
+            
+            // ١. فلتر المالك أولاً (الأولوية الأولى)
+            if (selectedOwner && selectedOwner !== "") {
+                console.log("� فحص المالك (الأولوية الأولى)...");
+                
+                // الطرق الصحيحة للوصول لمعرف المالك في الفاتورة
+                const ownerMethods = [
+                    invoice.property?.client?.id,        // الطريقة الأساسية
+                    invoice.property?.clientId,
+                    invoice.property?.ownerId,
+                    invoice.property?.owner?.id,
+                    invoice.clientId,
+                    invoice.ownerId,
+                    invoice.rentAgreement?.unit?.property?.client?.id,
+                    invoice.rentAgreement?.unit?.property?.clientId,
+                    invoice.rentAgreement?.unit?.property?.ownerId
+                ];
+                
+                console.log("🔍 طرق البحث عن المالك:", {
+                    'property.client.id': invoice.property?.client?.id,
+                    'property.clientId': invoice.property?.clientId,
+                    'property.ownerId': invoice.property?.ownerId,
+                    'المالك المطلوب': selectedOwner
+                });
+                
+                const foundOwnerId = ownerMethods.find(id => id != null && id !== undefined);
+                
+                if (!foundOwnerId) {
+                    console.log("❌ مرفوضة - لا يوجد معرف مالك في الفاتورة");
+                    return false;
+                }
+                
+                const ownerMatches = String(foundOwnerId) === String(selectedOwner);
+                console.log(`${ownerMatches ? '✅' : '❌'} المالك: ${foundOwnerId} ${ownerMatches ? '==' : '!='} ${selectedOwner}`);
+                
+                if (!ownerMatches) {
+                    return false;
+                }
+            }
+
+            // ٢. فلتر العقار ثانياً (الأولوية الثانية)
+            if (selectedProperty && selectedProperty !== "") {
+                console.log("🏢 فحص العقار (الأولوية الثانية)...");
+                const propertyId = invoice.property?.id || invoice.propertyId;
+                console.log("معرف العقار في الفاتورة:", propertyId);
+                console.log("العقار المطلوب:", selectedProperty);
+                
+                if (String(propertyId) !== String(selectedProperty)) {
+                    console.log("❌ مرفوضة - العقار:", propertyId, "≠", selectedProperty);
+                    return false;
+                }
+                console.log("✅ مقبولة - تطابق العقار");
+            }
+
+            // ٣. فلتر نوع الفاتورة ثالثاً (الأولوية الثالثة)
+            if (invoiceType !== "ALL") {
+                console.log("📋 فحص نوع الفاتورة (الأولوية الثالثة)...");
+                console.log("نوع الفاتورة:", invoice.invoiceType, "المطلوب:", invoiceType);
+                
+                if (invoice.invoiceType !== invoiceType) {
+                    console.log("❌ مرفوضة - نوع الفاتورة:", invoice.invoiceType, "≠", invoiceType);
+                    return false;
+                }
+                console.log("✅ مقبولة - نوع الفاتورة");
+            }
+
+            // ٤. فلتر حالة الدفع
+            if (paymentStatusFilter !== "ALL") {
+                console.log("💳 فحص حالة الدفع...");
+                const isPaid = !!invoice.paymentId;
+                const isOverdue = invoice.dueDate && new Date(invoice.dueDate) < new Date();
+                
+                if (paymentStatusFilter === "PAID" && !isPaid) {
+                    console.log("❌ مرفوضة - حالة الدفع: غير مدفوعة");
+                    return false;
+                }
+                if (paymentStatusFilter === "PENDING" && (isPaid || isOverdue)) {
+                    console.log("❌ مرفوضة - حالة الدفع: ليست معلقة");
+                    return false;
+                }
+                if (paymentStatusFilter === "OVERDUE" && (!isOverdue || isPaid)) {
+                    console.log("❌ مرفوضة - حالة الدفع: ليست متأخرة");
+                    return false;
+                }
+                console.log("✅ مقبولة - حالة الدفع");
+            }
+
+            // ٥. فلتر البحث النصي
+            if (searchTerm && searchTerm.trim() !== "") {
+                console.log("🔍 فحص البحث النصي...");
+                const searchTermLower = searchTerm.toLowerCase();
+                const searchableText = [
+                    invoice.id?.toString(),
+                    invoice.property?.name,
+                    invoice.property?.owner?.name,
+                    invoice.rentAgreement?.unit?.number?.toString(),
+                    getInvoiceTypeConfig(invoice.invoiceType).label,
+                    invoice.amount?.toString()
+                ].join(' ').toLowerCase();
+                
+                if (!searchableText.includes(searchTermLower)) {
+                    console.log("❌ مرفوضة - البحث النصي");
+                    return false;
+                }
+                console.log("✅ مقبولة - البحث النصي");
+            }
+
+            console.log("✅ مقبولة نهائياً - الفاتورة", invoice.id);
+            return true;
+        });
+        
+        console.log("=== نتيجة الفلترة ===");
+        console.log("الفواتير المفلترة:", result.length, "من أصل", invoices.length);
+        console.log("معرفات الفواتير المقبولة:", result.map(inv => inv.id));
+        console.log("=== انتهاء الفلترة ===");
+        
+        return result;
+    }, [invoices, invoiceType, selectedOwner, selectedProperty, paymentStatusFilter, searchTerm]);
+
+    // دالة إرسال تذكير
+    const handleSendReminder = async (invoice) => {
+        try {
+            // هنا يمكن إضافة منطق إرسال التذكير
+            console.log('Sending reminder for invoice:', invoice.id);
+            setSnackbarOpen(true);
+        } catch (error) {
+            console.error('Error sending reminder:', error);
+        }
+    };
+
+    // دالة إرسال إشعار واتساب
+    const handleSendWhatsApp = async (invoice) => {
+        try {
+            // هنا يمكن إضافة منطق إرسال واتساب
+            console.log('Sending WhatsApp for invoice:', invoice.id);
+            setSnackbarOpen(true);
+        } catch (error) {
+            console.error('Error sending WhatsApp:', error);
+        }
+    };
+
+    // دالة تصدير إلى Excel
+    const handleExportToExcel = () => {
+        try {
+            // إنشاء البيانات للتصدير
+            const exportData = filteredInvoices.map(invoice => ({
+                'رقم الفاتورة': invoice.id,
+                'نوع الفاتورة': getInvoiceTypeConfig(invoice.invoiceType).label,
+                'العقار': invoice.property?.name || 'N/A',
+                'رقم الوحدة': invoice.rentAgreement?.unit?.number || 'N/A',
+                'المبلغ': invoice.amount,
+                'حالة الدفع': invoice.paymentId ? 'مدفوعة' : 'معلقة',
+                'تاريخ الفاتورة': new Date(invoice.createdAt).toLocaleDateString('ar-SA'),
+                'تاريخ الاستحقاق': invoice.dueDate ? new Date(invoice.dueDate).toLocaleDateString('ar-SA') : 'N/A'
+            }));
+
+            // تحويل إلى CSV (يمكن تحسينه لاحقاً لاستخدام مكتبة Excel)
+            const csvContent = [
+                Object.keys(exportData[0]).join(','),
+                ...exportData.map(row => Object.values(row).join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `invoices_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+        } catch (error) {
+            console.error('Error exporting to Excel:', error);
+        }
+    };
+
+    return (
+          <Container
+                sx={{
+                    p: {
+                        xs: 0,
+                        md: 1,
+                    },
+                }}
+          >
+              <Box sx={{my: 4}}>
+                  <Typography variant="h4" gutterBottom>
+                      إدارة الفواتير
+                  </Typography>
+
+                  {/* تحذير مشكلة تسجيل الدخول */}
+                  {authError && (
+                      <Alert 
+                          severity="warning" 
+                          sx={{ mb: 3 }}
+                          action={
+                              <Button color="inherit" size="small" href="/login">
+                                  تسجيل الدخول
+                              </Button>
+                          }
+                      >
+                          يرجى تسجيل الدخول للوصول إلى الفواتير
+                      </Alert>
+                  )}
+
+                  {/* بطاقة الفلاتر الأساسية */}
+                  <Card sx={{ mb: 3, p: 3 }}>
+                      <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                          <FilterList />
+                          فلاتر البحث
+                      </Typography>
+                      
+                      <Grid container spacing={3}>
+                          {/* فلتر الفترة الزمنية */}
+                          <Grid item xs={12} md={3}>
+                              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                                  <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                      <DatePicker
+                                            label="تاريخ البدء"
+                                            value={startDate}
+                                            onChange={(date) => setStartDate(date)}
+                                            renderInput={(params) => <TextField {...params} />}
+                                            format="DD/MM/YYYY"
+                                      />
+                                      <DatePicker
+                                            label="تاريخ النهاية"
+                                            value={endDate}
+                                            onChange={(date) => setEndDate(date)}
+                                            renderInput={(params) => <TextField {...params} />}
+                                            format="DD/MM/YYYY"
+                                      />
+                                  </Box>
+                              </LocalizationProvider>
+                          </Grid>
+                          
+                          {/* فلتر المالك - الأولوية الأولى */}
+                          <Grid item xs={12} md={3}>
+                              <FormControl fullWidth>
+                                  <InputLabel>١. اختر المالك ({owners.length} مالك)</InputLabel>
+                                  <Select
+                                      value={selectedOwner}
+                                      onChange={(e) => setSelectedOwner(e.target.value)}
+                                  >
+                                      <MenuItem value="">كل المُلاك</MenuItem>
+                                      {owners.length === 0 ? (
+                                          <MenuItem value="" disabled>
+                                              {loading ? "جاري التحميل..." : "لا توجد بيانات مُلاك"}
+                                          </MenuItem>
+                                      ) : (
+                                          owners.map((owner) => (
+                                              <MenuItem key={owner.id} value={owner.id}>
+                                                  {owner.name ? 
+                                                      owner.name.replace(/\t/g, '').trim() : 
+                                                      `${owner.firstName || ''} ${owner.lastName || ''}`.trim() || 
+                                                      `مالك رقم ${owner.id}`
+                                                  }
+                                              </MenuItem>
+                                          ))
+                                      )}
+                                  </Select>
+                              </FormControl>
+                          </Grid>
+                          
+                          {/* فلتر العقار - الأولوية الثانية */}
+                          <Grid item xs={12} md={3}>
+                              <FormControl fullWidth>
+                                  <InputLabel>٢. اختر العقار ({filteredProperties.length} عقار)</InputLabel>
+                                  <Select
+                                      value={selectedProperty}
+                                      onChange={(e) => setSelectedProperty(e.target.value)}
+                                      disabled={!selectedOwner} // تعطيل إذا لم يتم اختيار مالك
+                                  >
+                                      <MenuItem value="">كل العقارات</MenuItem>
+                                      {filteredProperties.length === 0 ? (
+                                          <MenuItem value="" disabled>
+                                              {!selectedOwner ? "اختر مالكاً أولاً" : "لا توجد عقارات لهذا المالك"}
+                                          </MenuItem>
+                                      ) : (
+                                          filteredProperties.map((property) => (
+                                              <MenuItem key={property.id} value={property.id}>
+                                                  {property.name ? 
+                                                      property.name.replace(/\t/g, '').trim() : 
+                                                      `عقار رقم ${property.id}`
+                                                  }
+                                              </MenuItem>
+                                          ))
+                                      )}
+                                  </Select>
+                              </FormControl>
+                          </Grid>
+                          
+                          {/* فلتر نوع الفاتورة - الأولوية الثالثة */}
+                          <Grid item xs={12} md={3}>
+                              <FormControl fullWidth>
+                                  <InputLabel>٣. نوع الفاتورة</InputLabel>
+                                  <Select
+                                        value={invoiceType}
+                                        onChange={(e) => setInvoiceType(e.target.value)}
+                                  >
+                                      {Object.entries(invoiceTypeMapping).map(([key, value]) => (
+                                            <MenuItem key={key} value={key}>
+                                                {value}
+                                            </MenuItem>
+                                      ))}
+                                  </Select>
+                              </FormControl>
+                          </Grid>
+                      </Grid>
+                      
+                      {/* زر جلب الفواتير */}
+                      <Grid container spacing={3} sx={{ mt: 2 }}>
+                          <Grid item xs={12}>
+                              <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                                  <Button
+                                        variant="contained"
+                                        color="primary"
+                                        size="large"
+                                        onClick={handleGenerateInvoices}
+                                        disabled={submitLoading}
+                                        sx={{ minWidth: '200px', height: '56px' }}
+                                  >
+                                      {submitLoading ? <CircularProgress size={24}/> : "🔍 جلب الفواتير"}
+                                  </Button>
+                              </Box>
+                          </Grid>
+                      </Grid>
+                  </Card>
+                  
+                  {/* عرض بطاقات الإحصائيات */}
+                  {invoices.length > 0 && (
+                      <InvoiceStatsCards invoices={filteredInvoices} />
+                  )}
+
+                  {/* شريط البحث والفلاتر المتقدمة */}
+                  {invoices.length > 0 && (
+                      <Card sx={{ mb: 3, p: 2 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                              <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                  <FilterList />
+                                  البحث والفلاتر
+                              </Typography>
+                              <Button 
+                                  size="small" 
+                                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                              >
+                                  {showAdvancedFilters ? 'إخفاء' : 'إظهار'} الفلاتر المتقدمة
+                              </Button>
+                              <Box sx={{ flexGrow: 1 }} />
+                              <Button 
+                                  variant="contained" 
+                                  startIcon={<GetApp />}
+                                  onClick={handleExportToExcel}
+                                  disabled={filteredInvoices.length === 0}
+                              >
+                                  تصدير Excel
+                              </Button>
+                          </Box>
+
+                          {/* شريط البحث السريع */}
+                          <TextField
+                              fullWidth
+                              variant="outlined"
+                              placeholder="البحث في الفواتير (رقم الفاتورة، اسم العقار، رقم الوحدة...)"
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              InputProps={{
+                                  startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
+                                  endAdornment: searchTerm && (
+                                      <Clear 
+                                          sx={{ cursor: 'pointer', color: 'text.secondary' }} 
+                                          onClick={() => setSearchTerm('')}
+                                      />
+                                  )
+                              }}
+                              sx={{ mb: 2 }}
+                          />
+
+                          {/* الفلاتر المتقدمة */}
+                          <Collapse in={showAdvancedFilters}>
+                              <Grid container spacing={2}>
+                                  <Grid item xs={12} sm={6} md={4}>
+                                      <FormControl fullWidth>
+                                          <InputLabel>حالة الدفع</InputLabel>
+                                          <Select
+                                              value={paymentStatusFilter}
+                                              onChange={(e) => setPaymentStatusFilter(e.target.value)}
+                                          >
+                                              <MenuItem value="ALL">كل الحالات</MenuItem>
+                                              <MenuItem value="PAID">مدفوعة</MenuItem>
+                                              <MenuItem value="PENDING">معلقة</MenuItem>
+                                              <MenuItem value="OVERDUE">متأخرة</MenuItem>
+                                          </Select>
+                                      </FormControl>
+                                  </Grid>
+                                  <Grid item xs={12} sm={6} md={4}>
+                                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', height: '100%' }}>
+                                          <Button 
+                                              variant="outlined" 
+                                              onClick={() => {
+                                                  setInvoiceType("ALL");
+                                                  setPaymentStatusFilter("ALL");
+                                                  setSelectedOwner("");
+                                                  setSelectedProperty("");
+                                                  setSearchTerm("");
+                                              }}
+                                              startIcon={<Clear />}
+                                          >
+                                              مسح الفلاتر
+                                          </Button>
+                                      </Box>
+                                  </Grid>
+                              </Grid>
+                              
+                              {/* عرض عدد النتائج */}
+                              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                                  عرض {filteredInvoices.length} من أصل {invoices.length} فاتورة
+                              </Typography>
+                          </Collapse>
+                      </Card>
+                  )}
+
+                  {filteredInvoices?.length > 0 && (
+                        <Box
+                              sx={{mt: 4, p: 2, border: "1px solid #ddd"}}
+                              ref={componentRef}
+                        >
+                            {renderInvoices(filteredInvoices)}
+                        </Box>
+                  )}
+
+                  {invoices.length > 0 && filteredInvoices.length === 0 && (
+                        <Card sx={{ mt: 4, p: 4, textAlign: 'center' }}>
+                            <Typography variant="h6" color="text.secondary">
+                                لا توجد فواتير تطابق معايير البحث المحددة
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                جرب تعديل الفلاتر أو مسحها للعرض كل الفواتير
+                            </Typography>
+                        </Card>
+                  )}
+
+                  {printLoading && <CircularProgress/>}
+
+                  {currentInvoice && (
+                        <div style={{display: "none"}}>
+                            <InvoicePrint ref={printRef} invoice={currentInvoice}/>
+                        </div>
+                  )}
+
+                  <Snackbar
+                        open={snackbarOpen}
+                        autoHideDuration={6000}
+                        onClose={() => {
+                            setSnackbarOpen(false);
+                            setErrorMessage("");
+                        }}
+                  >
+                      <Alert 
+                          onClose={() => {
+                              setSnackbarOpen(false);
+                              setErrorMessage("");
+                          }} 
+                          severity={authError ? "warning" : errorMessage ? "error" : "success"}
+                      >
+                          {errorMessage || "تم تحديث الفاتورة بنجاح!"}
+                      </Alert>
+                  </Snackbar>
+              </Box>
+          </Container>
+    );
+};
+
+export default InvoicePage;

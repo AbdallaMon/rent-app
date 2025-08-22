@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+:root {
+    /*'& .MuiDataGrid-columnsContainer': {*/
+    /*    direction: ltr*/
+    /*} '& .MuiDataGrid-virtualScroller': {*/
+    /*    direction: ltr*/
+    /*}*/
+}
+
+.rbc-btn-group:first-child {
+    display: none !important;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        direction: rtl;
+    }
+
+    .MuiDataGrid-toolbarContainer {
+        display: none;
+    }
+
+    .MuiDataGrid-toolbarContainer,
+    .MuiTablePagination-root {
+        display: none !important;
+        height: 0;
+    }
+}
+
+
+.MuiDataGrid-container--top [role="row"] {
+    background-color: #1976d2 !important;
+    color: white !important;
+}
+
+@media print {
+    .MuiDataGrid-container--top [role="row"] {
+        color: white !important;
+    }
+
+    .MuiDataGrid-columnHeaders .MuiDataGrid-columnHeaderTitleContainerContent {
+        padding-right: 30px;
+    }
+}
+

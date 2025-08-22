@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "name": "tar-ad-rent-system",
+  "functions": {
+    "src/app/api/**/*.js": {
+      "maxDuration": 30
+    },
+    "src/app/api/notifications/whatsapp/webhook/route.js": {
+      "maxDuration": 60
+    }
+  },
+  "regions": ["iad1"],
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/notifications",
+      "schedule": "0 8 * * *" 
+    }
+  ]
+}

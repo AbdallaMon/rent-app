@@ -1,0 +1,47 @@
+{
+  "whatsapp_scripts": {
+    "description": "Scripts npm المضافة لنظام الواتساب",
+    "scripts": {
+      "whatsapp:check": {
+        "command": "node scripts/system-check.js",
+        "description": "فحص سلامة النظام والملفات الأساسية",
+        "usage": "npm run whatsapp:check"
+      },
+      "whatsapp:docs": {
+        "command": "code docs/WHATSAPP_COMPREHENSIVE_SYSTEM_REFERENCE.md",
+        "description": "فتح المرجع الشامل للنظام",
+        "usage": "npm run whatsapp:docs"
+      },
+      "whatsapp:guide": {
+        "command": "code docs/PRE_DEVELOPMENT_REVIEW_GUIDE.md",
+        "description": "فتح دليل المراجعة قبل التطوير",
+        "usage": "npm run whatsapp:guide"
+      },
+      "whatsapp:overview": {
+        "command": "code docs/REFERENCE_SYSTEM_OVERVIEW.md",
+        "description": "فتح نظرة عامة على نظام المراجع",
+        "usage": "npm run whatsapp:overview"
+      },
+      "pre-dev": {
+        "command": "npm run whatsapp:check",
+        "description": "فحص النظام قبل البدء بأي تطوير",
+        "usage": "npm run pre-dev"
+      },
+      "system:health": {
+        "command": "npm run whatsapp:check && echo 'System is ready for development!'",
+        "description": "فحص صحة النظام مع رسالة تأكيد",
+        "usage": "npm run system:health"
+      }
+    },
+    "quick_commands": {
+      "check_system": "npm run whatsapp:check",
+      "open_docs": "npm run whatsapp:docs",
+      "before_coding": "npm run pre-dev"
+    },
+    "integration_notes": {
+      "git_hooks": "يمكن إضافة npm run whatsapp:check كـ pre-commit hook",
+      "ci_cd": "يمكن استخدام npm run whatsapp:check في CI/CD pipelines",
+      "automation": "جميع الأوامر مؤتمتة ولا تحتاج تدخل يدوي"
+    }
+  }
+}

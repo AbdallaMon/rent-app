@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE `Payment` ADD COLUMN `chequeNumber` VARCHAR(191) NULL,
+    ADD COLUMN `paymentTypeMethod` ENUM('CASH', 'BANK', 'CHEQUE') NULL,
+    ADD COLUMN `timeOfPayment` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3);

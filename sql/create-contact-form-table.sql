@@ -1,0 +1,12 @@
+-- أمر SQL لإنشاء جدول ContactForm
+CREATE TABLE IF NOT EXISTS `ContactForm` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(191) NOT NULL,
+  `email` VARCHAR(191) NOT NULL,
+  `phone` VARCHAR(191) NOT NULL,
+  `message` TEXT NOT NULL,
+  `language` ENUM('ENGLISH', 'ARABIC') NOT NULL DEFAULT 'ARABIC',
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL,
+  PRIMARY KEY (`id`)
+);

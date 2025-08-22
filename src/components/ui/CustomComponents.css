@@ -1,0 +1,289 @@
+/* CustomComponents.css - تنسيقات المكونات المخصصة */
+
+.badge {
+  display: inline-block;
+  padding: 0.25em 0.4em;
+  font-size: 75%;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: baseline;
+  border-radius: 0.25rem;
+}
+
+.badge-processing { background-color: #1890ff; color: white; }
+.badge-warning { background-color: #faad14; color: white; }
+.badge-success { background-color: #52c41a; color: white; }
+.badge-error { background-color: #f5222d; color: white; }
+
+.btn {
+  display: inline-block;
+  padding: 0.375rem 0.75rem;
+  margin-bottom: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-default {
+  color: #212529;
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.btn:hover {
+  opacity: 0.8;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.card {
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  background-color: #fff;
+  margin-bottom: 1rem;
+}
+
+.card-header {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  font-weight: 500;
+}
+
+.card-body {
+  padding: 1.25rem;
+}
+
+.card-small .card-body {
+  padding: 0.75rem;
+}
+
+.col {
+  flex: 1;
+  padding: 0 0.5rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -0.5rem;
+}
+
+.divider {
+  border-top: 1px solid #dee2e6;
+  margin: 1rem 0;
+  position: relative;
+}
+
+.divider-text {
+  background: white;
+  padding: 0 1rem;
+  position: absolute;
+  top: -0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.input {
+  display: block;
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #495057;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.input:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.select {
+  display: block;
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #495057;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 0.25rem;
+}
+
+.space {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.space-horizontal {
+  flex-direction: row;
+}
+
+.space-vertical {
+  flex-direction: column;
+}
+
+.space-small {
+  gap: 0.25rem;
+}
+
+.space-middle {
+  gap: 0.5rem;
+}
+
+.space-large {
+  gap: 1rem;
+}
+
+.statistic {
+  text-align: center;
+}
+
+.statistic-title {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.statistic-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.table th,
+.table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #dee2e6;
+  text-align: right;
+}
+
+.table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.table-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.table-pagination {
+  text-align: center;
+  padding: 1rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  border-radius: 0.25rem;
+  text-transform: uppercase;
+}
+
+.tag-default {
+  background-color: #6c757d;
+  color: white;
+}
+
+.tag-gold {
+  background-color: #faad14;
+  color: white;
+}
+
+.tag-blue {
+  background-color: #1890ff;
+  color: white;
+}
+
+.tag-green {
+  background-color: #52c41a;
+  color: white;
+}
+
+.title {
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.title-1 { font-size: 2rem; }
+.title-2 { font-size: 1.5rem; }
+.title-3 { font-size: 1.25rem; }
+.title-4 { font-size: 1rem; }
+
+.text {
+  color: #495057;
+}
+
+.text-secondary {
+  color: #6c757d;
+}
+
+.text-success {
+  color: #28a745;
+}
+
+.text-danger {
+  color: #dc3545;
+}
+
+.text-warning {
+  color: #ffc107;
+}
+
+.text-info {
+  color: #17a2b8;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.checkbox-input {
+  margin-left: 0.5rem;
+}
+
+.checkbox-label {
+  user-select: none;
+}

@@ -1,0 +1,128 @@
+{
+  "timestamp": "2025-06-20T04:04:26.557Z",
+  "overall_status": "good",
+  "overall_score": 83.33333333333333,
+  "details": {
+    "files": {
+      "passed": 11,
+      "failed": 0,
+      "details": [
+        {
+          "file": "src/app/whatsapp/dashboard/page.jsx",
+          "description": "لوحة التحكم الرئيسية",
+          "exists": true,
+          "status": "موجود"
+        },
+        {
+          "file": "src/app/whatsapp/reminders/page.jsx",
+          "description": "واجهة التذكيرات",
+          "exists": true,
+          "status": "موجود"
+        },
+        {
+          "file": "src/app/whatsapp/settings/page.jsx",
+          "description": "واجهة الإعدادات",
+          "exists": true,
+          "status": "موجود"
+        },
+        {
+          "file": "src/app/api/whatsapp/route.js",
+          "description": "API الواتساب الموحد",
+          "exists": true,
+          "status": "موجود"
+        },
+        {
+          "file": "src/app/api/whatsapp/webhook/route.js",
+          "description": "API البوت",
+          "exists": true,
+          "status": "موجود"
+        },
+        {
+          "file": "src/app/api/whatsapp/reminders/route.js",
+          "description": "API التذكيرات",
+          "exists": true,
+          "status": "موجود"
+        },
+        {
+          "file": "src/app/api/whatsapp/settings/route.js",
+          "description": "API الإعدادات",
+          "exists": true,
+          "status": "موجود"
+        },
+        {
+          "file": "src/app/UiComponents/Navigation/Navbar/Navbar.js",
+          "description": "القائمة الجانبية",
+          "exists": true,
+          "status": "موجود"
+        },
+        {
+          "file": "src/app/context/AuthProvider/AuthProvider.js",
+          "description": "نظام الصلاحيات",
+          "exists": true,
+          "status": "موجود"
+        },
+        {
+          "file": "docs/WHATSAPP_COMPREHENSIVE_SYSTEM_REFERENCE.md",
+          "description": "المرجع الشامل",
+          "exists": true,
+          "status": "موجود"
+        },
+        {
+          "file": "docs/PRE_DEVELOPMENT_REVIEW_GUIDE.md",
+          "description": "دليل المراجعة",
+          "exists": true,
+          "status": "موجود"
+        }
+      ]
+    },
+    "apis": {
+      "passed": 3,
+      "failed": 0,
+      "details": [
+        {
+          "endpoint": "/api/whatsapp",
+          "file": "src/app/api/whatsapp/route.js",
+          "exists": true,
+          "status": "ملف موجود"
+        },
+        {
+          "endpoint": "/api/whatsapp/reminders",
+          "file": "src/app/api/whatsapp/reminders/route.js",
+          "exists": true,
+          "status": "ملف موجود"
+        },
+        {
+          "endpoint": "/api/whatsapp/settings",
+          "file": "src/app/api/whatsapp/settings/route.js",
+          "exists": true,
+          "status": "ملف موجود"
+        }
+      ]
+    },
+    "database": {
+      "passed": 2,
+      "failed": 2,
+      "details": [
+        {
+          "file": "lib/database-connection.js",
+          "exists": true,
+          "status": "موجود"
+        },
+        {
+          "file": "schema.prisma",
+          "exists": false,
+          "status": "مفقود"
+        },
+        {
+          "file": "sql/whatsapp_tables.sql",
+          "exists": true,
+          "status": "موجود"
+        }
+      ]
+    },
+    "overall": "good"
+  },
+  "recommendations": [
+    "راجع إعدادات قاعدة البيانات ومتغيرات البيئة"
+  ]
+}

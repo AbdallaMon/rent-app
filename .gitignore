@@ -1,0 +1,136 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next/
+out/
+build/
+
+# Production
+dist/
+.vercel/
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# nyc test coverage
+.nyc_output
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# تقارير وملفات الفحص المؤقتة
+reminder-job-report-*.json
+investigate-*.js
+check-*.js
+fix-*.js
+
+# ملفات التطوير المؤقتة
+*_NEW.jsx
+*_OLD.jsx
+*_BACKUP.jsx
+
+# Test files (prevent accidental commits)
+test-*.js
+debug-*.js
+*-test-results.json
+*-debug-info.json
+
+# Backup and alternative page files
+page-backup.*
+page-clean.*
+page-new.*
+page-simple.*
+page-alternative.*
+
+# Test components  
+Test*.jsx
+Test*.js
+*Test.jsx
+*Test.js
+
+# Scripts and utilities (should be in scripts/ folder)
+/add-*.js
+/apply-*.js
+/analyze-*.js
+/automated-*.js
+/backup-*.js
+/basic-*.js
+/check-*.js
+/comprehensive-*.js
+/create-*.js
+/database-*.js
+/debug-*.js
+/deep-*.js
+/enhanced-*.js
+/fix-*.js
+/interactive-*.js
+/language-*.js
+/list-*.js
+/pre-*.js
+/restore-*.js
+/run-*.js
+/search-*.js
+/seed-*.js
+/send-*.js
+/staff-*.js
+/table-*.js
+/test-*.js
+/update-*.js
+/validate-*.js
+/verify-*.js
+/whatsapp-*.js
+
+# Documentation files (should be in docs/ folder)
+/*.md
+!README.md
+
+# SQL files (should be in sql/ folder)
+/*.sql
+
+# Config files that don't belong in root
+/*-config.json
+!package.json
+!tsconfig.json
+!jsconfig.json
+
+# Batch and shell scripts (should be in scripts/ folder)
+/*.bat
+/*.ps1
+/*.sh
+
+# Untitled files
+Untitled-*.txt
+.vercel
+.env
+.env.local
+.env.development.local
