@@ -3,7 +3,6 @@ import { stateInputs } from "@/app/settings/state/inputs";
 import { cityInputs } from "@/app/settings/state/[stateId]/cityInputs";
 import { districtInputs } from "@/app/settings/state/[stateId]/[cityId]/districtInputs";
 import { ownerInputs } from "@/app/owners/ownerInputs";
-import { bankInputs } from "@/app/settings/bank/inputs";
 import { collectorInputs } from "@/app/settings/collectors/collectorInputs";
 
 async function getBanksData() {

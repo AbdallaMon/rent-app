@@ -12,6 +12,7 @@ import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider
 import { submitProperty } from "@/services/client/properties";
 import DeleteBtn from "@/components/ui/Buttons/DeleteBtn";
 import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
+import { ownerInputs } from "@/app/owners/ownerInputs";
 
 const PropertyComponent = ({ clientId, noTabs }) => {
   const {
@@ -71,7 +72,7 @@ const PropertyComponent = ({ clientId, noTabs }) => {
 
   async function getNeighboursDataByDistrictId() {
     const res = await fetch(
-      "/api/fast-handler?id=neighbour&districtId=" + districtId,
+      "/api/fast-handler?id=neighbour&districtId=" + districtId
     );
     const data = await res.json();
     return { data, id: districtId };
@@ -82,7 +83,13 @@ const PropertyComponent = ({ clientId, noTabs }) => {
     const data = await res.json();
     return { data };
   }
+  async function getCurrentOwner() {
+    return { data: [{ id: ownerId, name: `#${ownerId}` }] };
+  }
 
+  function getCurrentOwnerId() {
+    return ownerId;
+  }
   async function getPropertyTypes() {
     const res = await fetch("/api/fast-handler?id=propertyType");
     const data = await res.json();
@@ -101,6 +108,7 @@ const PropertyComponent = ({ clientId, noTabs }) => {
     const bankAccounts = data?.bankAccounts.map((account) => ({
       id: account.id,
       name: account.accountNumber,
+      ownerId: ownerId,
     }));
     return { data: bankAccounts };
   }
@@ -178,6 +186,35 @@ const PropertyComponent = ({ clientId, noTabs }) => {
           extraId: false,
           getData: getOwnerAccountData,
           disabled: disabled.bankAccount,
+          createData: [
+            ...input.createData,
+            {
+              id: "owner",
+              data: {
+                id: "clientId",
+                type: "select",
+                label: "معرف المالك",
+                name: "clientId",
+                disabled: true,
+              },
+              preValue: getCurrentOwnerId(),
+              createData: ownerInputs,
+              getData: getCurrentOwner,
+              pattern: {
+                required: {
+                  value: true,
+                  message: "يرجى اختيار اسم المالك",
+                },
+              },
+              sx: {
+                width: {
+                  xs: "100%",
+                  md: "48%",
+                },
+                mr: "auto",
+              },
+            },
+          ],
         };
       case "collectorId":
         return {
@@ -215,7 +252,7 @@ const PropertyComponent = ({ clientId, noTabs }) => {
       "DELETE",
       null,
       null,
-      "main/properties",
+      "main/properties"
     );
 
     const filterData = data.filter((item) => item.id !== res.id);

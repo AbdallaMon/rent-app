@@ -122,6 +122,9 @@ function MUIAutoComplete({
       triggerValue(selectData.id, select.value);
       handleClose();
     }
+    if (select.preValue && !value && !changed) {
+      handleOpen();
+    }
   }, [select]);
 
   const handleOpen = async () => {
@@ -132,6 +135,11 @@ function MUIAutoComplete({
       setOptions(fetchedOptions.data);
       setId(fetchedOptions.id);
       setLoading(false);
+      if (select.preValue && !select.value) {
+        setValue(select.preValue);
+        setOpen(false);
+        triggerValue(selectData.id, select.preValue);
+      }
       if (!select.rerender) {
         setOpened(true);
       }

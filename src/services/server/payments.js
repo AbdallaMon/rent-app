@@ -147,7 +147,7 @@ export async function getRentPaymentsForCurrentMonth(
 }
 
 export async function createNewBankAccount(data, params, searchParams) {
-  const clientId = searchParams.get("clientId");
+  const clientId = data.clientId || searchParams.get("clientId");
   const bankAccount = await prisma.bankAccount.create({
     data: {
       accountNumber: data.accountNumber,
