@@ -30,6 +30,7 @@ import {
   getUnitTypes,
   getContractPayments,
   createBankAccount,
+  getGlAccounts,
 } from "@/services/server/fastHandlers";
 import { createNewBankAccount } from "@/services/server/payments";
 
@@ -41,6 +42,10 @@ const handlerObject = {
   city: {
     POST: createCity,
     GET: getCitiesByStateId,
+  },
+  glAccounts: {
+    // POST: createCity,
+    GET: getGlAccounts,
   },
   district: {
     POST: createDistrict,

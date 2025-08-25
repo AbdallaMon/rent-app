@@ -266,10 +266,15 @@ async function getUnitTypes() {
   }
 }
 
-async function getProperties() {
+async function getProperties(searchParams) {
+  const clientId = searchParams.get("clientId");
+
   try {
     let where = {};
     where = await updateWhereClauseWithUserProperties("id", where);
+    if (clientId && clientId !== "all" && clientId !== "undefined") {
+      where.clientId = Number(clientId);
+    }
     const properties = await prisma.property.findMany({
       where,
       select: {
@@ -571,6 +576,10 @@ async function getExpenseTypes() {
   const expenseTypes = await prisma.propertyExpenseType.findMany();
   return expenseTypes;
 }
+async function getGlAccounts() {
+  const glAccounts = await prisma.GLAccount.findMany();
+  return glAccounts;
+}
 
 export {
   createState,
@@ -603,4 +612,5 @@ export {
   getExpenseTypes,
   getOwnersByProperty,
   getContractPayments,
+  getGlAccounts,
 };

@@ -28,7 +28,6 @@ export function CreateFormModal({
   fullWidth,
 }) {
   const theme = useTheme();
-
   return (
     <Dialog
       open={open}
@@ -63,17 +62,16 @@ export function CreateFormModal({
         dividers
         sx={{ "&.MuiDialogContent-root": { p: { xs: 1.5, sm: 2, md: 3 } } }}
       >
-        {extraComponent ? <Box sx={{ mb: 2 }}>{extraComponent}</Box> : null}
-
         <Form
           formTitle={null}
           inputs={inputs}
           onSubmit={onSubmit}
-          variant="outlined"
-          btnText="إضافة"
+          variant={"outlined"}
+          btnText={"إضافة"}
           disabled={disabled}
           extraData={createModalsData}
           reFetch={reFetch}
+          extraComponent={extraComponent}
         >
           {children}
         </Form>

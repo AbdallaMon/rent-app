@@ -32,9 +32,9 @@ const PrivilegeArea = {
   RENTER: "المستاجرين",
   SETTING: "الاعدادات",
   WHATSAPP: "واتساب",
+  ACCOUNTING: "المحاسبة",
+  SECURITY_DEPOSIT: "ودائع التأمين",
 };
-
-/* ------------------------- أجزاء أصغر للمكوّن ------------------------- */
 
 function UserFields({
   id,

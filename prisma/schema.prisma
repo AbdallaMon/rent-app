@@ -811,7 +811,10 @@ enum PrivilegeArea {
   RENTER
   SETTING
   WHATSAPP
+  ACCOUNTING       
+  SECURITY_DEPOSIT  
 }
+
 
 enum ClientRole {
   OWNER

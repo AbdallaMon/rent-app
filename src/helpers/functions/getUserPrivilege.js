@@ -12,8 +12,10 @@ export const getCurrentPrivilege = (user, pathName) => {
     "/owners": "OWNER",
     "/renters": "RENTER",
     "/settings": "SETTING",
-    "/admin": "SETTING", // مسار لوحة الإدارة
-    "/whatsapp": "SETTING", // مسار لوحة تحكم WhatsApp
+    "/admin": "SETTING",
+    "/whatsapp": "SETTING",
+    "/accounting": "ACCOUNTING",
+    "/security-deposit": "SECURITY_DEPOSIT",
   };
   if (pathName.split("/").length > 2) {
     pathName = "/" + pathName.split("/")[1];

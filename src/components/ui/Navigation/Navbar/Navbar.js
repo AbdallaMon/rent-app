@@ -21,6 +21,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import HouseIcon from "@mui/icons-material/House";
 import ApartmentIcon from "@mui/icons-material/Apartment";
 import ReceiptIcon from "@mui/icons-material/Receipt";
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import BuildIcon from "@mui/icons-material/Build";
 import PaymentIcon from "@mui/icons-material/Payment";
 import PeopleIcon from "@mui/icons-material/People";
@@ -99,6 +100,13 @@ const navItems = [
   },
   { href: "/owners", Icon: PeopleIcon, text: "اصحاب الاملاك", area: "OWNER" },
   { href: "/renters", Icon: GroupIcon, text: "المستأجرين", area: "RENTER" },
+  {
+    href: "/accounting",
+    Icon: AccountBalanceIcon,
+    text: "المحاسبة",
+    area: "ACCOUNTING",
+  },
+
   { href: "/settings", Icon: SettingsIcon, text: "الاعدادات", area: "SETTING" },
 ];
 

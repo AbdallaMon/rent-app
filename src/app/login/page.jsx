@@ -42,12 +42,12 @@ export default function LoginPage() {
         variant="outlined"
         inputGap="16px"
         onSubmit={handleLogin}
+        centerY={true}
+        centerX={true}
+        fullHeight={true}
+        fullWidth={true}
         formStyle={{
           maxWidth: "400px",
-          margin: "auto auto",
-          height: "380px",
-
-          marginTop: { xs: "50%", md: "calc(50% - 476px)" },
         }}
       >
         <Link href={"/reset-password"}>نسيت كلمة السر؟</Link>

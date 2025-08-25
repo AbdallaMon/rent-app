@@ -180,3 +180,10 @@ ALTER TABLE `JournalLine`
   ADD INDEX `idx_jl_securityDepositId` (`securityDepositId`),
   ADD CONSTRAINT `fk_jl_securityDeposit` FOREIGN KEY (`securityDepositId`)
     REFERENCES `SecurityDeposit`(`id`) ON DELETE SET NULL ON UPDATE RESTRICT;
+
+ALTER TABLE `UserPrivilege`
+MODIFY `area` ENUM(
+  'HOME','FOLLOW_UP','PROPERTY','UNIT','RENT','INVOICE',
+  'MAINTENANCE','REQUEST','REPORT','OWNER','RENTER','SETTING','WHATSAPP',
+  'ACCOUNTING','SECURITY_DEPOSIT'
+) NOT NULL;

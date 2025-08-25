@@ -92,7 +92,7 @@ export async function settleLines({ matches, note }) {
   }
 
   const settlement = await prisma.journalSettlement.create({
-    data: { note: note || null },
+    data: { note: note || null, matchedAt: matches[0].createdAt },
   });
 
   for (const m of matches) {

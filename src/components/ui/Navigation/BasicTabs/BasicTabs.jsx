@@ -81,16 +81,29 @@ const requestLink = [
   { label: "تقارير الطلبات", href: "/request/contact" },
   { label: "تقارير الشكاوي", href: "/request/complaint" },
 ];
+const accountingLink = [
+  { label: "حسابات الشركة", href: "/accounting/" },
+  { label: "كشوف الحسابات", href: "/accounting/statements" },
+  { label: "دفتر اليومية", href: "/accounting/journal" },
+  { label: "الاستاذ العام", href: "/accounting/ledger" },
+  { label: "ميزان المراجعة", href: "/accounting/trial-balance" },
+];
 
 /* =========================
    Unchanged export name
 ========================= */
-export function BasicTabs({ reports, settings }) {
+export function BasicTabs({ reports, settings, accounting }) {
   const router = useRouter();
   const currentPath = usePathname();
 
   // keep same logic; just small guard for correct list
-  const list = reports ? reportLink : settings ? tabLinks : requestLink;
+  const list = accounting
+    ? accountingLink
+    : reports
+      ? reportLink
+      : settings
+        ? tabLinks
+        : requestLink;
 
   const currentIndex = list.findIndex((tab) => tab.href === currentPath);
   const [value, setValue] = React.useState(

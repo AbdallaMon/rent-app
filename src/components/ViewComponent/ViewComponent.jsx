@@ -44,6 +44,8 @@ export default function ViewComponent({
   title,
   extraComponent,
   rerender,
+  noPagination,
+  noCreate,
 }) {
   const [view, setView] = useState("table");
   const [showForm, setShowForm] = useState(directEdit);
@@ -123,7 +125,7 @@ export default function ViewComponent({
           spacing={1.5}
           sx={{ mb: 2 }}
         >
-          {canCreate() && (
+          {canCreate() && !noCreate && (
             <Button
               variant="outlined"
               color="primary"
@@ -166,6 +168,7 @@ export default function ViewComponent({
           loading={loading}
           total={total}
           setTotal={setTotal}
+          disablePagination={noPagination}
         />
       )}
 
@@ -182,23 +185,24 @@ export default function ViewComponent({
           setTotal={setTotal}
         />
       )}
-
-      <CreateFormModal
-        open={createModalOpen}
-        handleClose={handleCloseCreateModal}
-        inputs={inputs}
-        formTitle={formTitle}
-        onSubmit={async (data) => {
-          const submit = await create(data);
-          if (submit) handleCloseCreateModal();
-        }}
-        extraComponent={extraComponent}
-        disabled={disabled}
-        createModalsData={createModalsData}
-        reFetch={reFetch}
-      >
-        {children}
-      </CreateFormModal>
+      {!noCreate && (
+        <CreateFormModal
+          open={createModalOpen}
+          handleClose={handleCloseCreateModal}
+          inputs={inputs}
+          formTitle={formTitle}
+          onSubmit={async (data) => {
+            const submit = await create(data);
+            if (submit) handleCloseCreateModal();
+          }}
+          extraComponent={extraComponent}
+          disabled={disabled}
+          createModalsData={createModalsData}
+          reFetch={reFetch}
+        >
+          {children}
+        </CreateFormModal>
+      )}
     </Box>
   );
 }

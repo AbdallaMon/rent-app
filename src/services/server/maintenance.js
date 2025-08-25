@@ -330,6 +330,7 @@ async function handleMaintenanceAccounting({
   // قيّد القيد
   const { debitLine, creditLine, entry } = await createJournalEntry({
     description: `دفع ${type} نيابة عن المالك - Property#${propertyId}`,
+    entryDate: maintenanceDate || payment.dueDate || new Date(),
     lines: [
       {
         side: "DEBIT",

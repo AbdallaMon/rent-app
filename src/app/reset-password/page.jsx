@@ -40,12 +40,12 @@ export default function ResetPage({ searchParams }) {
         subTitle={subTitle}
         variant="outlined"
         inputGap="16px"
+        centerY={true}
+        centerX={true}
+        fullHeight={true}
+        fullWidth={true}
         formStyle={{
           maxWidth: "400px",
-          margin: "auto auto",
-          height: "300px",
-
-          marginTop: { xs: "50%", md: "calc(50% - 400px)" },
         }}
       />
     </>

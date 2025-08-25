@@ -18,31 +18,34 @@ export default function AuthProvider({ children }) {
     async function auth() {
       setCheckAccess(true);
       // Only show loading toast if not on public pages
-      const isPublicPage = pathName === "/reset-password" || 
-                          pathName === "/forgot-password" || 
-                          pathName === "/login";
-      
+      const isPublicPage =
+        pathName === "/reset-password" ||
+        pathName === "/forgot-password" ||
+        pathName === "/login";
+
       // Only create toast if not on a public page
-      const toastId = isPublicPage ? null : toast.loading("يتم التحقق من الصلاحيات...");
-      
+      const toastId = isPublicPage
+        ? null
+        : toast.loading("يتم التحقق من الصلاحيات...");
+
       const response = await fetch(`/api/auth/state`, { cache: "no-store" });
       const result = await response.json();
-      
+
       if (result.auth === false) {
         // Non-authenticated user handling
         if (isPublicPage) {
           // No need for toast on public pages
           return;
         }
-        
+
         // Redirect to login
         router.push("/login");
-        
+
         // Only show failed toast if not redirecting to login
         if (toastId) {
           toast.update(toastId, Failed("غير مصرح"));
         }
-        
+
         setIsLoggedIn(false);
         setUser({});
       } else {
@@ -50,7 +53,7 @@ export default function AuthProvider({ children }) {
         if (toastId) {
           toast.update(
             toastId,
-            Success("مصرح. جاري تحميل البيانات الرجاء الانتظار..."),
+            Success("مصرح. جاري تحميل البيانات الرجاء الانتظار...")
           );
         }
         setIsLoggedIn(result.auth);
@@ -67,7 +70,8 @@ export default function AuthProvider({ children }) {
         const userPrivileges = user.privileges.reduce((acc, priv) => {
           acc[priv.area] = priv.privilege;
           return acc;
-        }, {});          const pathMap = {
+        }, {});
+        const pathMap = {
           "/login": "HOME",
           "/": "HOME",
           "/follow-up": "FOLLOW_UP",
@@ -79,7 +83,8 @@ export default function AuthProvider({ children }) {
           "/request": "MAINTENANCE",
           "/reports": "REPORT",
           "/owners": "OWNER",
-          "/renters": "RENTER",          "/settings": "SETTING",          // نظام الواتساب الموحد
+          "/renters": "RENTER",
+          "/settings": "SETTING", // نظام الواتساب الموحد
           "/whatsapp": "WHATSAPP", // المسار الرئيسي للهيكل الجديد
           "/whatsapp/dashboard": "WHATSAPP",
           "/whatsapp/reminders": "WHATSAPP",
@@ -87,31 +92,33 @@ export default function AuthProvider({ children }) {
           // مسارات الإدارة
           "/admin": "SETTING",
           "/admin/whatsapp": "SETTING",
+          "/accounting": "ACCOUNTING",
+          "/security-deposit": "SECURITY_DEPOSIT",
         };
-        
+
         if (pathName.split("/").length > 2) {
           pathName = "/" + pathName.split("/")[1];
         }
-        
+
         let area = Object.keys(pathMap).find((key) => pathName.includes(key))
           ? pathMap[Object.keys(pathMap).find((key) => pathName == key)]
           : null;
-          
+
         setCheckAccess(false);
-        
+
         if (pathName === "/" || pathName === "/login" || pathName === "") {
           area = "HOME";
         }
-        
+
         if (area && userPrivileges[area]?.canRead) {
           return true;
         } else {
           router.push("/not-allowed");
         }
-        
+
         return false;
       };
-      
+
       checkAccess();
     } else {
       setCheckAccess(false);
@@ -121,9 +128,11 @@ export default function AuthProvider({ children }) {
   const renderContent = () => {
     if (!isLoggedIn) {
       // Update to include login and other public routes in public accessible routes
-      if (pathName === "/reset-password" || 
-          pathName === "/forgot-password" || 
-          pathName === "/login") {
+      if (
+        pathName === "/reset-password" ||
+        pathName === "/forgot-password" ||
+        pathName === "/login"
+      ) {
         return children;
       }
       return null; // Don't render protected content for non-authenticated users

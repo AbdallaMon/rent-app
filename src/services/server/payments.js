@@ -312,7 +312,6 @@ export async function updatePayment(id, data) {
       });
     }
   }
-  console.log(data, "data");
   await handlePaymentAccounting({
     payment,
     amount: +data.paidAmount,
@@ -326,7 +325,7 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
   const rentersGlId = await getGLIdByCode("1220");
   const checkingId = await getCompanyBankIdByType("CHECKING");
   const ownerId = payment.property.clientId;
-  const renterId = payment.rentAgreement.renterId;
+  const renterId = payment.rentAgreement?.renterId;
   const debitLine = await getDebitLineByPaymentId({ paymentId: payment.id });
 
   const paymentStatus = await checkForFullPaidByPaymentId({
@@ -349,6 +348,8 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
 
     const { creditLine } = await createJournalEntry({
       description: "تحصيل عمولة إدارة من المالك",
+      entryDate: timeOfPayment ? new Date(timeOfPayment) : new Date(),
+
       lines: [
         {
           side: "DEBIT",
@@ -391,6 +392,8 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
     if (!debitLine) return;
 
     const { creditLine } = await createJournalEntry({
+      entryDate: timeOfPayment ? new Date(timeOfPayment) : new Date(),
+
       description: "تحصيل رسوم تسجيل عقد من المستأجر",
       lines: [
         {
@@ -435,6 +438,8 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
 
     const { creditLine } = await createJournalEntry({
       description: "تحصيل ضريبة من المستأجر",
+      entryDate: timeOfPayment ? new Date(timeOfPayment) : new Date(),
+
       lines: [
         {
           side: "DEBIT",
@@ -478,14 +483,16 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
 
     const { creditLine } = await createJournalEntry({
       description: "تحصيل صيانة من المالك",
+      entryDate: timeOfPayment ? new Date(timeOfPayment) : new Date(),
+
       lines: [
         {
           side: "DEBIT",
           amount: amount,
           companyBankAccountId: checkingId, // يرجع للحساب الجاري
           memo: "تحصيل صيانة - بنك",
-          unitId: Number(payment.unit.id),
-          propertyId: payment.unit.propertyId,
+          unitId: Number(payment.unit?.id),
+          propertyId: payment.propertyId,
           maintenanceId: payment.maintenanceId,
           paymentId: payment.id,
           createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
@@ -497,8 +504,8 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
           partyType: "OWNER",
           partyClientId: ownerId,
           memo: "تسوية ذمم المالك - صيانة",
-          unitId: Number(payment.unit.id),
-          propertyId: payment.unit.propertyId,
+          unitId: Number(payment.unit?.id),
+          propertyId: payment.propertyId,
           maintenanceId: payment.maintenanceId,
           paymentId: payment.id,
           createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
@@ -507,7 +514,7 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
     });
     credit = creditLine;
     debit = debitLine;
-    note = `تسوية صيانة - Property#${propertyId} - Unit#${payment.unit.unitId}`;
+    note = `تسوية صيانة - Property#${payment.propertyId} - ${payment.unit ? "Unit #" + payment.unit.unitId : ""}`;
     debitNote = "تسوية صيانة - استحقاق";
     creditNote = "تسوية صيانة - تحصيل";
   }
@@ -522,6 +529,8 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
 
     await createJournalEntry({
       description: "استلام وديعة تأمين من المستأجر",
+      entryDate: timeOfPayment ? new Date(timeOfPayment) : new Date(),
+
       lines: [
         {
           side: "DEBIT",
