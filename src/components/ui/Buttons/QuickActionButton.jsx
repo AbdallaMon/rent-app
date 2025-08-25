@@ -1,55 +1,73 @@
-import React from 'react';
+import React from "react";
+import { Button, Stack, Typography } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
 /**
- * مكون زر الإجراءات السريعة
- * مصمم للاستخدام في أقسام الإجراءات السريعة
+ * زر إجراءات سريعة (MUI فقط)
+ * props:
+ * - title: نص الزر
+ * - icon: كومبوننت أيقونة (مثل react-icons)
+ * - color: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'gray'
+ * - onClick
+ * - disabled
+ * - sx: ستايل إضافي من MUI
  */
-const QuickActionButton = ({ 
-  title, 
+const QuickActionButton = ({
+  title,
   icon: Icon,
-  color = 'blue',
+  color = "blue",
   onClick,
   disabled = false,
-  className = ''
+  sx = {},
 }) => {
-  const colorClasses = {
-    blue: 'bg-blue-50 hover:bg-blue-100 text-blue-600',
-    green: 'bg-green-50 hover:bg-green-100 text-green-600',
-    purple: 'bg-purple-50 hover:bg-purple-100 text-purple-600',
-    orange: 'bg-orange-50 hover:bg-orange-100 text-orange-600',
-    red: 'bg-red-50 hover:bg-red-100 text-red-600',
-    gray: 'bg-gray-50 hover:bg-gray-100 text-gray-600'
+  // لو عندك ثيم مخصص، تقدر تربط الألوان بالـ palette
+  const palette = {
+    blue: { main: "#1d4ed8" }, // tailwind blue-700 تقريباً
+    green: { main: "#15803d" }, // green-700
+    purple: { main: "#6d28d9" }, // purple-700
+    orange: { main: "#c2410c" }, // orange-700
+    red: { main: "#b91c1c" }, // red-700
+    gray: { main: "#374151" }, // gray-700
   };
 
-  const textClasses = {
-    blue: 'text-blue-700',
-    green: 'text-green-700',
-    purple: 'text-purple-700',
-    orange: 'text-orange-700',
-    red: 'text-red-700',
-    gray: 'text-gray-700'
-  };
+  const c = palette[color] || palette.blue;
 
   return (
-    <button
+    <Button
       onClick={onClick}
       disabled={disabled}
-      className={`
-        flex flex-col items-center p-4 text-center rounded-lg transition-colors
-        ${colorClasses[color]}
-        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-        ${className}
-      `}
+      variant="text"
+      disableElevation
+      sx={{
+        // شكل “soft” بديل لـ bg-50/100 مع hover
+        bgcolor: alpha(c.main, 0.06),
+        color: c.main,
+        borderRadius: 2,
+        p: 2,
+        textAlign: "center",
+        transition: "background-color 120ms ease",
+        "&:hover": {
+          bgcolor: alpha(c.main, 0.12),
+        },
+        "&.Mui-disabled": {
+          opacity: 0.5,
+          cursor: "not-allowed",
+        },
+        ...sx,
+      }}
     >
-      {Icon && <Icon className={`${color === 'blue' ? 'text-blue-600' : 
-                                 color === 'green' ? 'text-green-600' : 
-                                 color === 'purple' ? 'text-purple-600' : 
-                                 color === 'orange' ? 'text-orange-600' : 
-                                 color === 'red' ? 'text-red-600' : 'text-gray-600'} mb-2`} />}
-      <span className={`text-sm font-medium ${textClasses[color]}`}>
-        {title}
-      </span>
-    </button>
+      <Stack alignItems="center" spacing={1}>
+        {Icon && (
+          <Icon
+            // نفس فكرة text-*-600 مع مسافة تحت بسيطة
+            style={{ color: c.main, marginBottom: 4, width: 22, height: 22 }}
+          />
+        )}
+        <Typography variant="body2" fontWeight={600} sx={{ color: c.main }}>
+          {title}
+        </Typography>
+      </Stack>
+    </Button>
   );
 };
 

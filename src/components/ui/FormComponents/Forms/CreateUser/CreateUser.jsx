@@ -1,6 +1,7 @@
 "use client";
-import {useEffect} from "react";
+import { useEffect, useMemo } from "react";
 import {
+  Box,
   Button,
   Checkbox,
   Container,
@@ -12,240 +13,292 @@ import {
   Select,
   TextField,
   Typography,
+  Divider,
 } from "@mui/material";
-import {useTableForm} from "@/app/context/TableFormProvider/TableFormProvider";
+import { useTableForm } from "@/app/context/TableFormProvider/TableFormProvider";
 
+// ثابت العرض (بدون تغيير)
 const PrivilegeArea = {
-    HOME: "الرئيسية",
-    FOLLOW_UP: "متابعة المستحقات",
-    PROPERTY: "العقارات",
-    UNIT: "الوحدات",
-    RENT: "عقود الايجار",
-    INVOICE: "الفواتير",
-    MAINTENANCE: "الصيانه",
-    REQUEST: "الطلبات",
-    REPORT: "التقارير",
-    OWNER: "الملاك",
-    RENTER: "المستاجرين",
-    SETTING: "الاعدادات",
-    WHATSAPP: "واتساب",
+  HOME: "الرئيسية",
+  FOLLOW_UP: "متابعة المستحقات",
+  PROPERTY: "العقارات",
+  UNIT: "الوحدات",
+  RENT: "عقود الايجار",
+  INVOICE: "الفواتير",
+  MAINTENANCE: "الصيانه",
+  REQUEST: "الطلبات",
+  REPORT: "التقارير",
+  OWNER: "الملاك",
+  RENTER: "المستاجرين",
+  SETTING: "الاعدادات",
+  WHATSAPP: "واتساب",
 };
 
+/* ------------------------- أجزاء أصغر للمكوّن ------------------------- */
+
+function UserFields({
+  id,
+  name,
+  setName,
+  email,
+  setEmail,
+  password,
+  setPassword,
+  role,
+  setRole,
+}) {
+  return (
+    <>
+      <TextField
+        label="اسم المستخدم"
+        fullWidth
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        margin="normal"
+      />
+      <TextField
+        label="البريد الإلكتروني"
+        fullWidth
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        margin="normal"
+      />
+      {!id && (
+        <TextField
+          label="كلمة المرور"
+          type="password"
+          fullWidth
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          margin="normal"
+        />
+      )}
+      <FormControl fullWidth margin="normal">
+        <InputLabel>الدور</InputLabel>
+        <Select
+          value={role}
+          onChange={(e) => setRole(e.target.value)}
+          label="الدور"
+        >
+          <MenuItem value="ADMIN">مسؤول</MenuItem>
+          <MenuItem value="USER">مستخدم</MenuItem>
+        </Select>
+      </FormControl>
+    </>
+  );
+}
+
+function PrivilegeRow({ area, label, privileges, onChange, onSelectAll }) {
+  const areaPriv = privileges[area] || {};
+  return (
+    <Grid
+      container
+      spacing={2}
+      sx={{ borderBottom: 1, borderColor: "divider", pb: 2, mb: 1 }}
+      key={area}
+    >
+      <Grid item xs={12}>
+        <Box display="flex" gap={2} alignItems="center" mt={2}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            {label}
+          </Typography>
+          <Button
+            variant="text"
+            color="secondary"
+            onClick={() => onSelectAll(area)}
+          >
+            تحديد الكل
+          </Button>
+        </Box>
+      </Grid>
+
+      <Grid item xs={3}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={!!areaPriv.canRead}
+              onChange={(e) => onChange(area, "canRead", e.target.checked)}
+            />
+          }
+          label="قراءة"
+        />
+      </Grid>
+
+      <Grid item xs={3}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={!!areaPriv.canWrite}
+              onChange={(e) => onChange(area, "canWrite", e.target.checked)}
+            />
+          }
+          label="انشاء"
+        />
+      </Grid>
+
+      <Grid item xs={3}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={!!areaPriv.canEdit}
+              onChange={(e) => onChange(area, "canEdit", e.target.checked)}
+            />
+          }
+          label="تعديل"
+        />
+      </Grid>
+
+      <Grid item xs={3}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={!!areaPriv.canDelete}
+              onChange={(e) => onChange(area, "canDelete", e.target.checked)}
+            />
+          }
+          label="حذف"
+        />
+      </Grid>
+    </Grid>
+  );
+}
+
+function PrivilegesGrid({ privileges, setPrivileges }) {
+  const entries = useMemo(() => Object.entries(PrivilegeArea), []);
+
+  const handlePrivilegeChange = (area, field, value) => {
+    setPrivileges((prev) => {
+      const updated = { ...prev };
+      if (!updated[area]) {
+        updated[area] = {
+          area,
+          name: area,
+          canRead: false,
+          canWrite: false,
+          canEdit: false,
+          canDelete: false,
+        };
+      }
+      updated[area][field] = value;
+      // تأكيد area و name
+      updated[area].area = area;
+      updated[area].name = area;
+      return updated;
+    });
+  };
+
+  const handleSelectAll = (area) => {
+    setPrivileges((prev) => ({
+      ...prev,
+      [area]: {
+        canRead: true,
+        canWrite: true,
+        canEdit: true,
+        canDelete: true,
+        area,
+        name: area,
+      },
+    }));
+  };
+
+  return (
+    <>
+      <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+        الامتيازات
+      </Typography>
+      <Divider sx={{ mb: 1 }} />
+      {entries.map(([area, label]) => (
+        <PrivilegeRow
+          key={area}
+          area={area}
+          label={label}
+          privileges={privileges}
+          onChange={handlePrivilegeChange}
+          onSelectAll={handleSelectAll}
+        />
+      ))}
+    </>
+  );
+}
+
+/* ------------------------- المكوّن الرئيسي (نفس السلوك) ------------------------- */
+
 const CreateUserForm = (props) => {
-    const {
-        name,
-        setName,
-        email,
-        setEmail,
-        password,
-        setPassword,
-        role,
-        setRole,
-        privileges,
-        setPrivileges,
-        data,
-    } = props;
-    const {id} = useTableForm();
+  const {
+    name,
+    setName,
+    email,
+    setEmail,
+    password,
+    setPassword,
+    role,
+    setRole,
+    privileges,
+    setPrivileges,
+    data,
+  } = props;
 
-    useEffect(() => {
-        if (data && id) {
-            const user = data.find((user) => user.id === id);
-            if (user) {
-                setName(user.name);
-                setEmail(user.email);
-                setRole(user.role);
-                setPassword(user.password);
+  const { id } = useTableForm();
 
-                const userPrivileges = user.privileges?.reduce((acc, priv) => {
-                    acc[priv.area] = {
-                        ...priv.privilege,
-                        area: priv.area,
-                        name: priv.area
-                    };
-                    return acc;
-                }, {});
-                setPrivileges(userPrivileges || {});
-            }
-        } else {
-            setEmail("");
-            setName("");
-            setPassword("");
-            setRole("USER");
+  useEffect(() => {
+    if (data && id) {
+      const user = data.find((u) => u.id === id);
+      if (user) {
+        setName(user.name);
+        setEmail(user.email);
+        setRole(user.role);
+        setPassword(user.password);
 
-            const initialPrivileges = {};
-            Object.keys(PrivilegeArea).forEach((area) => {
-                initialPrivileges[area] = {
-                    area: area,
-                    name: area,
-                    canRead: true,
-                    canWrite: false,
-                    canEdit: false,
-                    canDelete: false
-                };
-            });
-            setPrivileges(initialPrivileges);
-        }
-    }, [data, id, setName, setEmail, setRole, setPassword, setPrivileges]);
-
-    const handlePrivilegeChange = (area, field, value) => {
-        setPrivileges((prevPrivileges) => {
-            const updatedPrivileges = {...prevPrivileges};
-            if (!updatedPrivileges[area]) {
-                updatedPrivileges[area] = {
-                    area: area,
-                    name: area,
-                    canRead: false,
-                    canWrite: false,
-                    canEdit: false,
-                    canDelete: false
-                };
-            }
-            updatedPrivileges[area][field] = value;
-            // التأكد من وجود area و name دائماً
-            updatedPrivileges[area].area = area;
-            updatedPrivileges[area].name = area;
-            return updatedPrivileges;
-        });
-    };
-
-    const handleSelectAll = (area) => {
-        setPrivileges((prevPrivileges) => {
-            const updatedPrivileges = {...prevPrivileges};
-
-            updatedPrivileges[area] = {
-                canRead: true,
-                canWrite: true,
-                canEdit: true,
-                canDelete: true,
-                area: area, // التأكد من وجود area دائماً
-                name: area  // التأكد من وجود name أيضاً للتوافق
+        const userPrivileges =
+          user.privileges?.reduce((acc, priv) => {
+            acc[priv.area] = {
+              ...priv.privilege,
+              area: priv.area,
+              name: priv.area,
             };
-            return updatedPrivileges;
-        });
-    };
+            return acc;
+          }, {}) || {};
 
-    return (
-          <Container>
-              <TextField
-                    label="اسم المستخدم"
-                    fullWidth
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    margin="normal"
-              />
-              <TextField
-                    label="البريد الإلكتروني"
-                    fullWidth
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    margin="normal"
-              />
-              {!id && (
-                    <TextField
-                          label="كلمة المرور"
-                          type="password"
-                          fullWidth
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          margin="normal"
-                    />
-              )}
-              <FormControl fullWidth margin="normal">
-                  <InputLabel>الدور</InputLabel>
-                  <Select value={role} onChange={(e) => setRole(e.target.value)}>
-                      <MenuItem value="ADMIN">مسؤول</MenuItem>
-                      <MenuItem value="USER">مستخدم</MenuItem>
-                  </Select>
-              </FormControl>
-              <Typography variant="h6" gutterBottom>
-                  الامتيازات
-              </Typography>
-              {Object.entries(PrivilegeArea).map(([area, label]) => (
-                    <Grid
-                          container
-                          spacing={2}
-                          key={area}
-                          sx={{
-                              borderBottom: 1,
-                              borderColor: "divider",
-                              paddingBottom: 2,
-                          }}
-                    >
-                        <Grid item xs={12}>
-                            <div className={"flex gap-3 items-center mt-5"}>
-                                <Typography
-                                      variant="h6"
-                                      sx={{
-                                          fontWeight: 600,
-                                      }}
-                                >
-                                    {label}
-                                </Typography>
-                                <Button
-                                      variant="text"
-                                      color="secondary"
-                                      onClick={() => handleSelectAll(area)}
-                                >
-                                    تحديد الكل
-                                </Button>
-                            </div>
-                        </Grid>
-                        <Grid item xs={3}>
-                            <FormControlLabel
-                                  control={
-                                      <Checkbox
-                                            checked={privileges[area]?.canRead || false}
-                                            onChange={(e) => {
-                                                handlePrivilegeChange(area, "canRead", e.target.checked);
-                                            }}
-                                      />
-                                  }
-                                  label="قراءة"
-                            />
-                        </Grid>
-                        <Grid item xs={3}>
-                            <FormControlLabel
-                                  control={
-                                      <Checkbox
-                                            checked={privileges[area]?.canWrite || false}
-                                            onChange={(e) =>
-                                                  handlePrivilegeChange(area, "canWrite", e.target.checked)
-                                            }
-                                      />
-                                  }
-                                  label="انشاء"
-                            />
-                        </Grid>
-                        <Grid item xs={3}>
-                            <FormControlLabel
-                                  control={
-                                      <Checkbox
-                                            checked={privileges[area]?.canEdit || false}
-                                            onChange={(e) =>
-                                                  handlePrivilegeChange(area, "canEdit", e.target.checked)
-                                            }
-                                      />
-                                  }
-                                  label="تعديل"
-                            />
-                        </Grid>
-                        <Grid item xs={3}>
-                            <FormControlLabel
-                                  control={
-                                      <Checkbox
-                                            checked={privileges[area]?.canDelete || false}
-                                            onChange={(e) =>
-                                                  handlePrivilegeChange(area, "canDelete", e.target.checked)
-                                            }
-                                      />
-                                  }
-                                  label="حذف"
-                            />
-                        </Grid>
-                    </Grid>
-              ))}
-          </Container>
-    );
+        setPrivileges(userPrivileges);
+      }
+    } else {
+      setEmail("");
+      setName("");
+      setPassword("");
+      setRole("USER");
+
+      const initialPrivileges = {};
+      Object.keys(PrivilegeArea).forEach((area) => {
+        initialPrivileges[area] = {
+          area,
+          name: area,
+          canRead: true,
+          canWrite: false,
+          canEdit: false,
+          canDelete: false,
+        };
+      });
+      setPrivileges(initialPrivileges);
+    }
+  }, [data, id, setName, setEmail, setRole, setPassword, setPrivileges]);
+
+  return (
+    <Container>
+      <UserFields
+        id={id}
+        name={name}
+        setName={setName}
+        email={email}
+        setEmail={setEmail}
+        password={password}
+        setPassword={setPassword}
+        role={role}
+        setRole={setRole}
+      />
+
+      <PrivilegesGrid privileges={privileges} setPrivileges={setPrivileges} />
+    </Container>
+  );
 };
 
 export default CreateUserForm;

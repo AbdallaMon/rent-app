@@ -1,97 +1,343 @@
-/**
- * Dashboard Component - لوحة القيادة الرئيسية
- * 
- * هذا المكون هو الصفحة الرئيسية للتطبيق ويعرض:
- * - إحصائيات الوحدات (مؤجرة/شاغرة)
- * - إحصائيات العقود (نشطة/منتهية)
- * - إحصائيات المدفوعات (إيجارات/صيانة/أخرى)
- * - رسوم بيانية تفاعلية لكل إحصائية
- * - تصفية البيانات حسب العقار
- * 
- * الميزات:
- * - عرض البيانات في بطاقات منظمة
- * - إمكانية إظهار/إخفاء الرسوم البيانية
- * - تحديث البيانات في الوقت الفعلي
- * - تصفية حسب العقار المحدد
- * - تنسيق العملة بالدرهم الإماراتي
- */
+"use client";
 
-"use client"; // تشغيل هذا المكون في جانب العميل فقط
-
-// استيراد React hooks للحالة والتأثيرات الجانبية
-import { useEffect, useState } from "react";
-
-// استيراد مكونات Material-UI للواجهة
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Box,          // مكون الحاوية المرنة
-  Card,         // مكون البطاقة
-  CardContent,  // محتوى البطاقة
-  FormControl,  // التحكم في النماذج
-  Grid,         // نظام الشبكة للتخطيط
-  InputLabel,   // تسمية المدخلات
-  MenuItem,     // عنصر القائمة
-  Select,       // قائمة الاختيار المنسدلة
-  Typography,   // مكون النصوص
-  Button,       // مكون الأزرار
-  List,         // مكون القائمة
-  ListItem,     // عنصر القائمة
-  ListItemText, // نص عنصر القائمة
-  Divider,      // خط الفاصل
+  AppBar,
+  Box,
+  Card,
+  CardContent,
+  CardHeader,
+  Chip,
+  CircularProgress,
+  Container,
+  Divider,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Skeleton,
+  Toolbar,
+  Typography,
 } from "@mui/material";
+import { useTheme, alpha } from "@mui/material/styles";
+import ChartDataLabels from "chartjs-plugin-datalabels";
+import { ArcElement, Chart as ChartJS, Legend, Title, Tooltip } from "chart.js";
+import Link from "next/link";
+import { Pie } from "react-chartjs-2";
+import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 
-// استيراد مكونات الرسوم البيانية
-import ChartDataLabels from "chartjs-plugin-datalabels"; // إضافة تسميات البيانات للرسوم البيانية
-import { ArcElement, Chart as ChartJS, Legend, Title, Tooltip } from "chart.js"; // مكونات Chart.js
-
-// استيراد الوظائف المساعدة والمكونات المخصصة
-import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic"; // تنسيق العملة بالدرهم
-import CardComponent from "./CardComponent"; // مكون البطاقة المخصص
-import { useAuth } from "./context/AuthProvider/AuthProvider"; // سياق المصادقة
-import { usePathname } from "next/navigation"; // الحصول على مسار الصفحة الحالي
-import { getCurrentPrivilege } from "@/helpers/functions/getUserPrivilege"; // الحصول على صلاحيات المستخدم
-
-// تسجيل مكونات Chart.js المطلوبة للرسوم البيانية الدائرية
 ChartJS.register(ArcElement, Title, Tooltip, Legend, ChartDataLabels);
 
-/**
- * Dashboard Component - مكون لوحة القيادة الرئيسية
- * 
- * يدير جميع البيانات والحالات اللازمة لعرض الإحصائيات
- * ويتعامل مع التفاعلات مثل تغيير العقار وإظهار الرسوم البيانية
- */
+/* =========================
+   Header (sticky, compact)
+========================= */
+function DashboardHeader({ properties, selectedProperty, onChange }) {
+  const theme = useTheme();
+  return (
+    <AppBar
+      position="sticky"
+      elevation={0}
+      color="default"
+      sx={{
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        bgcolor: "background.paper",
+      }}
+    >
+      <Toolbar sx={{ gap: 2, flexWrap: "wrap", py: 1.5 }}>
+        <Typography
+          variant="h5"
+          sx={{ fontWeight: 800, flexGrow: 1, color: "text.primary" }}
+        >
+          لوحة الموقع
+        </Typography>
+
+        <FormControl size="small" sx={{ minWidth: 220 }}>
+          <InputLabel>اختر العقار</InputLabel>
+          <Select
+            value={selectedProperty}
+            label="اختر العقار"
+            onChange={onChange}
+            displayEmpty
+            MenuProps={{ PaperProps: { elevation: 1 } }}
+          >
+            <MenuItem value="all">
+              <em>جميع العقارات</em>
+            </MenuItem>
+            {Array.isArray(properties) &&
+              properties.map((p) => (
+                <MenuItem key={p.id} value={p.id}>
+                  {p.name}
+                </MenuItem>
+              ))}
+          </Select>
+        </FormControl>
+      </Toolbar>
+    </AppBar>
+  );
+}
+
+/* =========================
+   Tiny chart wrapper
+========================= */
+const MiniPie = ({ data }) => {
+  const theme = useTheme();
+  return (
+    <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+      <Box sx={{ maxWidth: 280, width: "100%", px: 1, pb: 1 }}>
+        <Pie
+          data={data}
+          options={{
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  color: theme.palette.text.primary,
+                  boxWidth: 14,
+                },
+              },
+              title: { display: false },
+              datalabels: {
+                color: theme.palette.getContrastText(
+                  theme.palette.background.paper
+                ),
+                formatter: (val, ctx) => {
+                  const total =
+                    ctx.dataset.data.reduce((a, b) => a + b, 0) || 0;
+                  const pct = total ? Math.round((val / total) * 100) : 0;
+                  return `${pct}%`;
+                },
+                font: { weight: 600 },
+              },
+            },
+          }}
+        />
+      </Box>
+    </Box>
+  );
+};
+
+/* =========================
+   Metric Card (modern)
+========================= */
+function RowHead({ children, withDivider }) {
+  return (
+    <Typography
+      variant="subtitle1"
+      sx={{
+        flex: 1,
+        textAlign: "center",
+        p: 1.25,
+        borderInlineEnd: withDivider
+          ? (t) => `1px solid ${t.palette.divider}`
+          : "none",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 600,
+        minHeight: 48,
+      }}
+    >
+      {children}
+    </Typography>
+  );
+}
+
+function RowValue({ children, withDivider, color }) {
+  return (
+    <Typography
+      variant="h6"
+      sx={{
+        flex: 1,
+        textAlign: "center",
+        p: 1.75,
+        borderInlineEnd: withDivider
+          ? (t) => `1px solid ${t.palette.divider}`
+          : "none",
+        borderTop: (t) => `1px solid ${t.palette.divider}`,
+        minHeight: 60,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: color || "text.primary",
+        fontWeight: 800,
+        letterSpacing: 0.2,
+      }}
+    >
+      {children}
+    </Typography>
+  );
+}
+
+function MetricCard({
+  headers,
+  values,
+  loading,
+  chartData,
+  href,
+  hrefIndex,
+  showChart,
+  onToggleChart,
+}) {
+  const theme = useTheme();
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: 2,
+        overflow: "hidden",
+        bgcolor: "background.paper",
+        transition: "box-shadow .2s ease, transform .06s ease",
+        "&:hover": { boxShadow: 2 },
+      }}
+    >
+      <CardHeader
+        onClick={onToggleChart}
+        title={
+          <Box
+            sx={{
+              width: "100%",
+              display: "flex",
+              alignItems: "stretch",
+              justifyContent: "space-between",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            {headers.map((h, i) => (
+              <RowHead key={i} withDivider={i < headers.length - 1}>
+                {h}
+              </RowHead>
+            ))}
+          </Box>
+        }
+        sx={{
+          px: 0,
+          py: 0,
+          "& .MuiCardHeader-title": { width: "100%" },
+          bgcolor: (t) => alpha(t.palette.action.hover, 0.5),
+          color: "text.primary",
+          borderBottom: (t) => `1px solid ${t.palette.divider}`,
+        }}
+      />
+
+      <CardContent
+        sx={{ p: 0, flexGrow: 1, display: "flex", flexDirection: "column" }}
+      >
+        {loading ? (
+          <Box sx={{ width: "100%", p: 2 }}>
+            <Box sx={{ display: "flex" }}>
+              {[0, 1, 2].map((i) => (
+                <Box
+                  key={i}
+                  sx={{
+                    flex: 1,
+                    borderInlineEnd:
+                      i < 2 ? (t) => `1px solid ${t.palette.divider}` : "none",
+                    p: 1.5,
+                  }}
+                >
+                  <Skeleton height={22} />
+                  <Skeleton height={28} sx={{ mt: 1 }} />
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        ) : (
+          <Box sx={{ display: "flex" }}>
+            {values.map((val, i) => {
+              const isLink = href && hrefIndex === i;
+              const color = isLink ? "info.main" : "text.primary";
+              return (
+                <React.Fragment key={i}>
+                  {isLink ? (
+                    <RowValue withDivider={i < values.length - 1} color={color}>
+                      <Link href={href} onClick={(e) => e.stopPropagation()}>
+                        {val}
+                      </Link>
+                    </RowValue>
+                  ) : (
+                    <RowValue withDivider={i < values.length - 1}>
+                      {val}
+                    </RowValue>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </Box>
+        )}
+
+        {showChart && chartData && (
+          <>
+            <Divider />
+            <MiniPie data={chartData} />
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* =========================
+   Main Dashboard
+========================= */
 const Dashboard = () => {
-  // ===== حالات إدارة البيانات الأساسية =====
-  
-  // قائمة العقارات المتاحة للتصفية
+  const theme = useTheme();
+
+  // palette helpers (respect theme)
+  const colorPair = useMemo(
+    () => ({
+      primaryVsMuted: [
+        alpha(theme.palette.primary.main, 0.9),
+        alpha(theme.palette.primary.main, 0.2),
+      ],
+      successVsWarning: [
+        alpha(theme.palette.success.main, 0.9),
+        alpha(theme.palette.warning.main, 0.9),
+      ],
+      successVsError: [
+        alpha(theme.palette.success.main, 0.9),
+        alpha(theme.palette.error.main, 0.9),
+      ],
+      infoVsError: [
+        alpha(theme.palette.info.main, 0.9),
+        alpha(theme.palette.error.main, 0.9),
+      ],
+    }),
+    [theme.palette]
+  );
+
+  // ===== state =====
   const [properties, setProperties] = useState([]);
-  
-  // العقار المحدد حالياً (افتراضياً "الكل")
   const [selectedProperty, setSelectedProperty] = useState("all");
 
-  // ===== حالات التحكم في عرض الرسوم البيانية =====
-  // كل مفتاح يتحكم في إظهار/إخفاء رسم بياني معين
   const [showCharts, setShowCharts] = useState({
-    units: false,                           // رسم بياني للوحدات
-    agreements: false,                      // رسم بياني للعقود
-    rentPayments: false,                    // رسم بياني لمدفوعات الإيجار
-    currentMonthPayments: false,            // رسم بياني لمدفوعات الشهر الحالي
-    maintenancePayments: false,             // رسم بياني لمدفوعات الصيانة
-    currentMonthMaintenancePayments: false, // رسم بياني لصيانة الشهر الحالي
-    otherPayments: false,                   // رسم بياني للمدفوعات الأخرى
-    currentMonthOtherPayments: false,       // رسم بياني لمدفوعات أخرى للشهر الحالي
+    units: false,
+    agreements: false,
+    rentPayments: false,
+    currentMonthPayments: false,
+    maintenancePayments: false,
+    currentMonthMaintenancePayments: false,
+    otherPayments: false,
+    currentMonthOtherPayments: false,
   });
 
-  // ===== حالات البيانات الإحصائية =====
-  
-  // إحصائيات الوحدات (إجمالي، مؤجرة، شاغرة)
   const [units, setUnits] = useState({ total: 0, rented: 0, nonRented: 0 });
-  
-  // إحصائيات العقود (إجمالي، نشطة، منتهية)
   const [agreements, setAgreements] = useState({
     total: 0,
     active: 0,
     expired: 0,
   });
+
   const [rentPayments, setRentPayments] = useState({
     totalAmount: 0,
     totalPaidAmount: 0,
@@ -102,6 +348,7 @@ const Dashboard = () => {
     totalPaidAmount: 0,
     totalRemainingAmount: 0,
   });
+
   const [maintenancePayments, setMaintenancePayments] = useState({
     totalAmount: 0,
     totalPaidAmount: 0,
@@ -113,6 +360,7 @@ const Dashboard = () => {
       totalPaidAmount: 0,
       totalRemainingAmount: 0,
     });
+
   const [otherPayments, setOtherPayments] = useState({
     totalAmount: 0,
     totalPaidAmount: 0,
@@ -123,11 +371,7 @@ const Dashboard = () => {
     totalPaidAmount: 0,
     totalRemainingAmount: 0,
   });
-  // Lists for left sidebar
-  const [recentMaintenances, setRecentMaintenances] = useState([]);
-  const [recentRentAgreements, setRecentRentAgreements] = useState([]);
 
-  // Loading states
   const [loadingUnits, setLoadingUnits] = useState(true);
   const [loadingAgreements, setLoadingAgreements] = useState(true);
   const [loadingRentPayments, setLoadingRentPayments] = useState(true);
@@ -142,219 +386,223 @@ const Dashboard = () => {
   const [loadingOtherPayments, setLoadingOtherPayments] = useState(true);
   const [
     loadingCurrentMonthOtherPayments,
-    setLoadingCurrentMonthOtherPayments,  ] = useState(true);
-    // Toggle chart display
-  const toggleChart = (chart) => {
-    setShowCharts({
-      ...showCharts,
-      [chart]: !showCharts[chart],
-    });
-  };
+    setLoadingCurrentMonthOtherPayments,
+  ] = useState(true);
+
+  const toggleChart = (chart) =>
+    setShowCharts((s) => ({ ...s, [chart]: !s[chart] }));
+
+  // ===== data fetching =====
   useEffect(() => {
-    async function fetchProperties() {
+    (async () => {
       try {
         const res = await fetch("/api/fast-handler?id=properties");
         const data = await res.json();
         setProperties(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Failed to fetch properties", error);
-        setProperties([]); // تأكد من أن properties هو array فارغ في حالة الخطأ
+      } catch {
+        setProperties([]);
       }
-    }
-
-    fetchProperties();
+    })();
   }, []);
 
   useEffect(() => {
-    async function fetchUnits() {
+    (async () => {
       setLoadingUnits(true);
       try {
-        const propertyParam =
-          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";        const res = await fetch(`/api/main/home/units?${propertyParam}`);
+        const q =
+          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";
+        const res = await fetch(`/api/main/home/units?${q}`);
         const data = await res.json();
         setUnits(data || { total: 0, rented: 0, nonRented: 0 });
-      } catch (error) {
-        console.error("Failed to fetch units", error);
-        setUnits({ total: 0, rented: 0, nonRented: 0 }); // حماية في حالة الخطأ
+      } catch {
+        setUnits({ total: 0, rented: 0, nonRented: 0 });
       }
       setLoadingUnits(false);
-    }
-
-    fetchUnits();
+    })();
   }, [selectedProperty]);
 
   useEffect(() => {
-    async function fetchAgreements() {
+    (async () => {
       setLoadingAgreements(true);
       try {
-        const propertyParam =
-          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";        const res = await fetch(
-          `/api/main/home/rentAgreements?${propertyParam}`
-        );
+        const q =
+          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";
+        const res = await fetch(`/api/main/home/rentAgreements?${q}`);
         const data = await res.json();
         setAgreements(data || { total: 0, active: 0, expired: 0 });
-      } catch (error) {
-        console.error("Failed to fetch agreements", error);
-        setAgreements({ total: 0, active: 0, expired: 0 }); // حماية في حالة الخطأ
+      } catch {
+        setAgreements({ total: 0, active: 0, expired: 0 });
       }
       setLoadingAgreements(false);
-    }
-
-    fetchAgreements();
+    })();
   }, [selectedProperty]);
 
   useEffect(() => {
-    async function fetchRentPayments() {
+    (async () => {
       setLoadingRentPayments(true);
       try {
-        const propertyParam =
-          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";        const res = await fetch(`/api/main/home/rentPayments?${propertyParam}`);
+        const q =
+          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";
+        const res = await fetch(`/api/main/home/rentPayments?${q}`);
         const data = await res.json();
-        setRentPayments(data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 });
-      } catch (error) {
-        console.error("Failed to fetch rent payments", error);
-        setRentPayments({ totalAmount: 0, paidAmount: 0, remainingAmount: 0 }); // حماية في حالة الخطأ
+        setRentPayments(
+          data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 }
+        );
+      } catch {
+        setRentPayments({
+          totalAmount: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+        });
       }
       setLoadingRentPayments(false);
-    }
-
-    fetchRentPayments();
+    })();
   }, [selectedProperty]);
 
   useEffect(() => {
-    async function fetchCurrentMonthPayments() {
+    (async () => {
       setLoadingCurrentMonthPayments(true);
       try {
-        const propertyParam =
-          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";        const res = await fetch(`/api/main/home/payments?${propertyParam}`);
+        const q =
+          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";
+        const res = await fetch(`/api/main/home/payments?${q}`);
         const data = await res.json();
-        setCurrentMonthPayments(data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 });
-      } catch (error) {
-        console.error("Failed to fetch current month payments", error);
-        setCurrentMonthPayments({ totalAmount: 0, paidAmount: 0, remainingAmount: 0 }); // حماية في حالة الخطأ
+        setCurrentMonthPayments(
+          data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 }
+        );
+      } catch {
+        setCurrentMonthPayments({
+          totalAmount: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+        });
       }
       setLoadingCurrentMonthPayments(false);
-    }
-
-    fetchCurrentMonthPayments();
+    })();
   }, [selectedProperty]);
 
   useEffect(() => {
-    async function fetchMaintenancePayments() {
+    (async () => {
       setLoadingMaintenancePayments(true);
       try {
-        const propertyParam =
-          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";        const res = await fetch(
-          `/api/main/home/totalExpences?${propertyParam}`
-        );
+        const q =
+          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";
+        const res = await fetch(`/api/main/home/totalExpences?${q}`);
         const data = await res.json();
-        setMaintenancePayments(data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 });
-      } catch (error) {
-        console.error("Failed to fetch maintenance payments", error);
-        setMaintenancePayments({ totalAmount: 0, paidAmount: 0, remainingAmount: 0 }); // حماية في حالة الخطأ
+        setMaintenancePayments(
+          data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 }
+        );
+      } catch {
+        setMaintenancePayments({
+          totalAmount: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+        });
       }
       setLoadingMaintenancePayments(false);
-    }
-
-    fetchMaintenancePayments();
+    })();
   }, [selectedProperty]);
 
   useEffect(() => {
-    async function fetchCurrentMonthMaintenancePayments() {
+    (async () => {
       setLoadingCurrentMonthMaintenancePayments(true);
       try {
-        const propertyParam =
-          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";        const res = await fetch(
-          `/api/main/home/currentMonthMaintenancePayments?${propertyParam}`
+        const q =
+          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";
+        const res = await fetch(
+          `/api/main/home/currentMonthMaintenancePayments?${q}`
         );
         const data = await res.json();
-        setCurrentMonthMaintenancePayments(data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 });
-      } catch (error) {
-        console.error(
-          "Failed to fetch current month maintenance payments",
-          error
+        setCurrentMonthMaintenancePayments(
+          data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 }
         );
-        setCurrentMonthMaintenancePayments({ totalAmount: 0, paidAmount: 0, remainingAmount: 0 }); // حماية في حالة الخطأ
+      } catch {
+        setCurrentMonthMaintenancePayments({
+          totalAmount: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+        });
       }
       setLoadingCurrentMonthMaintenancePayments(false);
-    }
-
-    fetchCurrentMonthMaintenancePayments();
+    })();
   }, [selectedProperty]);
 
   useEffect(() => {
-    async function fetchOtherPayments() {
+    (async () => {
       setLoadingOtherPayments(true);
       try {
-        const propertyParam =
-          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";        const res = await fetch(
-          `/api/main/home/otherPayments?${propertyParam}`
-        );
+        const q =
+          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";
+        const res = await fetch(`/api/main/home/otherPayments?${q}`);
         const data = await res.json();
-        setOtherPayments(data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 });
-      } catch (error) {
-        console.error("Failed to fetch other payments", error);
-        setOtherPayments({ totalAmount: 0, paidAmount: 0, remainingAmount: 0 }); // حماية في حالة الخطأ
+        setOtherPayments(
+          data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 }
+        );
+      } catch {
+        setOtherPayments({
+          totalAmount: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+        });
       }
       setLoadingOtherPayments(false);
-    }
-
-    fetchOtherPayments();
+    })();
   }, [selectedProperty]);
 
   useEffect(() => {
-    async function fetchCurrentMonthOtherPayments() {
+    (async () => {
       setLoadingCurrentMonthOtherPayments(true);
       try {
-        const propertyParam =
-          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";        const res = await fetch(
-          `/api/main/home/currentMonthOtherPayments?${propertyParam}`
+        const q =
+          selectedProperty !== "all" ? `propertyId=${selectedProperty}` : "";
+        const res = await fetch(
+          `/api/main/home/currentMonthOtherPayments?${q}`
         );
         const data = await res.json();
-        setCurrentMonthOtherPayments(data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 });
-      } catch (error) {
-        console.error("Failed to fetch current month other payments", error);
-        setCurrentMonthOtherPayments({ totalAmount: 0, paidAmount: 0, remainingAmount: 0 }); // حماية في حالة الخطأ
+        setCurrentMonthOtherPayments(
+          data || { totalAmount: 0, paidAmount: 0, remainingAmount: 0 }
+        );
+      } catch {
+        setCurrentMonthOtherPayments({
+          totalAmount: 0,
+          paidAmount: 0,
+          remainingAmount: 0,
+        });
       }
       setLoadingCurrentMonthOtherPayments(false);
-    }    fetchCurrentMonthOtherPayments();
+    })();
   }, [selectedProperty]);
-  
-  const handlePropertyChange = (event) => {
-    setSelectedProperty(event.target.value);
-  };
 
-  
+  const handlePropertyChange = (e) => setSelectedProperty(e.target.value);
+
+  // ===== chart datasets =====
   const unitsChartData = {
     labels: ["الوحدات المؤجرة", "الوحدات الشاغرة"],
     datasets: [
       {
         data: [units.rented, units.nonRented],
-        backgroundColor: ["rgba(75, 192, 192, 0.6)", "rgba(255, 99, 132, 0.6)"],
+        backgroundColor: colorPair.primaryVsMuted,
       },
     ],
   };
-
   const agreementsChartData = {
     labels: ["النشط", "منتهي"],
     datasets: [
       {
         data: [agreements.active, agreements.expired],
-        backgroundColor: ["rgba(75, 192, 192, 0.6)", "rgba(255, 99, 132, 0.6)"],
+        backgroundColor: colorPair.infoVsError,
       },
     ],
   };
-
   const rentPaymentsChartData = {
     labels: ["الإيجار المحصل", "الإيجار المتبقي"],
     datasets: [
       {
         data: [rentPayments.totalPaidAmount, rentPayments.totalRemainingAmount],
-        backgroundColor: ["rgba(75, 192, 192, 0.6)", "rgba(255, 99, 132, 0.6)"],
+        backgroundColor: colorPair.successVsWarning,
       },
     ],
   };
-
   const currentMonthPaymentsChartData = {
     labels: ["المبلغ المحصل", "المبلغ المتبقي"],
     datasets: [
@@ -363,11 +611,10 @@ const Dashboard = () => {
           currentMonthPayments.totalPaidAmount,
           currentMonthPayments.totalRemainingAmount,
         ],
-        backgroundColor: ["rgba(75, 192, 192, 0.6)", "rgba(255, 99, 132, 0.6)"],
+        backgroundColor: colorPair.successVsWarning,
       },
     ],
   };
-
   const maintenancePaymentsChartData = {
     labels: ["المصروفات المدفوعة", "المصروفات المتبقية"],
     datasets: [
@@ -376,11 +623,10 @@ const Dashboard = () => {
           maintenancePayments.totalPaidAmount,
           maintenancePayments.totalRemainingAmount,
         ],
-        backgroundColor: ["rgba(75, 192, 192, 0.6)", "rgba(255, 99, 132, 0.6)"],
+        backgroundColor: colorPair.successVsError,
       },
     ],
   };
-
   const currentMonthMaintenancePaymentsChartData = {
     labels: ["المبلغ المحصل", "المبلغ المتبقي"],
     datasets: [
@@ -389,11 +635,10 @@ const Dashboard = () => {
           currentMonthMaintenancePayments.totalPaidAmount,
           currentMonthMaintenancePayments.totalRemainingAmount,
         ],
-        backgroundColor: ["rgba(75, 192, 192, 0.6)", "rgba(255, 99, 132, 0.6)"],
+        backgroundColor: colorPair.successVsError,
       },
     ],
   };
-
   const otherPaymentsChartData = {
     labels: ["المبلغ المحصل", "المبلغ المتبقي"],
     datasets: [
@@ -402,11 +647,10 @@ const Dashboard = () => {
           otherPayments.totalPaidAmount,
           otherPayments.totalRemainingAmount,
         ],
-        backgroundColor: ["rgba(75, 192, 192, 0.6)", "rgba(255, 99, 132, 0.6)"],
+        backgroundColor: colorPair.successVsWarning,
       },
     ],
   };
-
   const currentMonthOtherPaymentsChartData = {
     labels: ["المبلغ المحصل", "المبلغ المتبقي"],
     datasets: [
@@ -415,13 +659,13 @@ const Dashboard = () => {
           currentMonthOtherPayments.totalPaidAmount,
           currentMonthOtherPayments.totalRemainingAmount,
         ],
-        backgroundColor: ["rgba(75, 192, 192, 0.6)", "rgba(255, 99, 132, 0.6)"],
+        backgroundColor: colorPair.successVsWarning,
       },
     ],
   };
 
-  // Modified CardComponent props to include toggle function and showChart state
-  const cardComponents = [
+  // ===== cards (same content, reorganized) =====
+  const cards = [
     {
       id: "units",
       headers: ["إجمالي الوحدات", "الوحدات المؤجرة", "الوحدات الشاغرة"],
@@ -430,7 +674,7 @@ const Dashboard = () => {
       chartData: unitsChartData,
       href: "/units?rentStatus=notRented",
       hrefIndex: 2,
-      showChart: showCharts.units
+      showChart: showCharts.units,
     },
     {
       id: "agreements",
@@ -438,9 +682,9 @@ const Dashboard = () => {
       values: [agreements.total, agreements.active, agreements.expired],
       loading: loadingAgreements,
       chartData: agreementsChartData,
-      href: "/rent?status=expired&rented=expired",  // Updated link to properly filter expired agreements
+      href: "/rent?status=expired&rented=expired",
       hrefIndex: 2,
-      showChart: showCharts.agreements
+      showChart: showCharts.agreements,
     },
     {
       id: "rentPayments",
@@ -454,11 +698,15 @@ const Dashboard = () => {
       chartData: rentPaymentsChartData,
       href: "/invoices?type=RENT",
       hrefIndex: 2,
-      showChart: showCharts.rentPayments
+      showChart: showCharts.rentPayments,
     },
     {
       id: "currentMonthPayments",
-      headers: ["إجمالي المدفوعات لهذا الشهر", "المبلغ المحصل", "المبلغ المتبقي"],
+      headers: [
+        "إجمالي المدفوعات لهذا الشهر",
+        "المبلغ المحصل",
+        "المبلغ المتبقي",
+      ],
       values: [
         formatCurrencyAED(currentMonthPayments.totalAmount),
         formatCurrencyAED(currentMonthPayments.totalPaidAmount),
@@ -468,7 +716,7 @@ const Dashboard = () => {
       chartData: currentMonthPaymentsChartData,
       href: "/invoices",
       hrefIndex: 2,
-      showChart: showCharts.currentMonthPayments
+      showChart: showCharts.currentMonthPayments,
     },
     {
       id: "maintenancePayments",
@@ -482,11 +730,15 @@ const Dashboard = () => {
       chartData: maintenancePaymentsChartData,
       href: "/maintenance",
       hrefIndex: 2,
-      showChart: showCharts.maintenancePayments
+      showChart: showCharts.maintenancePayments,
     },
     {
       id: "currentMonthMaintenancePayments",
-      headers: ["إجمالي المصروفات لهذا الشهر", "المبلغ المحصل", "المبلغ المتبقي"],
+      headers: [
+        "إجمالي المصروفات لهذا الشهر",
+        "المبلغ المحصل",
+        "المبلغ المتبقي",
+      ],
       values: [
         formatCurrencyAED(currentMonthMaintenancePayments.totalAmount),
         formatCurrencyAED(currentMonthMaintenancePayments.totalPaidAmount),
@@ -496,7 +748,7 @@ const Dashboard = () => {
       chartData: currentMonthMaintenancePaymentsChartData,
       href: "/maintenance",
       hrefIndex: 2,
-      showChart: showCharts.currentMonthMaintenancePayments
+      showChart: showCharts.currentMonthMaintenancePayments,
     },
     {
       id: "otherPayments",
@@ -510,11 +762,15 @@ const Dashboard = () => {
       chartData: otherPaymentsChartData,
       href: "/invoices?type=OTHER",
       hrefIndex: 2,
-      showChart: showCharts.otherPayments
+      showChart: showCharts.otherPayments,
     },
     {
       id: "currentMonthOtherPayments",
-      headers: ["إجمالي المدفوعات الأخرى لهذا الشهر", "المبلغ المحصل", "المبلغ المتبقي"],
+      headers: [
+        "إجمالي المدفوعات الأخرى لهذا الشهر",
+        "المبلغ المحصل",
+        "المبلغ المتبقي",
+      ],
       values: [
         formatCurrencyAED(currentMonthOtherPayments.totalAmount),
         formatCurrencyAED(currentMonthOtherPayments.totalPaidAmount),
@@ -524,75 +780,64 @@ const Dashboard = () => {
       chartData: currentMonthOtherPaymentsChartData,
       href: "/invoices?type=OTHER",
       hrefIndex: 2,
-      showChart: showCharts.currentMonthOtherPayments
-    }  ];
+      showChart: showCharts.currentMonthOtherPayments,
+    },
+  ];
 
-return (
-  <Box sx={{ p: { xs: 1, md: 3 } }}>
-    <Typography variant="h4" gutterBottom>
-      لوحة الموقع
-    </Typography>
-    <Grid
-      container
-      spacing={2}
-      sx={{
-        flexDirection: "row-reverse",
-      }}
-    >
-      {/* Left Sidebar */}
-      <Grid item xs={12} md={3} lg={3}>
-        {/* Property Selector */}
-        <Card sx={{ mb: 2 }}>
-          <CardContent>
-            <FormControl fullWidth>
-              <InputLabel>اختر العقار</InputLabel>
-              <Select
-                value={selectedProperty}
-                onChange={handlePropertyChange}
-                displayEmpty
-              >                <MenuItem value="all">
-                  <em>جميع العقارات</em>
-                </MenuItem>
-                {properties && Array.isArray(properties) && properties.map((property) => (
-                  <MenuItem key={property.id} value={property.id}>
-                    {property.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </CardContent>        </Card>
-      </Grid>
-      {/* Main Content Area */}
-      <Grid item xs={12} md={9} lg={9}>
-        <Grid
-          container
-          spacing={0}
-          direction="column"
+  return (
+    <Container maxWidth="xxl" sx={{ px: 0 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
+        <DashboardHeader
+          properties={properties}
+          selectedProperty={selectedProperty}
+          onChange={handlePropertyChange}
+        />
+
+        {/* Content */}
+        <Box
           sx={{
-            flexWrap: "nowrap",
-            height: '100%',
+            px: { xs: 0, md: 3 },
+            py: { xs: 2, md: 3 },
+            direction: "rtl",
           }}
-        >          <Box sx={{ maxHeight: 'calc(100vh - 120px)', overflow: 'auto', pb: 2 }}>
-            {Array.isArray(cardComponents) && cardComponents.map((card) => (
-              <Grid item xs={12} key={card.id} sx={{ mb: 2 }}>
-                <CardComponent
-                  headers={card.headers}
-                  values={card.values}
-                  loading={card.loading}
-                  chartData={card.chartData}
-                  href={card.href}
-                  hrefIndex={card.hrefIndex}
-                  showChart={card.showChart}
-                  onToggleChart={() => toggleChart(card.id)}
-                />
+        >
+          {/* Responsive Masonry-like grid */}
+          <Grid
+            container
+            spacing={2}
+            sx={{
+              alignItems: "stretch",
+            }}
+          >
+            {cards.map((card) => (
+              <Grid
+                key={card.id}
+                item
+                xs={12}
+                sm={6}
+                md={6}
+                lg={4}
+                sx={{ display: "flex" }}
+              >
+                <Box sx={{ width: "100%" }}>
+                  <MetricCard
+                    headers={card.headers}
+                    values={card.values}
+                    loading={card.loading}
+                    chartData={card.chartData}
+                    href={card.href}
+                    hrefIndex={card.hrefIndex}
+                    showChart={card.showChart}
+                    onToggleChart={() => toggleChart(card.id)}
+                  />
+                </Box>
               </Grid>
             ))}
-          </Box>
-        </Grid>
-      </Grid>
-    </Grid>
-  </Box>
-);
+          </Grid>
+        </Box>
+      </Box>
+    </Container>
+  );
 };
 
 export default Dashboard;

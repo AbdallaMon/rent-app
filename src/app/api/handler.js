@@ -28,7 +28,6 @@ export function createHandler({
     async POST(request, { params }) {
       const data = await request.json();
       const { searchParams } = request.nextUrl;
-      console.log(params, "params from post");
       try {
         const req = await postService(data, params, searchParams);
         return Response.json({

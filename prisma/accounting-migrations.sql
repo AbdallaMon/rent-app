@@ -131,3 +131,52 @@ CREATE TABLE IF NOT EXISTS `JournalSettlementLine` (
     FOREIGN KEY (`lineId`) REFERENCES `JournalLine`(`id`)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE `JournalLine`
+  ADD COLUMN `paymentId` INT NULL AFTER `rentAgreementId`;
+
+CREATE INDEX `JournalLine_paymentId_idx`
+  ON `JournalLine` (`paymentId`);
+
+ALTER TABLE `JournalLine`
+  ADD CONSTRAINT `JournalLine_payment_fkey`
+  FOREIGN KEY (`paymentId`) REFERENCES `Payment`(`id`)
+  ON DELETE SET NULL
+  ON UPDATE CASCADE;
+
+  -- 2) إنشاء جدول SecurityDeposit
+CREATE TABLE `SecurityDeposit` (
+  `id`               INT AUTO_INCREMENT PRIMARY KEY,
+  `amount`           DOUBLE NOT NULL,
+  `deductedAmount`   DOUBLE DEFAULT 0,
+  `deductionReason`  TEXT NULL,
+  `status`           ENUM('HELD','PARTIALLY_REFUNDED','REFUNDED','FORFEITED') NOT NULL DEFAULT 'HELD',
+  `receivedAt`       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `refundedAt`       DATETIME NULL,
+
+  `renterId`         INT NOT NULL,
+  `unitId`           INT NOT NULL,
+  `rentAgreementId`  INT NOT NULL,
+
+  `paymentId`        INT NULL UNIQUE,
+
+  `createdAt`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt`        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  INDEX `idx_sd_renter` (`renterId`),
+  INDEX `idx_sd_unit` (`unitId`),
+  INDEX `idx_sd_agreement` (`rentAgreementId`),
+  INDEX `idx_sd_payment` (`paymentId`),
+
+  CONSTRAINT `fk_sd_renter`       FOREIGN KEY (`renterId`)        REFERENCES `Client`(`id`)         ON DELETE CASCADE ON UPDATE RESTRICT,
+  CONSTRAINT `fk_sd_unit`         FOREIGN KEY (`unitId`)          REFERENCES `Unit`(`id`)           ON DELETE CASCADE ON UPDATE RESTRICT,
+  CONSTRAINT `fk_sd_agreement`    FOREIGN KEY (`rentAgreementId`) REFERENCES `RentAgreement`(`id`)  ON DELETE CASCADE ON UPDATE RESTRICT,
+  CONSTRAINT `fk_sd_payment`      FOREIGN KEY (`paymentId`)       REFERENCES `Payment`(`id`)        ON DELETE SET NULL ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 3) إضافة عمود الربط في JournalLine
+ALTER TABLE `JournalLine`
+  ADD COLUMN `securityDepositId` INT NULL,
+  ADD INDEX `idx_jl_securityDepositId` (`securityDepositId`),
+  ADD CONSTRAINT `fk_jl_securityDeposit` FOREIGN KEY (`securityDepositId`)
+    REFERENCES `SecurityDeposit`(`id`) ON DELETE SET NULL ON UPDATE RESTRICT;

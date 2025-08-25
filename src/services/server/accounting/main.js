@@ -40,17 +40,27 @@ export async function createJournalEntry({ description, entryDate, lines }) {
             unitId: l.unitId || null,
             maintenanceId: l.maintenanceId || null,
             rentAgreementId: l.rentAgreementId || null,
+            paymentId: l.paymentId || null,
+            maintenanceId: l.maintenanceId || null,
+            createdAt: l.createdAt || new Date(),
           },
+          select: { id: true, side: true, entryId: true },
         })
       )
     );
 
-    return { entry, lines: createdLines };
+    const debitLine = createdLines.find((l) => l.side === "DEBIT");
+    const creditLine = createdLines.find((l) => l.side === "CREDIT");
+    return {
+      entry: entry,
+      debitLine: debitLine,
+      creditLine: creditLine,
+    };
   });
 }
 
 // by GL code (e.g., "4000", "4100", "5200")
-async function getGLIdByCode(code) {
+export async function getGLIdByCode(code) {
   const gl = await prisma.gLAccount.findUnique({ where: { code } });
   if (!gl) throw new Error(`GL account with code ${code} not found`);
   return gl.id;
@@ -58,7 +68,7 @@ async function getGLIdByCode(code) {
 
 // by company bank account type or name
 // type: 'CHECKING' | 'SAVINGS' | 'PETTY_CASH'
-async function getCompanyBankIdByType(accountType) {
+export async function getCompanyBankIdByType(accountType) {
   const acc = await prisma.companyBankAccount.findFirst({
     where: { accountType, isActive: true },
     orderBy: { id: "asc" },
@@ -66,7 +76,16 @@ async function getCompanyBankIdByType(accountType) {
   if (!acc) throw new Error(`CompanyBankAccount (${accountType}) not found`);
   return acc.id;
 }
+export async function getDebitLineByPaymentId({ paymentId }) {
+  const debitLine = await prisma.journalLine.findFirst({
+    where: {
+      side: "DEBIT",
+      paymentId: Number(paymentId),
+    },
+  });
 
+  return debitLine;
+}
 export async function settleLines({ matches, note }) {
   if (!Array.isArray(matches) || matches.length === 0) {
     throw new Error("Provide settlement matches");
@@ -77,37 +96,65 @@ export async function settleLines({ matches, note }) {
   });
 
   for (const m of matches) {
-    const debit = await prisma.journalLine.findUnique({
-      where: { id: m.debitLineId },
-    });
-    const credit = await prisma.journalLine.findUnique({
-      where: { id: m.creditLineId },
-    });
-    if (!debit || !credit) throw new Error("Line not found for settlement");
-
-    // write both sides
     await prisma.journalSettlementLine.create({
       data: {
         settlementId: settlement.id,
-        lineId: debit.id,
+        lineId: Number(m.debitLineId),
         side: "DEBIT",
         amountMatched: m.amount,
-        note: m.note || null,
+        note: m.debitNote || null,
+        matchedAt: m.createdAt,
       },
     });
     await prisma.journalSettlementLine.create({
       data: {
         settlementId: settlement.id,
-        lineId: credit.id,
+        lineId: Number(m.creditLineId),
         side: "CREDIT",
         amountMatched: m.amount,
-        note: m.note || null,
+        note: m.creditNote || null,
+        matchedAt: m.createdAt,
       },
     });
+    if (m.paymentId && m.targetAmount) {
+      await checkForFullPaidByPaymentId({
+        paymentId: m.paymentId,
+        targetAmount: m.targetAmount,
+      });
+    }
   }
 
-  return prisma.journalSettlement.findUnique({
-    where: { id: settlement.id },
-    include: { lines: true },
+  return true;
+}
+
+export async function checkForFullPaidByPaymentId({ paymentId, targetAmount }) {
+  const creditPaymentLines = await prisma.journalLine.findMany({
+    where: { paymentId, side: "CREDIT" },
+    select: { id: true, amount: true },
   });
+  const creditLineIds = creditPaymentLines.map((l) => l.id);
+  const creditMatchedAgg = await prisma.journalSettlementLine.aggregate({
+    where: { side: "CREDIT", lineId: { in: creditLineIds } },
+    _sum: { amountMatched: true },
+  });
+  const totalCreditMatched = Number(creditMatchedAgg._sum.amountMatched || 0);
+  const isFullyPaid = totalCreditMatched >= targetAmount;
+  if (!isFullyPaid) {
+    return {
+      ok: true,
+      fullyPaid: false,
+      matched: totalCreditMatched,
+      target: targetAmount,
+    };
+  }
+  await prisma.journalLine.updateMany({
+    where: { paymentId },
+    data: { isSettled: true, settledAt: new Date() },
+  });
+  return {
+    ok: true,
+    fullyPaid: true,
+    matched: totalCreditMatched,
+    target: targetAmount,
+  };
 }

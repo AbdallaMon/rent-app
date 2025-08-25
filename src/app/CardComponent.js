@@ -1,144 +1,232 @@
-import React, { useState } from 'react';
-import {Box, Card, CardContent, CardHeader, CircularProgress, Typography} from '@mui/material';
-import {Pie} from 'react-chartjs-2';
+import React from "react";
+import {
+  Box,
+  Card,
+  CardContent,
+  CardHeader,
+  CircularProgress,
+  Typography,
+  useTheme,
+  Skeleton,
+} from "@mui/material";
 import Link from "next/link";
+import { Pie } from "react-chartjs-2";
 
-// Create a separate ChartComponent that can be exported
-const ChartComponent = ({ data }) => (
-  <Box sx={{width: '100%', display: 'flex', justifyContent: 'center'}}>
-    <Box sx={{maxWidth: '300px', width: '100%'}}>
-      <Pie data={data} options={{responsive: true}} />
+// small, theme-aware chart wrapper
+const ChartComponent = ({ data }) => {
+  const theme = useTheme();
+  return (
+    <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+      <Box sx={{ maxWidth: 320, width: "100%", px: 2, pb: 2 }}>
+        <Pie
+          data={data}
+          options={{
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  color: theme.palette.text.primary,
+                  boxWidth: 14,
+                },
+              },
+              title: { display: false },
+              datalabels: {
+                color: theme.palette.getContrastText(
+                  theme.palette.background.paper
+                ),
+                formatter: (val, ctx) => {
+                  const total =
+                    ctx.dataset.data.reduce((a, b) => a + b, 0) || 0;
+                  const pct = total ? Math.round((val / total) * 100) : 0;
+                  return `${pct}%`;
+                },
+                font: {
+                  weight: 600,
+                },
+              },
+            },
+          }}
+        />
+      </Box>
     </Box>
-  </Box>
+  );
+};
+
+const RowCell = ({ children, withDivider }) => (
+  <Typography
+    variant="h6"
+    sx={{
+      flex: 1,
+      textAlign: "center",
+      p: 2,
+      borderInlineEnd: withDivider
+        ? (theme) => `1px solid ${theme.palette.divider}`
+        : "none",
+      m: 0,
+      minHeight: 56,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontWeight: 600,
+    }}
+  >
+    {children}
+  </Typography>
 );
 
-const CardComponent = ({headers, values, loading, chartData, href, hrefIndex}) => {
-  // Add state to track whether chart is visible
-  const [showChart, setShowChart] = useState(false);
-  
-  // Function to toggle chart visibility
-  const toggleChart = () => {
-    setShowChart(!showChart);
-  };
+const ValueCell = ({ children, withDivider, linkColor }) => (
+  <Typography
+    variant="h5"
+    sx={{
+      flex: 1,
+      textAlign: "center",
+      p: 2,
+      borderInlineEnd: withDivider
+        ? (theme) => `1px solid ${theme.palette.divider}`
+        : "none",
+      borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+      minHeight: 64,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: linkColor || "text.primary",
+      fontWeight: 700,
+    }}
+  >
+    {children}
+  </Typography>
+);
+
+const CardComponent = ({
+  headers,
+  values,
+  loading,
+  chartData,
+  href,
+  hrefIndex,
+  showChart,
+  onToggleChart,
+}) => {
+  const theme = useTheme();
 
   return (
     <Card
+      elevation={0}
       sx={{
-        height: "100%",
         width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        mb: 0,
-        borderCollapse: 'collapse',
-        borderRadius: "0px",
-        
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: 2,
+        overflow: "hidden",
+        bgcolor: "background.paper",
+        transition: "box-shadow .2s ease, transform .04s ease",
+        "&:hover": {
+          boxShadow: 2,
+        },
       }}
     >
       <CardHeader
         title={
-          <Box sx={{
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}>
-            {headers.map((header, index) => (
-              <Typography key={index} variant="h6" sx={{
-                flex: 1,
-                textAlign: 'center',
-                borderRight: index < headers.length - 1 ? '1px solid #ccc' : 'none',
-                p: "16px 0"
-              }}>
+          <Box
+            sx={{
+              width: "100%",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "stretch",
+            }}
+          >
+            {headers.map((header, i) => (
+              <RowCell key={i} withDivider={i < headers.length - 1}>
                 {header}
-              </Typography>
+              </RowCell>
             ))}
           </Box>
         }
         sx={{
-          width: "100%",
-          backgroundColor: "primary.main",
-          color: "common.white",
-          textAlign: "center",
-          p: 0,
-          borderBottom: '1px solid #ccc'
+          px: 0,
+          py: 0,
+          bgcolor: (t) => t.palette.action.hover,
+          color: "text.primary",
+          borderBottom: (t) => `1px solid ${t.palette.divider}`,
         }}
       />
-      <CardContent
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "100%",
-          height: "100%",
-          p: 0,
-          borderTop: '1px solid #ccc'
-        }}
-      >
-        <Box 
+
+      <CardContent sx={{ p: 0 }}>
+        <Box
+          role="button"
+          tabIndex={0}
+          onClick={onToggleChart}
+          onKeyDown={(e) =>
+            e.key === "Enter" || e.key === " " ? onToggleChart() : null
+          }
           sx={{
-            width: '100%', 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            padding: '0 0',
-            cursor: 'pointer' // Add pointer cursor to indicate clickability
+            width: "100%",
+            display: "flex",
+            justifyContent: "space-between",
+            cursor: "pointer",
+            userSelect: "none",
           }}
-          onClick={toggleChart} // Add click handler to toggle chart
         >
           {loading ? (
-            <CircularProgress/>
-          ) : (
-            values.map((value, index) => (
-              <React.Fragment key={index}>
-                {href && hrefIndex === index ?
-                  <Typography 
-                    variant="h5" 
+            <Box
+              sx={{
+                width: "100%",
+                p: 3,
+                display: "flex",
+                justifyContent: "center",
+              }}
+            >
+              {/* skeleton gives a calmer loading state */}
+              <Box sx={{ width: "100%", display: "flex" }}>
+                {[0, 1, 2].map((i) => (
+                  <Box
+                    key={i}
                     sx={{
                       flex: 1,
-                      textAlign: 'center',
-                      borderRight: index < values.length - 1 ? '1px solid #ccc' : 'none',
-                      p: "16px 0",
-                      borderBottom: '1px solid #ccc',
-                      color: "#03a9f4",
-                      textDecoration: "underline"
+                      borderInlineEnd:
+                        i < 2
+                          ? (t) => `1px solid ${t.palette.divider}`
+                          : "none",
+                      p: 2,
                     }}
-                    // Prevent propagation to avoid toggling chart when clicking the link
-                    onClick={(e) => e.stopPropagation()}
                   >
-                    <Link href={href}>
+                    <Skeleton height={28} />
+                    <Skeleton height={32} sx={{ mt: 1 }} />
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          ) : (
+            values.map((value, i) => {
+              const isLink = href && hrefIndex === i;
+              return (
+                <React.Fragment key={i}>
+                  {isLink ? (
+                    <ValueCell
+                      withDivider={i < values.length - 1}
+                      linkColor={theme.palette.info.main}
+                    >
+                      <Link href={href} onClick={(e) => e.stopPropagation()}>
+                        {value}
+                      </Link>
+                    </ValueCell>
+                  ) : (
+                    <ValueCell withDivider={i < values.length - 1}>
                       {value}
-                    </Link>
-                  </Typography>
-                  :
-                  <Typography variant="h5" sx={{
-                    flex: 1,
-                    textAlign: 'center',
-                    borderRight: index < values.length - 1 ? '1px solid #ccc' : 'none',
-                    p: "16px 0",
-                    borderBottom: '1px solid #ccc'
-                  }}>
-                    {value}
-                  </Typography>
-                }
-              </React.Fragment>
-            ))
+                    </ValueCell>
+                  )}
+                </React.Fragment>
+              );
+            })
           )}
         </Box>
-        {/* Only show chart if showChart is true and chartData exists */}
-        {showChart && chartData && (
-          <Box sx={{width: '100%', display: 'flex', justifyContent: 'center', marginTop: '20px'}}>
-            <Box sx={{maxWidth: '300px'}}>
-              <Pie data={chartData} options={{responsive: true}}/>
-            </Box>
-          </Box>
-        )}
+
+        {showChart && chartData && <ChartComponent data={chartData} />}
       </CardContent>
     </Card>
   );
 };
 
-// Attach ChartComponent to CardComponent to support CardComponent.ChartComponent usage
 CardComponent.ChartComponent = ChartComponent;
-
 export default CardComponent;
