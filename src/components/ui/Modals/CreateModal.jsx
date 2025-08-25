@@ -1,36 +1,24 @@
-import { Button, Modal, Box } from "@mui/material";
-import { useTableForm } from "@/app/context/TableFormProvider/TableFormProvider";
-import { Form } from "@/components/ui/FormComponents/Forms/Form";
+"use client";
+import { Button, Modal, Box, Tooltip, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useState } from "react";
+import { useTableForm } from "@/app/context/TableFormProvider/TableFormProvider";
+import { Form } from "@/components/ui/FormComponents/Forms/Form";
 
-const modalStyle = (fullWidth) => ({
+const modalStyle = (theme, fullWidth) => ({
   position: "absolute",
-  width: fullWidth
-    ? "29.5cm"
-    : {
-        xs: "90%",
-
-        md: "750px",
-        lg: "850px",
-      },
   top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
   bgcolor: "background.paper",
-  boxShadow: 24,
-  p: {
-    xs: 2,
-    sm: 3,
-    md: 4,
-  },
-  borderRadius: "10px",
-  maxWidth: {
-    xs: "90%",
-    md: fullWidth ? "100%" : "50%",
-  },
-  maxHeight: "90%",
+  boxShadow: theme.shadows[24],
+  p: { xs: 2, sm: 3, md: 4 },
+  borderRadius: 2,
+  width: fullWidth ? "29.5cm" : { xs: "92%", md: 720, lg: 840 },
+  maxWidth: fullWidth ? "100%" : { xs: "92%", md: "50%" },
+  maxHeight: "90vh",
   overflow: "auto",
+  border: `1px solid ${theme.palette.divider}`,
 });
 
 export function CreateModal({
@@ -41,31 +29,35 @@ export function CreateModal({
   id,
   select,
 }) {
+  const theme = useTheme();
   const { submitData } = useTableForm();
-  const modelStyle = modalStyle(false);
   const [openModal, setOpenModal] = useState(false);
 
   function handleClick() {
-    if (select?.extraId && !extraId) {
-      return;
-    }
+    if (select?.extraId && !extraId) return;
     setOpenModal(true);
   }
 
   return (
     <>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => handleClick()}
-        disabled={!oldData || (select?.extraId && !extraId)}
-      >
-        <AddIcon />
-      </Button>{" "}
+      <Tooltip title="إضافة">
+        <span>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleClick}
+            disabled={!oldData || (select?.extraId && !extraId)}
+            sx={{ minWidth: 40, p: 0.75, borderRadius: 2 }}
+          >
+            <AddIcon fontSize="small" />
+          </Button>
+        </span>
+      </Tooltip>
+
       <Modal open={openModal} onClose={() => setOpenModal(false)}>
-        <Box sx={modelStyle}>
+        <Box sx={modalStyle(theme, false)}>
           <Form
-            formTitle={"انشاء"}
+            formTitle="انشاء"
             inputs={modalInputs}
             onSubmit={async (data) => {
               const newData = await submitData(
@@ -73,15 +65,13 @@ export function CreateModal({
                 setOpenModal,
                 null,
                 "POST",
-                { id, extraId },
+                { id, extraId }
               );
               setData([...oldData, newData]);
             }}
-            variant={"outlined"}
-            btnText={"انشاء"}
-          >
-            {/*{children}*/}
-          </Form>
+            variant="outlined"
+            btnText="انشاء"
+          />
         </Box>
       </Modal>
     </>

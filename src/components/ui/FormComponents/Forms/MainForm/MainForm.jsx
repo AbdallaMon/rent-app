@@ -1,17 +1,8 @@
 "use client";
-
-import { useForm, Controller } from "react-hook-form";
-import {
-  Box,
-  Button,
-  Typography,
-  TextField,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Select,
-  FormHelperText,
-} from "@mui/material";
+import InputField from "../../Inputs/InputField";
+import { useForm } from "react-hook-form";
+import SimpleSelect from "../../MUIInputs/SimpleSelect";
+import { Box, Button, Typography } from "@mui/material";
 
 export default function MainForm({
   inputs,
@@ -20,138 +11,91 @@ export default function MainForm({
   btnText,
   formTitle,
   subTitle = "",
-  formStyle,
+  formStyle, // <- keep using this exactly
   variant,
   children,
-  _className, // kept for API compatibility (unused to avoid Tailwind)
+  inputGap = "16px",
 }) {
   const { formState, register, handleSubmit, watch, trigger, control } =
     useForm();
   const { errors } = formState;
-
-  const getName = (input) => input?.data?.name || String(input?.data?.id || "");
-  const getLabel = (input) => input?.data?.label || getName(input);
-  const getPlaceholder = (input) => input?.data?.placeholder || "";
-  const getDefault = (input) =>
-    input?.data?.defaultValue !== undefined ? input.data.defaultValue : "";
-  const getRules = (input) => input?.data?.rules || {};
-  const getOptions = (input) => {
-    const opts = input?.data?.options || [];
-    return opts.map((o) =>
-      typeof o === "string" || typeof o === "number"
-        ? { value: o, label: String(o) }
-        : { value: o.value, label: o.label ?? String(o.value) }
-    );
-  };
-  const getType = (input) => input?.data?.inputType || "text";
 
   return (
     <Box
       component="form"
       noValidate
       onSubmit={handleSubmit(onSubmit)}
-      sx={{
+      // All styling via MUI/theme; still merges any incoming `formStyle`
+      sx={(theme) => ({
+        width: "100%",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        width: "100%",
-        p: 2.5, // ~ Tailwind p-5
-        py: 3, // ~ Tailwind py-6
-        bgcolor: (t) => t.palette.grey[100],
-        borderRadius: 1, // ~ Tailwind rounded
-        boxShadow: 2, // ~ Tailwind shadow-md
-        ...(formStyle || {}),
-      }}
+        justifyContent: "center",
+        p: { xs: 3, sm: 4 },
+        bgcolor: "background.paper",
+        borderRadius: 2,
+        boxShadow: 3,
+        ...formStyle,
+      })}
     >
       <Typography
         variant="h4"
-        sx={{ mb: 2, fontWeight: "bold", color: "var(--color_primary)" }}
+        sx={(theme) => ({
+          mb: 2,
+          fontWeight: 700,
+          color: theme.palette.primary.main,
+        })}
       >
         {formTitle}
       </Typography>
 
-      {subTitle ? (
+      {subTitle && (
         <Typography
           variant="subtitle1"
-          sx={{ mb: 2, fontWeight: "bold", color: "var(--color_secondary)" }}
+          sx={(theme) => ({
+            mb: 2,
+            fontWeight: 600,
+            color: theme.palette.secondary.main,
+          })}
         >
           {subTitle}
         </Typography>
-      ) : null}
+      )}
 
-      <Box sx={{ width: "100%" }}>
+      <Box
+        sx={{
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: inputGap,
+        }}
+      >
         {inputs.map((input) => {
-          const name = getName(input);
-          const label = getLabel(input);
-          const placeholder = getPlaceholder(input);
-          const rules = getRules(input);
-          const defVal = getDefault(input);
-
-          if (input?.data?.type === "select") {
-            const options = getOptions(input);
+          if (input.data.type === "select") {
             return (
-              <FormControl
+              <SimpleSelect
                 key={input.data.id}
-                fullWidth
-                margin="normal"
-                error={!!errors?.[name]}
-              >
-                <InputLabel>{label}</InputLabel>
-                <Controller
-                  name={name}
-                  control={control}
-                  defaultValue={defVal}
-                  rules={rules}
-                  render={({ field }) => (
-                    <Select
-                      {...field}
-                      label={label}
-                      variant={variant || "outlined"}
-                    >
-                      {options.map((opt) => (
-                        <MenuItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  )}
-                />
-                <FormHelperText>{errors?.[name]?.message || ""}</FormHelperText>
-              </FormControl>
+                select={input}
+                register={register}
+                errors={errors}
+                variant={variant}
+              />
+            );
+          } else {
+            return (
+              <InputField
+                key={input.data.id}
+                input={input}
+                register={register}
+                errors={errors}
+                variant={variant}
+                watch={watch}
+                trigger={trigger}
+              />
             );
           }
-
-          // default input (text/number/email/password/etc.)
-          return (
-            <TextField
-              key={input.data.id}
-              fullWidth
-              margin="normal"
-              label={label}
-              placeholder={placeholder}
-              type={getType(input)}
-              variant={variant || "outlined"}
-              defaultValue={defVal}
-              error={!!errors?.[name]}
-              helperText={errors?.[name]?.message || ""}
-              {...register(name, rules)}
-              onBlur={async (e) => {
-                if (rules?.validateOnBlur) {
-                  await trigger(name);
-                }
-                if (typeof input?.data?.onBlur === "function") {
-                  input.data.onBlur(e, { watch, trigger });
-                }
-              }}
-              onChange={(e) => {
-                if (typeof input?.data?.onChange === "function") {
-                  input.data.onChange(e, { watch, trigger });
-                }
-              }}
-            />
-          );
         })}
-
         {children}
       </Box>
 
@@ -163,13 +107,13 @@ export default function MainForm({
           variant="contained"
           size="large"
           color="primary"
-          sx={{
+          sx={(theme) => ({
             mt: 3,
             width: "100%",
-            py: 1.5, // ~ Tailwind p-3
-            textTransform: "capitalize",
-            fontWeight: "bold",
-          }}
+            py: 1.5,
+            textTransform: "none",
+            fontWeight: 700,
+          })}
         >
           {btnText}
         </Button>

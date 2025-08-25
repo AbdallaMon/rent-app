@@ -18,7 +18,7 @@ export default function LoginPage() {
       setLoading,
       "auth/login",
       false,
-      "جاري تسجيل الدخول",
+      "جاري تسجيل الدخول"
     );
     if (req.status === 200) {
       if (req.user) {
@@ -39,7 +39,16 @@ export default function LoginPage() {
         btnText={"تسجيل الدخول"}
         inputs={loginInputs}
         formTitle={"تسجيل الدخول"}
+        variant="outlined"
+        inputGap="16px"
         onSubmit={handleLogin}
+        formStyle={{
+          maxWidth: "400px",
+          margin: "auto auto",
+          height: "380px",
+
+          marginTop: { xs: "50%", md: "calc(50% - 476px)" },
+        }}
       >
         <Link href={"/reset-password"}>نسيت كلمة السر؟</Link>
       </AuthForm>

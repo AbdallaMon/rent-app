@@ -1,5 +1,13 @@
+"use client";
 import React from "react";
-import { Dialog, DialogTitle, DialogContent, Slide, Box } from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Slide,
+  Box,
+  useTheme,
+} from "@mui/material";
 import { Form } from "@/components/ui/FormComponents/Forms/Form";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
@@ -17,29 +25,31 @@ export function CreateFormModal({
   children,
   formTitle,
   extraComponent,
-  fullWidth, // اختياري لو عايز تفتح بكامل العرض
+  fullWidth,
 }) {
+  const theme = useTheme();
+
   return (
     <Dialog
       open={open}
       onClose={handleClose}
       TransitionComponent={Transition}
       keepMounted
-      maxWidth={false} // هنتحكم في المقاسات عبر PaperProps.sx
+      maxWidth={false}
       scroll="paper"
       PaperProps={{
         sx: {
-          width: fullWidth ? "29.5cm" : { xs: "90%", md: 750, lg: 850 },
-          maxWidth: fullWidth ? "100%" : { xs: "90%", md: "50%" },
+          width: fullWidth ? "29.5cm" : { xs: "92%", md: 720, lg: 840 },
+          maxWidth: fullWidth ? "100%" : { xs: "92%", md: "50%" },
           height: "90vh",
           overflow: "hidden",
           borderRadius: 2,
-          boxShadow: 24,
+          boxShadow: theme.shadows[24],
+          border: `1px solid ${theme.palette.divider}`,
+          bgcolor: "background.paper",
         },
       }}
-      slotProps={{
-        backdrop: { timeout: 200 },
-      }}
+      slotProps={{ backdrop: { timeout: 200 } }}
       aria-labelledby="create-form-dialog-title"
     >
       <DialogTitle
@@ -51,16 +61,12 @@ export function CreateFormModal({
 
       <DialogContent
         dividers
-        sx={{
-          pt: 2,
-          pb: 2,
-          "&.MuiDialogContent-root": { p: { xs: 1.5, sm: 2, md: 3 } },
-        }}
+        sx={{ "&.MuiDialogContent-root": { p: { xs: 1.5, sm: 2, md: 3 } } }}
       >
         {extraComponent ? <Box sx={{ mb: 2 }}>{extraComponent}</Box> : null}
 
         <Form
-          formTitle={null} // العنوان بقى في DialogTitle
+          formTitle={null}
           inputs={inputs}
           onSubmit={onSubmit}
           variant="outlined"

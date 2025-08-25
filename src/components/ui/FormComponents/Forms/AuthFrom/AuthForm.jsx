@@ -1,4 +1,3 @@
-import styles from "./authForm.module.css";
 import MainForm from "@/components/ui/FormComponents/Forms/MainForm/MainForm";
 
 export default function AuthForm({
@@ -11,6 +10,7 @@ export default function AuthForm({
   formStyle,
   variant,
   children,
+  inputGap,
 }) {
   return (
     <MainForm
@@ -22,7 +22,7 @@ export default function AuthForm({
       subTitle={subTitle}
       formStyle={formStyle}
       variant={variant}
-      _className={styles.auth_form}
+      inputGap={inputGap}
     >
       {children}
     </MainForm>

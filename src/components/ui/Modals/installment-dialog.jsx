@@ -1,42 +1,57 @@
-import React, { useState, useEffect } from "react";
+"use client";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
-  Typography,
-  Modal,
+  Divider,
   FormControl,
   InputLabel,
-  Select,
   MenuItem,
-  TextField,
-  Divider,
+  Modal,
   Paper,
+  Select,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Switch,
-  FormControlLabel,
-  IconButton,
+  TextField,
   Tooltip,
+  Typography,
 } from "@mui/material";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
+import WarningIcon from "@mui/icons-material/Warning";
+import dayjs from "dayjs";
 import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
 import { handleRequestSubmit } from "@/helpers/functions/handleRequestSubmit";
-import dayjs from "dayjs";
 import { PaymentStatus } from "@/config/Enums";
 import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
-import WarningIcon from '@mui/icons-material/Warning';
 
-const InstallmentsPaymentMethodDialog = ({
+const modalBoxSx = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: "92vw",
+  maxWidth: 900,
+  maxHeight: "85vh",
+  bgcolor: "background.paper",
+  border: 1,
+  borderColor: "divider",
+  borderRadius: 2,
+  boxShadow: 24,
+  p: { xs: 2, sm: 3 },
+  overflow: "auto",
+};
+
+export default function InstallmentsPaymentMethodDialog({
   open,
   handleClose,
   rentAgreement,
   onSave,
-}) => {
+}) {
   const [installments, setInstallments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -46,14 +61,16 @@ const InstallmentsPaymentMethodDialog = ({
     if (open && rentAgreement) {
       fetchInstallments();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, rentAgreement]);
 
   const fetchInstallments = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/main/rentAgreements/${rentAgreement.id}/installments`);
+      const response = await fetch(
+        `/api/main/rentAgreements/${rentAgreement.id}/installments`
+      );
       if (!response.ok) throw new Error("Failed to fetch installments");
-      
       const data = await response.json();
       setInstallments(data.data || []);
       setError("");
@@ -66,52 +83,50 @@ const InstallmentsPaymentMethodDialog = ({
   };
 
   const handlePaymentMethodChange = (index, value) => {
-    const updatedInstallments = [...installments];
-    updatedInstallments[index].paymentTypeMethod = value;
-    
-    // Clear cheque number if the payment method is not CHEQUE
-    if (value !== "CHEQUE") {
-      updatedInstallments[index].chequeNumber = null;
-    }
-    
-    setInstallments(updatedInstallments);
+    const updated = [...installments];
+    updated[index].paymentTypeMethod = value;
+    if (value !== "CHEQUE") updated[index].chequeNumber = null;
+    setInstallments(updated);
   };
 
   const handleChequeNumberChange = (index, value) => {
-    const updatedInstallments = [...installments];
-    updatedInstallments[index].chequeNumber = value;
-    setInstallments(updatedInstallments);
+    const updated = [...installments];
+    updated[index].chequeNumber = value;
+    setInstallments(updated);
   };
 
   const handlePaymentStatusChange = async (installment) => {
-    // Toggle the payment status
     const newStatus = installment.status === "PAID" ? "PENDING" : "PAID";
-    
     try {
-      // For marking as paid, we need to ensure payment method is set
       if (newStatus === "PAID" && !installment.paymentTypeMethod) {
         setError("يرجى تحديد طريقة الدفع قبل تغيير الحالة إلى مدفوع");
         return;
       }
-      
-      // If marking as paid and payment method is CHEQUE but no cheque number
-      if (newStatus === "PAID" && installment.paymentTypeMethod === "CHEQUE" && !installment.chequeNumber?.trim()) {
+      if (
+        newStatus === "PAID" &&
+        installment.paymentTypeMethod === "CHEQUE" &&
+        !installment.chequeNumber?.trim()
+      ) {
         setError("يرجى إدخال رقم الشيك قبل تغيير الحالة إلى مدفوع");
         return;
       }
 
       const data = {
         status: newStatus,
-        // If marking as paid, set the paidAmount to the full amount
         paidAmount: newStatus === "PAID" ? installment.amount : 0,
         paymentTypeMethod: installment.paymentTypeMethod,
-        chequeNumber: installment.paymentTypeMethod === "CHEQUE" ? installment.chequeNumber : null,
+        chequeNumber:
+          installment.paymentTypeMethod === "CHEQUE"
+            ? installment.chequeNumber
+            : null,
       };
-      
-      // Add bank info if available
-      if (rentAgreement && rentAgreement.unit && rentAgreement.unit.property && rentAgreement.unit.property.bankId) {
+
+      if (rentAgreement?.unit?.property?.bankId) {
         data.bankId = rentAgreement.unit.property.bankId;
-        if (rentAgreement.unit.property.bankAccount && rentAgreement.unit.property.bankAccount.length > 0) {
+        if (
+          rentAgreement.unit.property.bankAccount &&
+          rentAgreement.unit.property.bankAccount.length > 0
+        ) {
           data.bankAccount = rentAgreement.unit.property.bankAccount[0]?.id;
         }
       }
@@ -121,15 +136,22 @@ const InstallmentsPaymentMethodDialog = ({
         setSubmitLoading,
         `main/payments/${installment.id}/edit`,
         false,
-        `جاري تحديث حالة الدفع إلى ${newStatus === "PAID" ? "مدفوع" : "غير مدفوع"}`
+        `جاري تحديث حالة الدفع إلى ${
+          newStatus === "PAID" ? "مدفوع" : "غير مدفوع"
+        }`
       );
 
       if (updatedItem) {
-        // Update the installment in the local state
-        const updatedInstallments = installments.map(item => 
-          item.id === installment.id ? { ...item, status: newStatus, paidAmount: newStatus === "PAID" ? item.amount : 0 } : item
+        const updated = installments.map((i) =>
+          i.id === installment.id
+            ? {
+                ...i,
+                status: newStatus,
+                paidAmount: newStatus === "PAID" ? i.amount : 0,
+              }
+            : i
         );
-        setInstallments(updatedInstallments);
+        setInstallments(updated);
         setError("");
       }
     } catch (err) {
@@ -139,21 +161,28 @@ const InstallmentsPaymentMethodDialog = ({
   };
 
   const handleSaveInstallment = async (installment) => {
-    // Validate input
-    if (installment.paymentTypeMethod === "CHEQUE" && !installment.chequeNumber?.trim()) {
+    if (
+      installment.paymentTypeMethod === "CHEQUE" &&
+      !installment.chequeNumber?.trim()
+    ) {
       setError("يرجى إدخال رقم الشيك للدفعات المحددة بطريقة شيك");
       return false;
     }
 
     const data = {
       paymentTypeMethod: installment.paymentTypeMethod,
-      chequeNumber: installment.paymentTypeMethod === "CHEQUE" ? installment.chequeNumber : null,
+      chequeNumber:
+        installment.paymentTypeMethod === "CHEQUE"
+          ? installment.chequeNumber
+          : null,
     };
-    
-    // Add bank info if available
-    if (rentAgreement && rentAgreement.unit && rentAgreement.unit.property && rentAgreement.unit.property.bankId) {
+
+    if (rentAgreement?.unit?.property?.bankId) {
       data.bankId = rentAgreement.unit.property.bankId;
-      if (rentAgreement.unit.property.bankAccount && rentAgreement.unit.property.bankAccount.length > 0) {
+      if (
+        rentAgreement.unit.property.bankAccount &&
+        rentAgreement.unit.property.bankAccount.length > 0
+      ) {
         data.bankAccount = rentAgreement.unit.property.bankAccount[0]?.id;
       }
     }
@@ -168,11 +197,10 @@ const InstallmentsPaymentMethodDialog = ({
       );
 
       if (updatedItem) {
-        // Update the installment in the local state
-        const updatedInstallments = installments.map(item => 
-          item.id === installment.id ? { ...item, ...data } : item
+        const updated = installments.map((i) =>
+          i.id === installment.id ? { ...i, ...data } : i
         );
-        setInstallments(updatedInstallments);
+        setInstallments(updated);
         setError("");
         return true;
       }
@@ -186,43 +214,32 @@ const InstallmentsPaymentMethodDialog = ({
 
   const handleSaveAll = async () => {
     setError("");
-    let hasError = false;
-    
-    // Validate all CHEQUE payments have cheque numbers
-    const invalidChequePayment = installments.find(
-      inst => inst.paymentTypeMethod === "CHEQUE" && !inst.chequeNumber?.trim()
+    const invalid = installments.find(
+      (inst) =>
+        inst.paymentTypeMethod === "CHEQUE" && !inst.chequeNumber?.trim()
     );
-    
-    if (invalidChequePayment) {
+    if (invalid) {
       setError("يرجى إدخال رقم الشيك لجميع الدفعات المحددة بطريقة شيك");
       return;
     }
-    
-    // Save each installment payment method
-    for (const installment of installments) {
-      const success = await handleSaveInstallment(installment);
-      if (!success) {
-        hasError = true;
-        break;
-      }
+
+    for (const inst of installments) {
+      const ok = await handleSaveInstallment(inst);
+      if (!ok) return;
     }
-    
-    if (!hasError) {
-      if (onSave) {
-        onSave(installments);
-      }
-      handleClose();
-    }
+
+    if (onSave) onSave(installments);
+    handleClose();
   };
 
   const getStatusIcon = (status) => {
     switch (status) {
       case "PAID":
-        return <CheckCircleOutlineIcon sx={{ color: "green" }} />;
+        return <CheckCircleOutlineIcon sx={{ color: "success.main" }} />;
       case "PENDING":
-        return <HourglassEmptyIcon sx={{ color: "orange" }} />;
+        return <HourglassEmptyIcon sx={{ color: "warning.main" }} />;
       case "OVERDUE":
-        return <WarningIcon sx={{ color: "red" }} />;
+        return <WarningIcon sx={{ color: "error.main" }} />;
       default:
         return null;
     }
@@ -230,43 +247,27 @@ const InstallmentsPaymentMethodDialog = ({
 
   return (
     <Modal open={open} onClose={handleClose}>
-      <Box
-        sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "90%",
-          maxWidth: 800,
-          maxHeight: "80vh",
-          bgcolor: "background.paper",
-          boxShadow: 24,
-          p: 4,
-          borderRadius: 1,
-          overflow: "auto",
-        }}
-      >
-        <Typography id="installments-payment-method-dialog" variant="h6" component="h2" mb={2}>
+      <Box sx={modalBoxSx}>
+        <Typography variant="h6" mb={1}>
           تعديل طريقة الدفع وحالة الدفعات
         </Typography>
-        
         <Typography variant="body2" color="text.secondary" mb={2}>
           يمكنك تعديل طريقة الدفع وحالة كل دفعة على حدة
         </Typography>
-        
+
         <Divider sx={{ mb: 2 }} />
-        
+
         {error && (
-          <Typography variant="body2" color="error" sx={{ mt: 1, mb: 2 }}>
+          <Typography variant="body2" color="error" sx={{ mb: 2 }}>
             {error}
           </Typography>
         )}
-        
+
         {loading ? (
           <Typography>جاري تحميل الدفعات...</Typography>
         ) : (
-          <TableContainer component={Paper} sx={{ maxHeight: 400, overflow: "auto" }}>
-            <Table stickyHeader sx={{ minWidth: 650 }} aria-label="installments table">
+          <TableContainer component={Paper} sx={{ maxHeight: 440 }}>
+            <Table stickyHeader size="small" aria-label="installments table">
               <TableHead>
                 <TableRow>
                   <TableCell>رقم الدفعة</TableCell>
@@ -280,36 +281,48 @@ const InstallmentsPaymentMethodDialog = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {installments.map((installment, index) => (
-                  <TableRow key={installment.id} hover>
+                {installments.map((inst, index) => (
+                  <TableRow key={inst.id} hover>
                     <TableCell>{index + 1}</TableCell>
-                    <TableCell>{dayjs(installment.dueDate).format("DD/MM/YYYY")}</TableCell>
-                    <TableCell>{formatCurrencyAED(installment.amount.toFixed(2))}</TableCell>
-                    <TableCell>{formatCurrencyAED(installment.paidAmount.toFixed(2))}</TableCell>
                     <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        {getStatusIcon(installment.status)}
+                      {dayjs(inst.dueDate).format("DD/MM/YYYY")}
+                    </TableCell>
+                    <TableCell>
+                      {formatCurrencyAED(Number(inst.amount).toFixed(2))}
+                    </TableCell>
+                    <TableCell>
+                      {formatCurrencyAED(Number(inst.paidAmount).toFixed(2))}
+                    </TableCell>
+                    <TableCell>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        {getStatusIcon(inst.status)}
                         <Typography
                           variant="body2"
                           sx={{
-                            color:
-                              installment.status === "PAID"
-                                ? "green"
-                                : installment.status === "PENDING"
-                                  ? "orange"
-                                  : "red",
                             fontWeight: "bold",
+                            color:
+                              inst.status === "PAID"
+                                ? "success.main"
+                                : inst.status === "PENDING"
+                                  ? "warning.main"
+                                  : "error.main",
                           }}
                         >
-                          {PaymentStatus[installment.status]}
+                          {PaymentStatus[inst.status]}
                         </Typography>
                       </Box>
                     </TableCell>
                     <TableCell>
                       <FormControl fullWidth size="small">
+                        <InputLabel>طريقة الدفع</InputLabel>
                         <Select
-                          value={installment.paymentTypeMethod || "CASH"}
-                          onChange={(e) => handlePaymentMethodChange(index, e.target.value)}
+                          label="طريقة الدفع"
+                          value={inst.paymentTypeMethod || "CASH"}
+                          onChange={(e) =>
+                            handlePaymentMethodChange(index, e.target.value)
+                          }
                         >
                           <MenuItem value="CASH">كاش</MenuItem>
                           <MenuItem value="BANK">تحويل بنكي</MenuItem>
@@ -318,12 +331,14 @@ const InstallmentsPaymentMethodDialog = ({
                       </FormControl>
                     </TableCell>
                     <TableCell>
-                      {installment.paymentTypeMethod === "CHEQUE" ? (
+                      {inst.paymentTypeMethod === "CHEQUE" ? (
                         <TextField
                           size="small"
                           fullWidth
-                          value={installment.chequeNumber || ""}
-                          onChange={(e) => handleChequeNumberChange(index, e.target.value)}
+                          value={inst.chequeNumber || ""}
+                          onChange={(e) =>
+                            handleChequeNumberChange(index, e.target.value)
+                          }
                           placeholder="رقم الشيك"
                         />
                       ) : (
@@ -331,14 +346,20 @@ const InstallmentsPaymentMethodDialog = ({
                       )}
                     </TableCell>
                     <TableCell>
-                      <Tooltip title={installment.status === "PAID" ? "تغيير إلى غير مدفوع" : "تغيير إلى مدفوع"}>
+                      <Tooltip
+                        title={
+                          inst.status === "PAID"
+                            ? "تغيير إلى غير مدفوع"
+                            : "تغيير إلى مدفوع"
+                        }
+                      >
                         <Button
                           variant="contained"
-                          color={installment.status === "PAID" ? "error" : "success"}
+                          color={inst.status === "PAID" ? "error" : "success"}
                           size="small"
-                          onClick={() => handlePaymentStatusChange(installment)}
+                          onClick={() => handlePaymentStatusChange(inst)}
                         >
-                          {installment.status === "PAID" ? "إلغاء الدفع" : "تم الدفع"}
+                          {inst.status === "PAID" ? "إلغاء الدفع" : "تم الدفع"}
                         </Button>
                       </Tooltip>
                     </TableCell>
@@ -348,18 +369,21 @@ const InstallmentsPaymentMethodDialog = ({
             </Table>
           </TableContainer>
         )}
-        
+
         <Box sx={{ display: "flex", justifyContent: "space-between", mt: 3 }}>
           <Button variant="outlined" onClick={handleClose}>
             إلغاء
           </Button>
-          <Button variant="contained" color="primary" onClick={handleSaveAll} disabled={loading}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSaveAll}
+            disabled={loading}
+          >
             حفظ التغييرات
           </Button>
         </Box>
       </Box>
     </Modal>
   );
-};
-
-export default InstallmentsPaymentMethodDialog;
+}

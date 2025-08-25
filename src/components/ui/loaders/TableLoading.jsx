@@ -1,19 +1,38 @@
-import { CircularProgress, Typography } from "@mui/material";
+"use client";
 import React from "react";
+import { Box, CircularProgress, Typography, useTheme } from "@mui/material";
 
 export function TableLoading({ loadingMessage }) {
+  const theme = useTheme();
+
   return (
-    <div
-      className={
-        "absolute left-0 top-0 w-full h-full flex justify-center items-center z-50 bg-[#ffffff59]"
-      }
+    <Box
+      sx={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        zIndex: 50,
+        bgcolor: theme.palette.background.paper + "99", // paper background with transparency
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
     >
-      <div className={"flex gap-2 flex-col items-center"}>
-        <CircularProgress />
-        <Typography variant="h5" gutterBottom>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          alignItems: "center",
+        }}
+      >
+        <CircularProgress color="primary" />
+        <Typography variant="h6" color="text.primary">
           {loadingMessage}
         </Typography>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }

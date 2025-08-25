@@ -5,132 +5,175 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
-import {usePathname, useRouter} from "next/navigation";
-import {TabScrollButton} from "@mui/material";
+import { usePathname, useRouter } from "next/navigation";
+import { TabScrollButton } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 
+/* =========================
+   Unchanged component name
+========================= */
 function CustomTabPanel(props) {
-    const {children, value, index, ...other} = props;
+  const { children, value, index, ...other } = props;
 
-    return (
-          <div
-                role="tabpanel"
-                hidden={value !== index}
-                id={`simple-tabpanel-${index}`}
-                aria-labelledby={`simple-tab-${index}`}
-                {...other}
-          >
-              {value === index && (
-                    <Box sx={{p: 3}}>
-                        <Typography>{children}</Typography>
-                    </Box>
-              )}
-          </div>
-    );
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: { xs: 2, sm: 3 } }}>
+          <Typography component="div">{children}</Typography>
+        </Box>
+      )}
+    </div>
+  );
 }
 
 CustomTabPanel.propTypes = {
-    children: PropTypes.node,
-    index: PropTypes.number.isRequired,
-    value: PropTypes.number.isRequired,
+  children: PropTypes.node,
+  index: PropTypes.number.isRequired,
+  value: PropTypes.number.isRequired,
 };
 
+/* =========================
+   Unchanged helper name
+========================= */
 function a11yProps(index) {
-    return {
-        id: `simple-tab-${index}`,
-        "aria-controls": `simple-tabpanel-${index}`,
-    };
+  return {
+    id: `simple-tab-${index}`,
+    "aria-controls": `simple-tabpanel-${index}`,
+  };
 }
 
+/* =========================
+   SAME DATA (unchanged)
+========================= */
 const tabLinks = [
-    {label: "الصلاحيات", href: "/settings/"},
-    {
-        label: "إعدادات نوع العقار",
-        href: "/settings/property-type",
-    },
-    {label: "إعدادات نوع الوحدة", href: "/settings/unit-type"},
-    {label: "إعدادات البنك", href: "/settings/bank"},
-    {label: "إعدادات الامارات", href: "/settings/state"},
-
-    {label: "اعدادات مصروفات العقود", href: "/settings/contract-expense-type"},
-    {
-        label: "إعدادات انواع الصيانة ",
-        href: "/settings/property-expense-type",
-    },
-    {
-        label: "المحصلون",
-        href: "/settings/collectors",
-    },
+  { label: "الصلاحيات", href: "/settings/" },
+  { label: "إعدادات نوع العقار", href: "/settings/property-type" },
+  { label: "إعدادات نوع الوحدة", href: "/settings/unit-type" },
+  { label: "إعدادات البنك", href: "/settings/bank" },
+  { label: "إعدادات الامارات", href: "/settings/state" },
+  { label: "اعدادات مصروفات العقود", href: "/settings/contract-expense-type" },
+  { label: "إعدادات انواع الصيانة ", href: "/settings/property-expense-type" },
+  { label: "المحصلون", href: "/settings/collectors" },
 ];
+
 const reportLink = [
-    {label: "تقارير شامل", href: "/reports/"},
-    {label: "تقارير الصيانة", href: "/reports/maintenance"},
-    {label: "تقارير الملاك", href: "/reports/owners"},
-    {label: "تقارير المستاجرين", href: "/reports/renters"},
-    {label: " تقارير مدفوعات العقد", href: "/reports/payments"},
-    {label: "تقارير عدادات الكهرباء  ", href: "/reports/electricity"},
-    {label: "تقارير العقود", href: "/reports/contracts"},
-    {label: "العقود المنتهية", href: "/reports/expiring-contracts"},
-    {label: "تقارير الضرائب", href: "/reports/tax"}, 
-    {label: "تقارير الوحدات", href: "/reports/units"},
-    {label: "مدفوعات العقد", href: "/reports/contract-payment"},
+  { label: "تقارير شامل", href: "/reports/" },
+  { label: "تقارير الصيانة", href: "/reports/maintenance" },
+  { label: "تقارير الملاك", href: "/reports/owners" },
+  { label: "تقارير المستاجرين", href: "/reports/renters" },
+  { label: " تقارير مدفوعات العقد", href: "/reports/payments" },
+  { label: "تقارير عدادات الكهرباء  ", href: "/reports/electricity" },
+  { label: "تقارير العقود", href: "/reports/contracts" },
+  { label: "العقود المنتهية", href: "/reports/expiring-contracts" },
+  { label: "تقارير الضرائب", href: "/reports/tax" },
+  { label: "تقارير الوحدات", href: "/reports/units" },
+  { label: "مدفوعات العقد", href: "/reports/contract-payment" },
 ];
 
 const requestLink = [
-    {label: "تقارير الصيانة", href: "/request/maintenance"},
-    {label: "تقارير الطلبات", href: "/request/contact"},
-    {label: "تقارير الشكاوي", href: "/request/complaint"},
+  { label: "تقارير الصيانة", href: "/request/maintenance" },
+  { label: "تقارير الطلبات", href: "/request/contact" },
+  { label: "تقارير الشكاوي", href: "/request/complaint" },
 ];
-export function BasicTabs({reports, settings}) {
-    const router = useRouter();
-    const currentPath = usePathname();
 
-    const currentIndex = tabLinks.findIndex((tab) => tab.href === currentPath);
-    const [value, setValue] = React.useState(
-          currentIndex !== -1 ? currentIndex : 0,
-    );
+/* =========================
+   Unchanged export name
+========================= */
+export function BasicTabs({ reports, settings }) {
+  const router = useRouter();
+  const currentPath = usePathname();
 
-    React.useEffect(() => {
-        if (currentIndex !== -1) {
-            setValue(currentIndex);
-        }
-    }, [currentIndex]);
+  // keep same logic; just small guard for correct list
+  const list = reports ? reportLink : settings ? tabLinks : requestLink;
 
-    const handleChange = (event, newValue) => {
-        setValue(newValue);
-        router.push((reports ? reportLink : settings? tabLinks : requestLink)[newValue].href);
-    };
+  const currentIndex = list.findIndex((tab) => tab.href === currentPath);
+  const [value, setValue] = React.useState(
+    currentIndex !== -1 ? currentIndex : 0
+  );
 
-    const getScrollButtonDirection = (direction) => {
-        return direction === "left" ? "left" : "right";
-    };
+  React.useEffect(() => {
+    if (currentIndex !== -1) {
+      setValue(currentIndex);
+    }
+  }, [currentIndex]);
 
-    return (
-          <Box sx={{width: "100%"}}>
-              <Box sx={{borderBottom: 1, borderColor: "divider"}}>
-                  <Tabs
-                        value={value}
-                        onChange={handleChange}
-                        aria-label="basic tabs"
-                        variant="scrollable"
-                        scrollButtons
-                        allowScrollButtonsMobile
-                        sx={{
-                            "& .MuiTabs-flexContainer": {
-                                justifyContent: "flex-start",
-                            },
-                        }}
-                        ScrollButtonComponent={(props) => (
-                              <TabScrollButton
-                                    {...props}
-                                    direction={getScrollButtonDirection(props.direction)}
-                              />
-                        )}
-                  >
-                      {(reports ? reportLink : settings? tabLinks : requestLink).map((tab, index) => (
-                            <Tab key={tab.href} label={tab.label} {...a11yProps(index)} />
-                      ))}
-                  </Tabs>
-              </Box>
-          </Box>
-    );
+  const handleChange = (event, newValue) => {
+    setValue(newValue);
+    router.push(list[newValue].href);
+  };
+
+  const getScrollButtonDirection = (direction) => {
+    return direction === "left" ? "left" : "right";
+  };
+
+  return (
+    <Box sx={{ width: "100%" }}>
+      <Box
+        sx={(theme) => ({
+          borderBottom: 1,
+          borderColor: "divider",
+          bgcolor: theme.palette.background.paper,
+        })}
+      >
+        <Tabs
+          value={value}
+          onChange={handleChange}
+          aria-label="basic tabs"
+          variant="scrollable"
+          scrollButtons
+          allowScrollButtonsMobile
+          textColor="primary"
+          indicatorColor="primary"
+          sx={{
+            "& .MuiTabs-flexContainer": {
+              justifyContent: "flex-start",
+            },
+            "& .MuiTabs-indicator": {
+              height: 3,
+              borderRadius: 3,
+            },
+          }}
+          ScrollButtonComponent={(props) => (
+            <TabScrollButton
+              {...props}
+              direction={getScrollButtonDirection(props.direction)}
+            />
+          )}
+        >
+          {list.map((tab, index) => (
+            <Tab
+              key={tab.href}
+              label={tab.label}
+              {...a11yProps(index)}
+              sx={(theme) => ({
+                minHeight: 48,
+                px: { xs: 1.5, sm: 2.5 },
+                mx: { xs: 0.25, sm: 0.5 },
+                borderRadius: 2,
+                // hover/selected purely via MUI palette
+                "&:hover": {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.06),
+                },
+                "&.Mui-selected": {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                  fontWeight: 600,
+                },
+              })}
+            />
+          ))}
+        </Tabs>
+      </Box>
+    </Box>
+  );
 }
+
+BasicTabs.propTypes = {
+  reports: PropTypes.bool,
+  settings: PropTypes.bool,
+};
