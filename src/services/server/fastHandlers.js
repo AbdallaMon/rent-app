@@ -309,7 +309,6 @@ async function getUnits(searchParams) {
     );
   }
 
-  // إذا كان المطلوب الوحدات الشاغرة فقط، نفلتر الوحدات التي ليس لديها عقود نشطة
   if (availableOnly === "true") {
     whereClause.rentAgreements = {
       none: {
@@ -328,7 +327,39 @@ async function getUnits(searchParams) {
         number: true,
       },
     });
-    return units;
+    return units.map((unit) => {
+      return {
+        ...unit,
+        name: unit.number,
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching units:", error);
+    throw error;
+  }
+}
+async function getFastRentAgreements(searchParams) {
+  const renterId = searchParams.get("renterId");
+
+  let whereClause = {};
+  if (renterId) {
+    whereClause.renterId = +renterId;
+  }
+
+  try {
+    const rents = await prisma.rentAgreement.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        rentAgreementNumber: true,
+      },
+    });
+    return rents.map((rent) => {
+      return {
+        ...rent,
+        name: rent.rentAgreementNumber,
+      };
+    });
   } catch (error) {
     console.error("Error fetching units:", error);
     throw error;
@@ -580,9 +611,14 @@ async function getGlAccounts() {
   const glAccounts = await prisma.GLAccount.findMany();
   return glAccounts;
 }
+async function getCompanyBankAccounts() {
+  const companyBankAccounts = await prisma.CompanyBankAccount.findMany();
+  return companyBankAccounts;
+}
 
 export {
   createState,
+  getCompanyBankAccounts,
   getStates,
   createCity,
   getCitiesByStateId,
@@ -613,4 +649,5 @@ export {
   getOwnersByProperty,
   getContractPayments,
   getGlAccounts,
+  getFastRentAgreements,
 };

@@ -1,7 +1,6 @@
 "use client";
 
 import TableFormProvider from "@/app/context/TableFormProvider/TableFormProvider";
-import JournalEntryPanel from "@/components/accounting/JournalEntry";
 import ViewComponent from "@/components/ViewComponent/ViewComponent";
 import { useDataFetcher } from "@/helpers/hooks/useDataFetcher";
 import {
@@ -23,13 +22,14 @@ import { ownerInputs } from "@/app/owners/ownerInputs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import FilterSelect from "@/components/utility/FilterSelect.jsx";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import JournalLineItem from "@/components/accounting/JournalLineItem";
+import TableJournalLine from "@/components/accounting/TableJournalLine";
+import TableJournalEntry from "@/components/accounting/TableJournalEntry";
 dayjs.locale("ar");
 
 export default function StatementPage({ searchParams }) {
   return (
     <TableFormProvider url={"fast-handler"}>
-      <StatementWrapper />
+      <StatementWrapper searchParams={searchParams} />
     </TableFormProvider>
   );
 }
@@ -52,9 +52,23 @@ function getSettlementTotals(row) {
 function fmt(n) {
   return Number(n || 0).toLocaleString("ar-EG", { maximumFractionDigits: 2 });
 }
-export function StatementWrapper() {
-  const { data, loading, setFilters, filters } = useDataFetcher(
-    `main/accounting/statements?type=statement&`
+function StatementWrapper({ searchParams }) {
+  const {
+    data,
+    loading,
+    setFilters,
+    filters,
+    page,
+    setPage,
+    total,
+    setTotal,
+    limit,
+    setLimit,
+    setData,
+  } = useDataFetcher(
+    `main/accounting/statements?type=statement&`,
+    null,
+    searchParams
   );
 
   const [mode, setMode] = useState("owner");
@@ -63,6 +77,13 @@ export function StatementWrapper() {
   const [endDate, setEndDate] = useState(dayjs().endOf("month"));
 
   const columns = [
+    {
+      field: "id",
+      headerName: "معرف",
+      width: 50,
+      printable: false,
+      cardWidth: 48,
+    },
     {
       field: "createdAt",
       headerName: "تاريخ القيد",
@@ -79,6 +100,33 @@ export function StatementWrapper() {
       field: "memo",
       headerName: "الوصف",
       width: 200,
+      printable: true,
+      cardWidth: 48,
+    },
+    {
+      field: "Debit",
+      headerName: "مدين",
+      width: 100,
+      printable: true,
+      cardWidth: 48,
+      renderCell: (params) => {
+        return <TableJournalLine line={params.row.debit} />;
+      },
+    },
+    {
+      field: "Credit",
+      headerName: "دائن",
+      width: 100,
+      printable: true,
+      cardWidth: 48,
+      renderCell: (params) => {
+        return <TableJournalLine line={params.row.credit} />;
+      },
+    },
+    {
+      field: "debitAmount",
+      headerName: "الكمية",
+      width: 100,
       printable: true,
       cardWidth: 48,
     },
@@ -115,7 +163,6 @@ export function StatementWrapper() {
           );
         }
 
-        // no settlement lines → show what's left = full amount
         const { left } = getSettlementTotals(params.row);
         return (
           <Typography variant="body2" color="text.secondary" noWrap>
@@ -126,11 +173,21 @@ export function StatementWrapper() {
     },
 
     {
-      field: "lines",
-      headerName: "سطر القيد",
+      field: "actions",
+      headerName: "التفاصيل",
       width: 250,
       printable: true,
-      renderCell: (params) => <JournalLineItem line={params.row} />,
+      renderCell: (params) => {
+        return (
+          <TableJournalEntry
+            entry={params.row.entry}
+            withMemo={false}
+            withSettlment={false}
+            label="تفاصيل القيد"
+            withLineChange={false}
+          />
+        );
+      },
     },
   ];
 
@@ -269,7 +326,13 @@ export function StatementWrapper() {
         rows={data}
         columns={columns}
         loading={loading}
-        noPagination
+        page={page}
+        setPage={setPage}
+        limit={limit}
+        setLimit={setLimit}
+        setData={setData}
+        setTotal={setTotal}
+        total={total}
         noCreate
       />
     </>

@@ -44,6 +44,7 @@ const FilterSelect = ({
       async function getOptions() {
         setLoading(true);
         const response = await fetch(apiPoint);
+        console.log(response, "response");
         const data = await response.json();
         setLocalOptions(data);
         setLoading(false);

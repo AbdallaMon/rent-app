@@ -596,16 +596,13 @@ async function handleRentagreementAccounting({
   managementCommission,
 }) {
   try {
-    console.log(payment.paymentType, "payment.paymentType");
     const ownersGlId = await getGLIdByCode("1210");
     const commissionRevenueGlId = await getGLIdByCode("4000");
     const ownerId = rentAgreement.unit.property.client.id;
     const renterId = rentAgreement.renterId;
     const rentersGlId = await getGLIdByCode("1220");
     const regRevenueGlId = await getGLIdByCode("4100");
-    const taxesPayableId = await getGLIdByCode("2300");
     if (payment.paymentType === "MANAGEMENT_COMMISSION") {
-      console.log("we reached this?");
       await createJournalEntry({
         description: `عمولة إدارة ${managementCommission}% من إجمالي العقد`,
         lines: [
@@ -664,35 +661,35 @@ async function handleRentagreementAccounting({
         ],
       });
     }
-    if (payment.paymentType === "TAX") {
-      await createJournalEntry({
-        description: "استحقاق ضريبة على عقد الإيجار",
-        lines: [
-          {
-            side: "DEBIT",
-            amount: payment.amount,
-            partyType: "RENTER",
-            partyClientId: renterId,
-            glAccountId: rentersGlId,
-            memo: "ذمم مستأجرين - ضريبة",
-            rentAgreementId: rentAgreement.id,
-            unitId: Number(unitId),
-            propertyId: rentAgreement.unit.property.id,
-            paymentId,
-          },
-          {
-            side: "CREDIT",
-            amount: payment.amount,
-            glAccountId: taxesPayableId,
-            memo: "ضرائب مستحقة الدفع",
-            rentAgreementId: rentAgreement.id,
-            unitId: Number(unitId),
-            propertyId: rentAgreement.unit.property.id,
-            paymentId,
-          },
-        ],
-      });
-    }
+    // if (payment.paymentType === "TAX") {
+    //   await createJournalEntry({
+    //     description: "استحقاق ضريبة على عقد الإيجار",
+    //     lines: [
+    //       {
+    //         side: "DEBIT",
+    //         amount: payment.amount,
+    //         partyType: "RENTER",
+    //         partyClientId: renterId,
+    //         glAccountId: rentersGlId,
+    //         memo: "ذمم مستأجرين - ضريبة",
+    //         rentAgreementId: rentAgreement.id,
+    //         unitId: Number(unitId),
+    //         propertyId: rentAgreement.unit.property.id,
+    //         paymentId,
+    //       },
+    //       {
+    //         side: "CREDIT",
+    //         amount: payment.amount,
+    //         glAccountId: taxesPayableId,
+    //         memo: "ضرائب مستحقة الدفع",
+    //         rentAgreementId: rentAgreement.id,
+    //         unitId: Number(unitId),
+    //         propertyId: rentAgreement.unit.property.id,
+    //         paymentId,
+    //       },
+    //     ],
+    //   });
+    // }
   } catch (error) {
     console.log(error.message, "error in rent agreement accounting");
   }

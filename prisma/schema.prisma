@@ -925,6 +925,7 @@ model GLAccount {
   name         String
   type         GLAccountType
   isActive     Boolean        @default(true)
+  isSystem     Boolean        @default(false) 
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
@@ -954,6 +955,7 @@ model JournalEntry {
   description String?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
+  manull     Boolean   @default(false)
 
   lines       JournalLine[]
 
@@ -1065,9 +1067,9 @@ enum SecurityDepositStatus {
 
 model SecurityDeposit {
   id               Int                     @id @default(autoincrement())
-  amount           Float                   // مبلغ الوديعة المستَلم
-  deductedAmount   Float?                  @default(0) // المبلغ المخصوم (اختياري)
-  deductionReason  String?                 @db.Text    // سبب الخصم (اختياري)
+  amount           Float                   
+  deductedAmount   Float?                  @default(0)    
+  deductionReason  String?                 @db.Text      
 
   status           SecurityDepositStatus    @default(HELD)
   receivedAt       DateTime                @default(now())

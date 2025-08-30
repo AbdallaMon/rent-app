@@ -84,7 +84,12 @@ export default function EditMaintenanceModal({ maintenance, onUpdate }) {
 
   return (
     <>
-      <Button variant="contained" color="primary" onClick={handleOpen}>
+      <Button
+        variant="contained"
+        color="primary"
+        borderRadius={2}
+        onClick={handleOpen}
+      >
         تعديل
       </Button>
 

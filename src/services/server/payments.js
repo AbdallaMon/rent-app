@@ -178,6 +178,19 @@ export async function updatePayment(id, data) {
 
   const restPayment =
     +data.amount - (+data.currentPaidAmount + +data.paidAmount);
+
+  const paymentData = await prisma.payment.findUnique({
+    where: {
+      id: Number(id),
+    },
+  });
+  if (paymentData.paymentType === "INSURANCE") {
+    if (restPayment > 0) {
+      throw new Error(
+        "يجب ادخال المبلغ كاملا اذا كانت دفعة تامين حتي يتم انشاء وديعه بالمبلغ كاملا"
+      );
+    }
+  }
   if (restPayment > 1) {
     payment = await prisma.payment.update({
       where: { id: +id },
@@ -323,11 +336,11 @@ export async function updatePayment(id, data) {
 async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
   const ownersGlId = await getGLIdByCode("1210");
   const rentersGlId = await getGLIdByCode("1220");
-  const checkingId = await getCompanyBankIdByType("CHECKING");
+  const checkingGlId = await getGLIdByCode("1110");
   const ownerId = payment.property.clientId;
   const renterId = payment.rentAgreement?.renterId;
   const debitLine = await getDebitLineByPaymentId({ paymentId: payment.id });
-
+  const savingsGlId = await getGLIdByCode("1120");
   const paymentStatus = await checkForFullPaidByPaymentId({
     paymentId: payment.id,
     targetAmount: payment.amount,
@@ -354,7 +367,7 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
         {
           side: "DEBIT",
           amount: amount,
-          companyBankAccountId: checkingId,
+          glAccountId: checkingGlId,
           memo: "تحصيل عمولة إدارة - بنك",
           rentAgreementId: payment.rentAgreement.id,
           unitId: Number(payment.rentAgreement.unit.id),
@@ -399,7 +412,7 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
         {
           side: "DEBIT",
           amount: amount,
-          companyBankAccountId: checkingId,
+          glAccountId: checkingGlId,
           memo: "تحصيل رسوم تسجيل - بنك",
           rentAgreementId: payment.rentAgreement.id,
           unitId: Number(payment.rentAgreement.unit.id),
@@ -430,50 +443,50 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
     creditNote = "تسوية رسوم تسجيل - تحصيل";
   }
 
-  // =========================
-  // 3) TAX (on renter)
-  // =========================
-  if (payment.paymentType === "TAX") {
-    if (!debitLine) return;
+  // // =========================
+  // // 3) TAX (on renter)
+  // // =========================
+  // if (payment.paymentType === "TAX") {
+  //   if (!debitLine) return;
 
-    const { creditLine } = await createJournalEntry({
-      description: "تحصيل ضريبة من المستأجر",
-      entryDate: timeOfPayment ? new Date(timeOfPayment) : new Date(),
+  //   const { creditLine } = await createJournalEntry({
+  //     description: "تحصيل ضريبة من المستأجر",
+  //     entryDate: timeOfPayment ? new Date(timeOfPayment) : new Date(),
 
-      lines: [
-        {
-          side: "DEBIT",
-          amount: amount,
-          companyBankAccountId: checkingId,
-          memo: "تحصيل ضريبة - بنك",
-          rentAgreementId: payment.rentAgreement.id,
-          unitId: Number(payment.rentAgreement.unit.id),
-          propertyId: payment.rentAgreement.unit.propertyId,
-          paymentId: payment.id,
-          createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
-        },
-        {
-          side: "CREDIT",
-          amount: amount,
-          glAccountId: rentersGlId,
-          partyType: "RENTER",
-          partyClientId: renterId,
-          memo: "تسوية ذمم المستأجر - ضريبة",
-          rentAgreementId: payment.rentAgreement.id,
-          unitId: Number(payment.rentAgreement.unit.id),
-          propertyId: payment.rentAgreement.unit.propertyId,
-          paymentId: payment.id,
-          createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
-        },
-      ],
-    });
+  //     lines: [
+  //       {
+  //         side: "DEBIT",
+  //         amount: amount,
+  //         glAccountId: checkingGlId,
+  //         memo: "تحصيل ضريبة - بنك",
+  //         rentAgreementId: payment.rentAgreement.id,
+  //         unitId: Number(payment.rentAgreement.unit.id),
+  //         propertyId: payment.rentAgreement.unit.propertyId,
+  //         paymentId: payment.id,
+  //         createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
+  //       },
+  //       {
+  //         side: "CREDIT",
+  //         amount: amount,
+  //         glAccountId: rentersGlId,
+  //         partyType: "RENTER",
+  //         partyClientId: renterId,
+  //         memo: "تسوية ذمم المستأجر - ضريبة",
+  //         rentAgreementId: payment.rentAgreement.id,
+  //         unitId: Number(payment.rentAgreement.unit.id),
+  //         propertyId: payment.rentAgreement.unit.propertyId,
+  //         paymentId: payment.id,
+  //         createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
+  //       },
+  //     ],
+  //   });
 
-    credit = creditLine;
-    debit = debitLine;
-    note = `تسوية ضريبة - RA#${payment.rentAgreement.id}`;
-    debitNote = "تسوية ضريبة - استحقاق";
-    creditNote = "تسوية ضريبة - تحصيل";
-  }
+  //   credit = creditLine;
+  //   debit = debitLine;
+  //   note = `تسوية ضريبة - RA#${payment.rentAgreement.id}`;
+  //   debitNote = "تسوية ضريبة - استحقاق";
+  //   creditNote = "تسوية ضريبة - تحصيل";
+  // }
 
   // =========================
   // 4) MAINTENANCE (owner reimburses)
@@ -489,7 +502,7 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
         {
           side: "DEBIT",
           amount: amount,
-          companyBankAccountId: checkingId, // يرجع للحساب الجاري
+          glAccountId: checkingGlId, // يرجع للحساب الجاري
           memo: "تحصيل صيانة - بنك",
           unitId: Number(payment.unit?.id),
           propertyId: payment.propertyId,
@@ -523,8 +536,7 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
   // 5) INSURANCE (security deposit from renter) — NO settlement
   // =========================
   if (payment.paymentType === "INSURANCE") {
-    const savingsId = await getCompanyBankIdByType("SAVINGS"); // نودع التأمين في التوفير
-    const depositsGlId = await getGLIdByCode("2100"); // أمانات المستأجرين (تأمينات)
+    const depositsGlId = await getGLIdByCode("2100");
     const renterId = payment.rentAgreement.renterId;
 
     await createJournalEntry({
@@ -535,7 +547,7 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
         {
           side: "DEBIT",
           amount: amount,
-          companyBankAccountId: savingsId,
+          glAccountId: savingsGlId,
           memo: "وديعة تأمين - بنك توفير",
           rentAgreementId: payment.rentAgreement.id,
           unitId: Number(payment.rentAgreement.unit.id),
@@ -574,7 +586,7 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
           unitId: Number(payment.rentAgreement.unit.id),
           rentAgreementId: payment.rentAgreement.id,
           paymentId: payment.id,
-          createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
+          receivedAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
         },
       });
     } else {

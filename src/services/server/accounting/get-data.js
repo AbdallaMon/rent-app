@@ -1,7 +1,8 @@
 import prisma from "@/lib/prisma";
-import { getCompanyBankIdByType } from "./main";
 
 export async function getJournalsEntries(page, limit, searchParams) {
+  const offset = (page - 1) * limit;
+
   const filters = searchParams.get("filters")
     ? JSON.parse(searchParams.get("filters"))
     : {};
@@ -25,33 +26,12 @@ export async function getJournalsEntries(page, limit, searchParams) {
   }
   if (glAccount && glAccount !== "undefined" && glAccount !== "all") {
     glAccount = Number(glAccount);
-    const account = await prisma.gLAccount.findUnique({
-      where: { id: glAccount },
-    });
-    let bankAccountId;
-    if (account.code === "1110") {
-      bankAccountId = await getCompanyBankIdByType("CHECKING");
-    }
-    if (account.code === "1120") {
-      bankAccountId = await getCompanyBankIdByType("SAVINGS");
-    }
-    if (account.code === "1130") {
-      bankAccountId = await getCompanyBankIdByType("PETTY_CASH");
-    }
-    if (bankAccountId) {
-      where.lines = {
-        OR: [
-          { companyBankAccountId: Number(bankAccountId) },
-          { glAccountId: Number(glAccount) },
-        ],
-      };
-    } else {
-      where.lines = {
-        some: {
-          glAccountId: Number(glAccount),
-        },
-      };
-    }
+
+    where.lines = {
+      some: {
+        glAccountId: Number(glAccount),
+      },
+    };
   }
   if (ownerId && ownerId !== "undefined" && ownerId !== "all") {
     where.lines = {
@@ -110,24 +90,35 @@ export async function getJournalsEntries(page, limit, searchParams) {
     };
   }
   const journals = await prisma.journalEntry.findMany({
+    skip: offset,
+    take: limit,
     where,
-    orderBy: {
-      entryDate: "desc",
-    },
+    orderBy: [{ entryDate: "desc" }, { id: "desc" }],
     include: {
       lines: {
         include: {
           glAccount: true,
-          companyBankAccount: true,
           partyClient: true,
         },
       },
     },
   });
-  return { data: journals };
+  journals.map((journal) => {
+    const debit = journal.lines.find((line) => line.side === "DEBIT");
+    const credit = journal.lines.find((line) => line.side === "CREDIT");
+    journal.debitAmount = debit ? debit.amount : 0;
+    journal.creditAmount = credit ? credit.amount : 0;
+    journal.debit = debit ? debit : null;
+    journal.credit = credit ? credit : null;
+    return journal;
+  });
+  const total = await prisma.journalEntry.count({ where });
+
+  return { data: journals, page, total };
 }
 
 export async function getJournals(page, limit, searchParams) {
+  const offset = (page - 1) * limit;
   const filters = searchParams.get("filters")
     ? JSON.parse(searchParams.get("filters"))
     : {};
@@ -159,31 +150,9 @@ export async function getJournals(page, limit, searchParams) {
 
   if (glAccount && glAccount !== "undefined" && glAccount !== "all") {
     const glId = Number(glAccount);
-    const account = await prisma.gLAccount.findUnique({ where: { id: glId } });
 
-    let bankAccountId;
-    if (account?.code === "1110") {
-      bankAccountId = await getCompanyBankIdByType("CHECKING");
-    }
-    if (account?.code === "1120") {
-      bankAccountId = await getCompanyBankIdByType("SAVINGS");
-    }
-    if (account?.code === "1130") {
-      bankAccountId = await getCompanyBankIdByType("PETTY_CASH");
-    }
-
-    if (bankAccountId) {
-      AND.push({
-        OR: [
-          { companyBankAccountId: Number(bankAccountId) },
-          { glAccountId: glId },
-        ],
-      });
-    } else {
-      AND.push({ glAccountId: glId });
-    }
+    AND.push({ glAccountId: glId });
   }
-
   // Party filters (OWNER / RENTER)
   if (ownerId && ownerId !== "undefined" && ownerId !== "all") {
     AND.push({ partyClientId: Number(ownerId), partyType: "OWNER" });
@@ -217,22 +186,39 @@ export async function getJournals(page, limit, searchParams) {
   const where = AND.length ? { AND } : {};
 
   // Pagination
-
   const journals = await prisma.journalLine.findMany({
     where,
+    skip: offset,
+    take: limit,
     include: {
-      entry: true,
+      entry: {
+        include: {
+          lines: {
+            include: {
+              glAccount: true,
+              partyClient: true,
+            },
+          },
+        },
+      },
       glAccount: true,
-      companyBankAccount: true,
       partyClient: true,
       settlementLines: true,
     },
-    orderBy: {
-      createdAt: "desc", // or entryDate if you prefer
-    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   });
-
-  return { data: journals };
+  journals.map((journal) => {
+    const debit = { ...journal };
+    const credit = journal.entry.lines.find((line) => line.side === "CREDIT");
+    journal.debitAmount = debit ? debit.amount : 0;
+    journal.creditAmount = credit ? credit.amount : 0;
+    journal.debit = debit ? debit : null;
+    journal.credit = credit ? credit : null;
+    journal.lines = journal.entry.lines;
+    return journal;
+  });
+  const total = await prisma.journalLine.count({ where });
+  return { data: journals, page, total };
 }
 
 export async function getJournalLineById(page, limit, searchParams, params) {
@@ -242,14 +228,13 @@ export async function getJournalLineById(page, limit, searchParams, params) {
     include: {
       entry: true,
       glAccount: true,
-      companyBankAccount: true,
       partyClient: true,
       property: true,
       unit: true,
       maintenance: true,
       rentAgreement: true,
       payment: true,
-      securityDeposit: true, // لو عندك في السكيمة
+      securityDeposit: true,
     },
   });
 
@@ -265,15 +250,227 @@ export async function getJournalLineById(page, limit, searchParams, params) {
     },
     include: {
       lines: {
-        where: {
-          lineId: { not: line.id },
-        },
         include: {
-          line: true,
+          line: {
+            include: {
+              glAccount: true,
+              partyClient: true,
+            },
+          },
         },
       },
     },
   });
   line.settlements = settlements;
+
   return line;
+}
+
+export async function getJournalEntryById(page, limit, searchParams, params) {
+  const id = +params.id;
+  const entry = await prisma.journalEntry.findUnique({
+    where: { id: Number(id) },
+    include: {
+      lines: {
+        include: {
+          glAccount: true,
+          partyClient: true,
+          property: true,
+          unit: true,
+          maintenance: true,
+          rentAgreement: true,
+          payment: true,
+          securityDeposit: true,
+        },
+      },
+    },
+  });
+
+  if (!entry) throw new Error("Journal entry not found");
+
+  let settlements = await prisma.journalSettlement.findMany({
+    where: {
+      lines: {
+        some: {
+          line: {
+            is: { entryId: entry.id },
+          },
+        },
+      },
+    },
+    include: {
+      lines: {
+        // where: {
+        //   line: {
+        //     is: { entryId: { not: entry.id } },
+        //   },
+        // },
+        include: {
+          line: {
+            include: {
+              glAccount: true,
+              partyClient: true,
+              entry: {
+                include: {
+                  lines: {
+                    include: {
+                      glAccount: true,
+                      partyClient: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+  entry.settlements = settlements;
+  // entry.settlements = settlements.map((sett) => {
+  //   return {
+  //     ...sett,
+  //     lines: [
+  //       sett.lines[0],
+  //       {
+  //         ...sett.lines[0],
+  //         line: sett.lines[0].line.entry.lines.find(
+  //           (l) => l.id !== sett.lines[0].line.id
+  //         ),
+  //       },
+  //     ],
+  //   };
+  // });
+
+  return entry;
+}
+
+export async function getAccountsBalance() {
+  const debitGroups = await prisma.journalLine.groupBy({
+    by: ["glAccountId"],
+    where: { glAccountId: { not: null }, side: "DEBIT" },
+    _sum: { amount: true },
+  });
+
+  const creditGroups = await prisma.journalLine.groupBy({
+    by: ["glAccountId"],
+    where: { glAccountId: { not: null }, side: "CREDIT" },
+    _sum: { amount: true },
+  });
+
+  const debMap = new Map(
+    debitGroups.map((g) => [g.glAccountId, Number(g._sum.amount || 0)])
+  );
+  const credMap = new Map(
+    creditGroups.map((g) => [g.glAccountId, Number(g._sum.amount || 0)])
+  );
+
+  const accounts = await prisma.GLAccount.findMany({});
+
+  const data = accounts.map((acc) => {
+    const totalDebit = debMap.get(acc.id) || 0;
+    const totalCredit = credMap.get(acc.id) || 0;
+    const balance = calcBalance(totalDebit, totalCredit);
+    return {
+      ...acc,
+      totalDebit,
+      totalCredit,
+      balance,
+    };
+  });
+
+  return { data };
+}
+
+export async function getTrialBalance(page, limit, searchParams) {
+  const filters = searchParams.get("filters")
+    ? JSON.parse(searchParams.get("filters"))
+    : {};
+
+  let { startDate, endDate } = filters;
+  const where = {};
+
+  if (startDate && endDate) {
+    where.createdAt = { gte: new Date(startDate), lte: new Date(endDate) };
+  } else if (startDate) {
+    where.createdAt = { gte: new Date(startDate) };
+  } else if (endDate) {
+    where.createdAt = { lte: new Date(endDate) };
+  }
+
+  const accountsBalance = [];
+  let totalDebits = 0;
+  let totalCredits = 0;
+
+  const glAccounts = await prisma.GLAccount.findMany({});
+  for (const acc of glAccounts) {
+    const { debits, credits } = await getDebitAndCreditForAGlAccount({
+      extraWhere: where,
+      code: acc.code,
+    });
+    accountsBalance.push({
+      accountType: acc.type,
+      debits,
+      credits,
+      name: acc.name,
+      type: acc.type,
+      code: acc.code,
+      balanceTrend: calcBalanceAndReturnTrend(debits, credits),
+      balance: calcBalance(debits, credits),
+    });
+    totalDebits += debits;
+    totalCredits += credits;
+  }
+  const totalBalance = totalDebits - totalCredits;
+  const balanceTrend = calcBalanceAndReturnTrend(totalDebits, totalCredits);
+  return {
+    data: accountsBalance,
+    otherData: {
+      totalDebits,
+      totalCredits,
+      totalBalance,
+      balanceTrend,
+    },
+  };
+}
+function calcBalanceAndReturnTrend(totalDebits, totalCredits) {
+  const totalBalance = calcBalance(totalDebits, totalCredits);
+
+  return totalBalance === 0 ? "flat" : totalBalance > 0 ? "up" : "down";
+}
+function calcBalance(totalDebits, totalCredits) {
+  return totalDebits - totalCredits;
+}
+async function getDebitAndCreditForAGlAccount({ code, extraWhere }) {
+  const where = {
+    ...extraWhere,
+    glAccount: {
+      code,
+    },
+  };
+
+  const debits = await prisma.journalLine.aggregate({
+    where: {
+      side: "DEBIT",
+      ...where,
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+
+  const credits = await prisma.journalLine.aggregate({
+    where: {
+      side: "CREDIT",
+      ...where,
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+
+  return {
+    debits: debits._sum.amount || 0,
+    credits: credits._sum.amount || 0,
+  };
 }

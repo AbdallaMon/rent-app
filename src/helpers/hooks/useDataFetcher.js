@@ -11,6 +11,7 @@ export function useDataFetcher(url, noArr, initialFilters = {}) {
   const [limit, setLimit] = useState(initialPageLimit);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [otherData, setOtherData] = useState(null);
   const [filters, setFilters] = useState(initialFilters);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState({});
@@ -39,6 +40,7 @@ export function useDataFetcher(url, noArr, initialFilters = {}) {
         setData(res.data);
         setTotalPages(res.totalPages);
         setTotal(res.total);
+        setOtherData(res.otherData);
       }
     }
 
@@ -66,5 +68,7 @@ export function useDataFetcher(url, noArr, initialFilters = {}) {
     setOthers,
     others,
     filters,
+    otherData,
+    setOtherData,
   };
 }

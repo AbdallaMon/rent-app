@@ -66,7 +66,6 @@ export function createHandler({
 
     async DELETE(request, { params }) {
       const { id } = params;
-
       try {
         const req = await deleteService(+id, params);
         return Response.json({

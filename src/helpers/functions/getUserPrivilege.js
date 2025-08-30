@@ -15,7 +15,7 @@ export const getCurrentPrivilege = (user, pathName) => {
     "/admin": "SETTING",
     "/whatsapp": "SETTING",
     "/accounting": "ACCOUNTING",
-    "/security-deposit": "SECURITY_DEPOSIT",
+    "/security-deposits": "SECURITY_DEPOSIT",
   };
   if (pathName.split("/").length > 2) {
     pathName = "/" + pathName.split("/")[1];

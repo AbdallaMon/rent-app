@@ -25,7 +25,6 @@ import "./globals.css";
 import DashboardNav from "@/components/ui/Navigation/Navbar/Navbar"; // شريط التنقل الرئيسي
 
 // استيراد مكونات الدعم والمساعدة
-import { Rtl } from "@/components/Rtl/Rtl"; // دعم الاتجاه من اليمين لليسار
 
 // استيراد مقدمي الخدمات (Context Providers)
 import { SubmitLoaderProvider } from "@/app/context/SubmitLoaderProvider/SubmitLoaderProvider"; // مدير تحميل الإرسال

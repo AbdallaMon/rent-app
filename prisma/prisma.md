@@ -187,6 +187,7 @@ client Client? @relation(fields: [clientId], references: [id])
 property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 type UnitType? @relation(fields: [typeId], references: [id], onDelete: Restrict)
 journalLines JournalLine[]
+securityDeposits SecurityDeposit[]
 
 @@index([clientId], map: "Unit_clientId_fkey")
 @@index([propertyId], map: "Unit_propertyId_fkey")
@@ -229,7 +230,7 @@ renter Client @relation("Renter", fields: [renterId], references: [id], onDelete
 type RentAgreementType? @relation(fields: [typeId], references: [id])
 unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
 journalLines JournalLine[]
-
+securityDeposits SecurityDeposit[]
 @@index([renterId], map: "RentAgreement_renterId_fkey")
 @@index([typeId], map: "RentAgreement_typeId_fkey")
 @@index([unitId], map: "RentAgreement_unitId_fkey")
@@ -434,7 +435,7 @@ whatsappConversations WhatsappConversation[]
 whatsappIncoming WhatsappIncomingMessage[]
 whatsappMessages WhatsappMessageLog[]
 journalLines JournalLine[]
-
+securityDeposits SecurityDeposit[]
 }
 
 model BankAccount {
@@ -544,7 +545,8 @@ maintenanceInstallment MaintenanceInstallment? @relation(fields: [maintenanceIns
 property Property? @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 rentAgreement RentAgreement? @relation(fields: [rentAgreementId], references: [id])
 unit Unit? @relation(fields: [unitId], references: [id])
-
+journalLines JournalLine[]
+securityDeposits SecurityDeposit[]
 @@index([bankId], map: "Payment_bankId_fkey")
 @@index([clientId], map: "Payment_clientId_fkey")
 @@index([contractExpenseId], map: "Payment_contractExpenseId_fkey")
@@ -809,6 +811,8 @@ OWNER
 RENTER
 SETTING
 WHATSAPP
+ACCOUNTING  
+ SECURITY_DEPOSIT  
 }
 
 enum ClientRole {
@@ -941,7 +945,7 @@ journalLines JournalLine[]
 @@unique([name, accountType])
 }
 
-// ===== رأس القيد (نخليه بسيط ونظيف) =====
+// ===== رأس القيد =====
 model JournalEntry {
 id Int @id @default(autoincrement())
 entryDate DateTime @default(now())
@@ -988,11 +992,17 @@ property Property? @relation(fields: [propertyId], references: [id], onDelete: S
 unitId Int?
 unit Unit? @relation(fields: [unitId], references: [id], onDelete: SetNull)
 
+securityDepositId Int?
+securityDeposit SecurityDeposit? @relation(fields: [securityDepositId], references: [id], onDelete: SetNull)
+
 maintenanceId Int?
 maintenance Maintenance? @relation(fields: [maintenanceId], references: [id], onDelete: SetNull)
 
 rentAgreementId Int?
 rentAgreement RentAgreement? @relation(fields: [rentAgreementId], references: [id], onDelete: SetNull)
+
+paymentId Int?
+payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
 // حالة التسوية (اختياري - فلاغ/تسهيل)
 isSettled Boolean? @default(false)
@@ -1009,7 +1019,9 @@ settlementLines JournalSettlementLine[]
 @@index([propertyId])
 @@index([unitId])
 @@index([maintenanceId])
-@@index([rentAgreementId])
+@@index([rentAgreementId])  
+ @@index([paymentId])
+@@index([securityDepositId])
 }
 
 // ===== رأس تسوية: تربط أكتر من سطر مدين مع أكتر من سطر دائن =====
@@ -1026,8 +1038,8 @@ model JournalSettlementLine {
 id Int @id @default(autoincrement())
 settlementId Int
 lineId Int
-side EntrySide // اتجاه سطر القيد نفسه داخل التسوية
-amountMatched Float
+side EntrySide  
+ amountMatched Float
 matchedAt DateTime @default(now())
 note String?
 
@@ -1037,4 +1049,50 @@ line JournalLine @relation(fields: [lineId], references: [id], onDelete: Cascade
 @@unique([settlementId, lineId])
 @@index([settlementId])
 @@index([lineId])
+}
+
+// ======================
+// Security Deposit
+// ======================
+enum SecurityDepositStatus {
+HELD  
+ PARTIALLY_REFUNDED
+REFUNDED  
+ FORFEITED  
+}
+
+model SecurityDeposit {
+id Int @id @default(autoincrement())
+amount Float // مبلغ الوديعة المستَلم
+deductedAmount Float? @default(0) // المبلغ المخصوم (اختياري)
+deductionReason String? @db.Text // سبب الخصم (اختياري)
+
+status SecurityDepositStatus @default(HELD)
+receivedAt DateTime @default(now())
+refundedAt DateTime?
+
+// روابط أساسية
+renterId Int
+renter Client @relation(fields: [renterId], references: [id], onDelete: Cascade)
+
+unitId Int
+unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+rentAgreementId Int
+rentAgreement RentAgreement @relation(fields: [rentAgreementId], references: [id], onDelete: Cascade)
+
+// اختيارى: الربط بدفعة الاستلام (1:1)
+paymentId Int? @unique
+payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+// هتربط أكتر من سطر يومية بهذه الوديعة
+journalLines JournalLine[]
+
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+@@index([renterId])
+@@index([unitId])
+@@index([rentAgreementId])
+@@index([paymentId])
 }

@@ -13,6 +13,7 @@ import { submitProperty } from "@/services/client/properties";
 import DeleteBtn from "@/components/ui/Buttons/DeleteBtn";
 import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 import { ownerInputs } from "@/app/owners/ownerInputs";
+import DeleteModal from "../ui/Modals/DeleteModal";
 
 const PropertyComponent = ({ clientId, noTabs }) => {
   const {
@@ -245,17 +246,7 @@ const PropertyComponent = ({ clientId, noTabs }) => {
   });
 
   async function handleDelete(id) {
-    const res = await submitData(
-      null,
-      null,
-      id,
-      "DELETE",
-      null,
-      null,
-      "main/properties"
-    );
-
-    const filterData = data.filter((item) => item.id !== res.id);
+    const filterData = data.filter((item) => item.id !== +id);
     setData(filterData);
     setTotal((old) => old - 1);
     if (page === 1 && total >= limit) {
@@ -364,7 +355,11 @@ const PropertyComponent = ({ clientId, noTabs }) => {
           >
             تعديل
           </Button>
-          <DeleteBtn handleDelete={() => handleDelete(params.row.id)} />
+          <DeleteModal
+            href={`main/properties`}
+            item={params.row}
+            handleClose={() => handleDelete(params.row.id)}
+          />
         </>
       ),
     },

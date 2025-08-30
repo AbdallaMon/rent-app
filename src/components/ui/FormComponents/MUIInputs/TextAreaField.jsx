@@ -7,30 +7,28 @@ export default function TextAreaField({
   register,
   variant,
   errors,
-
 }) {
   const inputData = input.data;
-  const fullWidth=input.fullWidth
-  const {  label, id } = inputData;
+  const fullWidth = input.fullWidth;
+  const { label, id } = inputData;
   return (
     <Controller
       name={label}
       control={control}
-      render={({ field:{value,onChange} }) => (
+      render={({ field: { value, onChange } }) => (
         <TextField
-            id={id}
-
+          id={id}
           label={label}
           multiline
           rows={4}
-          fullWidth={fullWidth?fullWidth:true}
+          fullWidth={fullWidth ? fullWidth : true}
           sx={input.sx}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           variant={variant}
           {...register(id, input.pattern)}
           error={Boolean(errors[id])}
-          helperText={errors[id]?.message }
+          helperText={errors[id]?.message}
           className={"mb-3"}
         />
       )}

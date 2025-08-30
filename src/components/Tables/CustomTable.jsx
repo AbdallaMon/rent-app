@@ -102,7 +102,9 @@ export default function CustomTable({
   }, [printMode, printableColumns, actionsCol]);
 
   const hasRows = rows && rows.length > 0;
+  const isActions = (field) => field === "actions";
 
+  const cellPaddingX = 1.5;
   return (
     <Paper
       elevation={3}
@@ -118,43 +120,76 @@ export default function CustomTable({
       {loading && <FullScreenLoader />}
 
       <Toolbar
+        disableGutters
         sx={{
-          display: "flex",
+          mb: 1.5,
+          gap: 1.5,
+          alignItems: "center",
           justifyContent: "space-between",
           flexWrap: "wrap",
-          gap: 1,
-          mb: 2,
-          p: 0,
         }}
       >
-        <Stack
-          direction="row"
-          spacing={1}
-          useFlexGap
-          flexWrap="wrap"
-          sx={{ alignItems: "center" }}
+        <Paper
+          variant="outlined"
+          sx={(t) => ({
+            px: 1,
+            py: 0.5,
+            borderRadius: 2,
+            maxWidth: "100%",
+            bgcolor:
+              t.palette.mode === "light"
+                ? t.palette.grey[50]
+                : t.palette.background.default,
+          })}
         >
-          {columns
-            .filter((c) => c.field && c.field !== "actions")
-            .map((column) => (
-              <FormControlLabel
-                key={column.field}
-                control={
-                  <Checkbox
-                    checked={!!selectedColumns[column.field]}
-                    onChange={() => handleColumnToggle(column.field)}
-                    color="primary"
-                  />
-                }
-                label={column.headerName}
-                sx={{ m: 0 }}
-              />
-            ))}
-        </Stack>
+          <Stack
+            direction="row"
+            spacing={0.5}
+            useFlexGap
+            flexWrap="wrap"
+            sx={{ alignItems: "center", p: 0.5 }}
+          >
+            {columns
+              .filter((c) => c.field && c.field !== "actions")
+              .map((column) => (
+                <FormControlLabel
+                  key={column.field}
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={!!selectedColumns[column.field]}
+                      onChange={() => handleColumnToggle(column.field)}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" color="text.secondary">
+                      {column.headerName}
+                    </Typography>
+                  }
+                  sx={{
+                    m: 0,
+                    px: 1,
+                    borderRadius: 2,
+                    "&:hover": { bgcolor: "action.hover" },
+                  }}
+                />
+              ))}
+          </Stack>
+        </Paper>
 
         <Box>
           <Tooltip title="Print">
-            <IconButton onClick={handlePrint} sx={{ mr: 0.5 }}>
+            <IconButton
+              onClick={handlePrint}
+              color="primary"
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: "background.paper",
+                "&:hover": { bgcolor: "action.hover" },
+              }}
+            >
               <PrintIcon />
             </IconButton>
           </Tooltip>
@@ -168,17 +203,42 @@ export default function CustomTable({
         <Table stickyHeader aria-label="data table" sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow>
-              {columnsToRender.map((column) => (
+              {columnsToRender.map((column, idx) => (
                 <TableCell
                   key={column.field}
-                  sx={{
-                    backgroundColor: "primary.main",
-                    color: "primary.contrastText",
-                    fontWeight: "bold",
-                    borderBottom: "2px solid #e0e0e0",
-                  }}
+                  sx={(theme) => ({
+                    background: `linear-gradient(180deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                    color: theme.palette.primary.contrastText,
+                    fontWeight: 700,
+                    letterSpacing: 0.3,
+                    borderBottom: 0,
+                    position: "sticky",
+                    top: 0,
+                    zIndex: isActions(column.field) ? 3 : 1,
+                    ...(isActions(column.field)
+                      ? {
+                          right: 0,
+                          position: "sticky",
+                          boxShadow: `-8px 0 12px -8px rgba(0,0,0,0.15)`,
+                        }
+                      : {}),
+                    "&:first-of-type": { borderTopLeftRadius: 8 },
+                    "&:last-of-type": { borderTopRightRadius: 8 },
+                    px: cellPaddingX,
+                    py: 1.25,
+                  })}
                 >
-                  {column.headerName}
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                    title={column.headerName}
+                  >
+                    {column.headerName}
+                  </Typography>
                 </TableCell>
               ))}
             </TableRow>
@@ -207,7 +267,12 @@ export default function CustomTable({
                   {columnsToRender.map((column) => (
                     <TableCell
                       key={column.field}
-                      sx={{ borderBottom: "1px solid #e0e0e0" }}
+                      sx={{
+                        borderBottom: "1px solid #e0e0e0",
+                        fontSize: "1rem",
+                        fontWeight: 400,
+                        color: "text.primary",
+                      }}
                     >
                       {typeof column.renderCell === "function"
                         ? column.renderCell({ row })

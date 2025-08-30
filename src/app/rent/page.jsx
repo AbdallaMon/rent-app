@@ -206,22 +206,20 @@ const RentWrapper = ({ propperty, statusFilter, rentedFilter }) => {
   }
 
   async function getUnits() {
-    // طلب الوحدات الشاغرة فقط للعقار المحدد
     const res = await fetch(
       "/api/fast-handler?id=unit&propertyId=" +
         propertyId +
         "&availableOnly=true"
     );
     const data = await res.json();
-    const dataWithLabel = data.map((item) => {
-      return {
-        ...item,
-        name: item.number,
-        // لا نحتاج لـ disabled لأن جميع الوحدات المُرجعة متاحة
-      };
-    });
+    // const dataWithLabel = data.map((item) => {
+    //   return {
+    //     ...item,
+    //     name: item.number,
+    //   };
+    // });
 
-    return { data: dataWithLabel, id: propertyId };
+    return { data: data, id: propertyId };
   }
 
   const dataInputs = rentAgreementInputs.map((input) => {
@@ -788,13 +786,13 @@ const RentWrapper = ({ propperty, statusFilter, rentedFilter }) => {
           setPage={setPage}
           limit={limit}
           setLimit={setLimit}
-          extraData={{ otherExpenses: [] }}
-          extraDataName={"otherExpenses"}
-          id={id}
           loading={loading}
           setData={setData}
           setTotal={setTotal}
           total={total}
+          extraData={{ otherExpenses: [] }}
+          extraDataName={"otherExpenses"}
+          id={id}
           noModal={true}
           disabled={disabled}
           reFetch={reFetch}

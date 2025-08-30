@@ -85,7 +85,6 @@ const accountingLink = [
   { label: "حسابات الشركة", href: "/accounting/" },
   { label: "كشوف الحسابات", href: "/accounting/statements" },
   { label: "دفتر اليومية", href: "/accounting/journal" },
-  { label: "الاستاذ العام", href: "/accounting/ledger" },
   { label: "ميزان المراجعة", href: "/accounting/trial-balance" },
 ];
 

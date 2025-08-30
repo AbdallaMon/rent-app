@@ -11,7 +11,7 @@ export default function SimpleSelect({
   const selectData = select.data;
   const options = select.options;
   const [value, setValue] = useState(
-    selectData.value ? selectData.value : null,
+    selectData.value ? selectData.value : null
   );
 
   const handleChange = (event) => {

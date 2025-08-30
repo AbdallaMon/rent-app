@@ -1,45 +1,66 @@
 const RentCollectionType = {
-    TWO_MONTHS: "شهرين",
-    THREE_MONTHS: "ثلاثة أشهر",
-    FOUR_MONTHS: "أربعة أشهر",
-    SIX_MONTHS: "ستة أشهر",
-    ONE_YEAR: "سنة واحدة",
+  TWO_MONTHS: "شهرين",
+  THREE_MONTHS: "ثلاثة أشهر",
+  FOUR_MONTHS: "أربعة أشهر",
+  SIX_MONTHS: "ستة أشهر",
+  ONE_YEAR: "سنة واحدة",
 };
 
 const StatusType = {
-    ACTIVE: "نشط",
-    CANCELED: "ملغى",
-    EXPIRED: "منتهي",
-    NEEDSACTION: "بحاجة الي اتخاذ اجراء"
+  ACTIVE: "نشط",
+  CANCELED: "ملغى",
+  EXPIRED: "منتهي",
+  NEEDSACTION: "بحاجة الي اتخاذ اجراء",
 };
 
 const PaymentStatus = {
-    PAID: "مدفوع",
-    PENDING: "قيد الانتظار",
-    OVERDUE: "متأخر",
+  PAID: "مدفوع",
+  PENDING: "قيد الانتظار",
+  OVERDUE: "متأخر",
 };
 
 const PaymentType = {
-    RENT: "إيجار",
-    TAX: "ضرائب",
-    INSURANCE: "تأمين",
-    REGISTRATION: "تسجيل", 
-    MAINTENANCE: "صيانة",
-    CONTRACT_EXPENSE: "مصاريف عقد",
-    OTHER_EXPENSE: "مصاريف أخرى",
-    MANAGEMENT_COMMISSION: "عمولة إدارة",
-    OTHER: "أخرى",
+  RENT: "إيجار",
+  TAX: "ضرائب",
+  INSURANCE: "تأمين",
+  REGISTRATION: "تسجيل",
+  MAINTENANCE: "صيانة",
+  CONTRACT_EXPENSE: "مصاريف عقد",
+  OTHER_EXPENSE: "مصاريف أخرى",
+  MANAGEMENT_COMMISSION: "عمولة إدارة",
+  OTHER: "أخرى",
 };
+
+// LIABILITY
+// EQUITY
+// REVENUE
+// EXPENSE
+const accountType = {
+  ASSET: "أصل",
+  LIABILITY: "التزام",
+  EQUITY: "حقوق الملكية",
+  REVENUE: "إيرادات",
+  EXPENSE: "مصاريف",
+};
+const SecurityDepositStatus = {
+  HELD: "محتجزة",
+  PARTIALLY_REFUNDED: "مسترجعة جزئياً",
+  REFUNDED: "مسترجعة بالكامل",
+  FORFEITED: "مصادرة",
+};
+
 const translateInvoiceType = (type) => {
-    return PaymentType[type] || type;
+  return PaymentType[type] || type;
 };
 const translateRentType = (type) => {
-    return StatusType[type] || type;
-}
+  return StatusType[type] || type;
+};
 module.exports = {
-    RentCollectionType,
-    StatusType,
-    PaymentStatus,
-    PaymentType,
-    translateInvoiceType, translateRentType
+  RentCollectionType,
+  StatusType,
+  PaymentStatus,
+  PaymentType,
+  translateInvoiceType,
+  translateRentType,
+  accountType,
 };

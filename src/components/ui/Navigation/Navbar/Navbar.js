@@ -33,6 +33,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import { alpha } from "@mui/material/styles";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthProvider/AuthProvider";
 import { handleRequestSubmit } from "@/helpers/functions/handleRequestSubmit";
@@ -105,6 +106,12 @@ const navItems = [
     Icon: AccountBalanceIcon,
     text: "المحاسبة",
     area: "ACCOUNTING",
+  },
+  {
+    href: "/security-deposits",
+    Icon: AttachMoneyIcon,
+    text: "ودائع التامين",
+    area: "SECURITY_DEPOSIT",
   },
 
   { href: "/settings", Icon: SettingsIcon, text: "الاعدادات", area: "SETTING" },
@@ -272,7 +279,8 @@ export default function DashboardNav({ children }) {
       sx={{
         display: "flex",
         flexDirection: { xs: "column", lg: "row" },
-        minHeight: "100vh",
+        overflow: "auto",
+        height: "100vh",
       }}
     >
       <Box sx={{ display: { xs: "block", lg: "none" } }}>
@@ -385,6 +393,8 @@ export default function DashboardNav({ children }) {
           ml: { lg: `0px`, xs: "0px" },
           width: { lg: `calc(100% - ${currentLgSidebarWidth}px)`, xs: "100%" },
           bgcolor: theme.palette.background.default,
+          overflow: "auto",
+          pb: 4,
         }}
       >
         {children}

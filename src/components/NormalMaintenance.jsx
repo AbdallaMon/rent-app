@@ -8,7 +8,6 @@ import ViewComponent from "@/components/ViewComponent/ViewComponent";
 import { useEffect, useState } from "react";
 import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
 import { submitMaintenance } from "@/services/client/maintenance";
-import DeleteBtn from "@/components/ui/Buttons/DeleteBtn";
 import {
   Button,
   FormControl,
@@ -30,6 +29,7 @@ import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 import EditMaintenanceModal from "@/components/ui/Modals/EditMaintainceModal";
 import { useAuth } from "@/app/context/AuthProvider/AuthProvider";
 import { getCurrentPrivilege } from "@/helpers/functions/getUserPrivilege";
+import DeleteModal from "./ui/Modals/DeleteModal";
 
 dayjs.locale("ar");
 
@@ -380,7 +380,6 @@ const MaintenanceWrapper = () => {
   }, []);
 
   async function handleDelete(id) {
-    await submitData(null, null, id, "DELETE", null, null, "main/maintenance");
     const filterData = data.filter((item) => +item.id !== +id);
     setData(filterData);
     setTotal((old) => old - 1);
@@ -494,7 +493,11 @@ const MaintenanceWrapper = () => {
               types={typesData}
             />
           )}
-          <DeleteBtn handleDelete={() => handleDelete(params.row.id)} />
+          <DeleteModal
+            href={`main/maintenance`}
+            item={params.row}
+            handleClose={() => handleDelete(params.row.id)}
+          />
         </>
       ),
     },

@@ -11,7 +11,12 @@ await createJournalEntry({
 });
 
 */
-export async function createJournalEntry({ description, entryDate, lines }) {
+export async function createJournalEntry({
+  manull,
+  description,
+  entryDate,
+  lines,
+}) {
   if (!lines || lines.length < 2)
     throw new Error("At least two lines are required.");
 
@@ -20,6 +25,7 @@ export async function createJournalEntry({ description, entryDate, lines }) {
       data: {
         description: description || null,
         entryDate: entryDate || new Date(),
+        manull: manull || false,
       },
     });
 
@@ -43,6 +49,7 @@ export async function createJournalEntry({ description, entryDate, lines }) {
             paymentId: l.paymentId || null,
             maintenanceId: l.maintenanceId || null,
             createdAt: l.createdAt || new Date(),
+            securityDepositId: l.securityDepositId,
           },
           select: { id: true, side: true, entryId: true },
         })
@@ -59,7 +66,6 @@ export async function createJournalEntry({ description, entryDate, lines }) {
   });
 }
 
-// by GL code (e.g., "4000", "4100", "5200")
 export async function getGLIdByCode(code) {
   const gl = await prisma.gLAccount.findUnique({ where: { code } });
   if (!gl) throw new Error(`GL account with code ${code} not found`);
@@ -86,7 +92,7 @@ export async function getDebitLineByPaymentId({ paymentId }) {
 
   return debitLine;
 }
-export async function settleLines({ matches, note }) {
+export async function settleLines({ matches, note, forceSettle }) {
   if (!Array.isArray(matches) || matches.length === 0) {
     throw new Error("Provide settlement matches");
   }
@@ -120,6 +126,7 @@ export async function settleLines({ matches, note }) {
       await checkForFullPaidByPaymentId({
         paymentId: m.paymentId,
         targetAmount: m.targetAmount,
+        settledAt: m.createdAt,
       });
     }
   }
@@ -127,7 +134,11 @@ export async function settleLines({ matches, note }) {
   return true;
 }
 
-export async function checkForFullPaidByPaymentId({ paymentId, targetAmount }) {
+export async function checkForFullPaidByPaymentId({
+  paymentId,
+  targetAmount,
+  settledAt,
+}) {
   const creditPaymentLines = await prisma.journalLine.findMany({
     where: { paymentId, side: "CREDIT" },
     select: { id: true, amount: true },
@@ -149,7 +160,10 @@ export async function checkForFullPaidByPaymentId({ paymentId, targetAmount }) {
   }
   await prisma.journalLine.updateMany({
     where: { paymentId },
-    data: { isSettled: true, settledAt: new Date() },
+    data: {
+      isSettled: true,
+      settledAt: settledAt ? new Date(settledAt) : new Date(),
+    },
   });
   return {
     ok: true,
@@ -157,4 +171,11 @@ export async function checkForFullPaidByPaymentId({ paymentId, targetAmount }) {
     matched: totalCreditMatched,
     target: targetAmount,
   };
+}
+
+export async function getGlAccountById(id) {
+  const glAccount = await prisma.gLAccount.findUnique({
+    where: { id: id },
+  });
+  return glAccount;
 }

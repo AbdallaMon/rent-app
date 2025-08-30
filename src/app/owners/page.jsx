@@ -13,6 +13,7 @@ import Link from "next/link";
 import DeleteBtn from "@/components/ui/Buttons/DeleteBtn";
 import { ExtraForm } from "@/components/ui/FormComponents/Forms/ExtraForms/ExtraForm";
 import useEditState from "@/helpers/hooks/useEditState";
+import DeleteModal from "@/components/ui/Modals/DeleteModal";
 
 export default function OwnerPage() {
   return (
@@ -44,9 +45,7 @@ const OwnerWrapper = () => {
   };
 
   async function handleDelete(id) {
-    const res = await submitData(null, null, id, "DELETE");
-
-    const filterData = data.filter((item) => item.id !== res.id);
+    const filterData = data.filter((item) => item.id !== +id);
     setData(filterData);
     setTotal((old) => old - 1);
     if (page === 1 && total >= limit) {
@@ -102,11 +101,15 @@ const OwnerWrapper = () => {
             variant="contained"
             color="primary"
             onClick={() => handleEdit(params.row.id)}
-            sx={{ mt: 1, mr: 1 }}
+            sx={{ mr: 1, borderRadius: 2 }}
           >
             تعديل
           </Button>
-          <DeleteBtn handleDelete={() => handleDelete(params.row.id)} />
+          <DeleteModal
+            handleClose={() => handleDelete(params.row.id)}
+            href={`clients/owner`}
+            item={params.row}
+          />
         </>
       ),
     },

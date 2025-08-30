@@ -93,7 +93,7 @@ export default function AuthProvider({ children }) {
           "/admin": "SETTING",
           "/admin/whatsapp": "SETTING",
           "/accounting": "ACCOUNTING",
-          "/security-deposit": "SECURITY_DEPOSIT",
+          "/security-deposits": "SECURITY_DEPOSIT",
         };
 
         if (pathName.split("/").length > 2) {

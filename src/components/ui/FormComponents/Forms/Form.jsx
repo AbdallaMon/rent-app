@@ -1,5 +1,3 @@
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { useForm } from "react-hook-form";
 import { Box, Button, Typography } from "@mui/material";
 import TextAreaField from "@/components/ui/FormComponents/MUIInputs/TextAreaField";
@@ -11,6 +9,8 @@ import MuiSwitchField from "@/components/ui/FormComponents/MUIInputs/MuiSwitchFi
 import { useRef } from "react";
 import SimpleSelect from "@/components/ui/FormComponents/MUIInputs/SimpleSelect";
 
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 const locales = ["en-gb"];
 
 export function Form({
@@ -208,7 +208,7 @@ export function Form({
                 <Button
                   type="submit"
                   variant="contained"
-                  sx={{ mt: 2, px: 4, py: 1 }}
+                  sx={{ mt: 3, px: 4, py: 1.25, borderRadius: 2 }}
                 >
                   {btnText}
                 </Button>

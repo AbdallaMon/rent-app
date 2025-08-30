@@ -2,11 +2,7 @@
 import prisma from "@/lib/prisma";
 import { convertToISO } from "@/helpers/functions/convertDateToIso";
 import { updateWhereClauseWithUserProperties } from "@/app/api/utlis/userProperties";
-import {
-  createJournalEntry,
-  getCompanyBankIdByType,
-  getGLIdByCode,
-} from "./accounting/main";
+import { createJournalEntry, getGLIdByCode } from "./accounting/main";
 
 const PayEvery = {
   ONCE: 1,
@@ -326,7 +322,7 @@ async function handleMaintenanceAccounting({
   const maintenanceId = payment.maintenanceId ?? null; // لو موجود
   const type = maintenanceType.type.name;
   const ownersGlId = await getGLIdByCode("1210");
-  const bankId = await getCompanyBankIdByType(bankType);
+  const checkingGlId = await getGLIdByCode("1110");
   // قيّد القيد
   const { debitLine, creditLine, entry } = await createJournalEntry({
     description: `دفع ${type} نيابة عن المالك - Property#${propertyId}`,
@@ -347,7 +343,7 @@ async function handleMaintenanceAccounting({
       {
         side: "CREDIT",
         amount,
-        companyBankAccountId: bankId,
+        glAccountId: checkingGlId,
         memo: `دفع ${type} - ${bankType}`,
         propertyId,
         maintenanceId,

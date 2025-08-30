@@ -24,6 +24,7 @@ import {
   Tooltip,
   Typography,
   Paper,
+  Grid,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -36,24 +37,21 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import HandymanIcon from "@mui/icons-material/Handyman";
 import dayjs from "dayjs";
+import { getJournalLineDisplay } from "./TableJournalLine";
 
-export default function JournalLineDetailsModal({
-  open,
-  lineId,
-  onClose,
-  onJumpToLine,
-}) {
+export default function JournalEntryDetailsModal({ open, entryId, onClose }) {
   const [loading, setLoading] = useState(false);
   const [payload, setPayload] = useState(null);
   const [error, setError] = useState("");
 
   async function load() {
-    if (!open || !lineId) return;
+    if (!open || !entryId) return;
     setLoading(true);
     setError("");
     try {
-      // keep same endpoint; just ensure it’s a valid template string
-      const res = await fetch(`/api/main/accounting/journal/${lineId}`);
+      const res = await fetch(
+        `/api/main/accounting/journal/entries/${entryId}`
+      );
       const data = await res.json();
       setPayload(data);
     } catch (e) {
@@ -65,49 +63,56 @@ export default function JournalLineDetailsModal({
 
   useEffect(() => {
     let active = true;
-    (async () => {
-      if (!open || !lineId) return;
-      setLoading(true);
-      setError("");
-      try {
-        const res = await fetch(`/api/main/accounting/journal/${lineId}`);
-        const data = await res.json();
-        if (active) setPayload(data);
-      } catch (e) {
-        if (active) setError(e?.message || "حدث خطأ غير متوقع");
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
+    if (active && open && entryId) {
+      load();
+    }
     return () => {
       active = false;
     };
-  }, [open, lineId]);
+  }, [open, entryId]);
 
   const p = payload;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      scroll="paper"
+    >
       <DialogTitle
         sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 1,
+          bgcolor: "background.paper",
           fontWeight: 700,
           display: "flex",
           alignItems: "center",
           gap: 1,
+          py: 1.25,
+          "& .MuiIconButton-root": { ml: "auto" },
+          borderBottom: (t) => `1px solid ${t.palette.divider}`,
         }}
       >
-        تفاصيل سطر اليومية
-        <IconButton onClick={onClose} sx={{ ml: "auto" }} size="small">
+        تفاصيل القيد
+        <IconButton onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>
       </DialogTitle>
       <Divider />
 
-      <DialogContent dividers sx={{ p: { xs: 2, sm: 3 } }}>
-        {/* Loading */}
+      <DialogContent
+        dividers
+        sx={{
+          p: { xs: 2, sm: 3 },
+          "& .MuiCard-root": { borderRadius: 2, overflow: "hidden" },
+          "& .MuiChip-root": { borderRadius: 1.5 },
+        }}
+      >
         {loading && <LoadingSkeleton />}
 
-        {/* Error */}
         {!loading && error && (
           <Alert
             severity="error"
@@ -132,10 +137,11 @@ export default function JournalLineDetailsModal({
                   alignItems={{ xs: "flex-start", sm: "center" }}
                   spacing={1.5}
                   justifyContent="space-between"
+                  sx={{ gap: 2 }}
                 >
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="h6" sx={{ fontWeight: 700 }} noWrap>
-                      {p.memo || p.counterpartyLabel || "بدون وصف"}
+                      {p?.description || "بدون وصف"}
                     </Typography>
 
                     <Typography
@@ -144,33 +150,38 @@ export default function JournalLineDetailsModal({
                       noWrap
                       sx={{ mt: 0.5 }}
                     >
-                      #{p.id} • {p.side === "DEBIT" ? "مدين" : "دائن"} • قيمة:{" "}
-                      {Number(p.amount || 0).toLocaleString()}
+                      #{p.id} قيمة:
+                      {Number(p.lines[0].amount || 0).toLocaleString()}
                     </Typography>
                   </Box>
 
-                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    flexWrap="wrap"
+                    sx={{ "& > *": { mr: 1, mb: 1 } }}
+                  >
                     <Chip
                       size="small"
-                      color={p.isSettled ? "success" : "warning"}
-                      label={p.isSettled ? "مُسوّى" : "غير مُسوّى"}
-                      variant={p.isSettled ? "filled" : "outlined"}
+                      color={p.lines[0].isSettled ? "success" : "warning"}
+                      label={p.lines[0].isSettled ? "مُسوّى" : "غير مُسوّى"}
+                      variant={p.lines[0].isSettled ? "filled" : "outlined"}
                     />
-                    {p.createdAt && (
+                    {p.entryDate && (
                       <Chip
                         size="small"
-                        label={`تاريخ القيد: ${dayjs(p.createdAt).format(
+                        label={`تاريخ القيد: ${dayjs(p.entryDate).format(
                           "YYYY-MM-DD"
                         )}`}
                         variant="outlined"
                       />
                     )}
-                    {p.settledAt && (
+                    {p.lines[0].settledAt && (
                       <Chip
                         size="small"
-                        label={`تاريخ التسوية: ${dayjs(p.settledAt).format(
-                          "YYYY-MM-DD"
-                        )}`}
+                        label={`تاريخ التسوية: ${dayjs(
+                          p.lines[0].settledAt
+                        ).format("YYYY-MM-DD")}`}
                         variant="outlined"
                       />
                     )}
@@ -179,83 +190,17 @@ export default function JournalLineDetailsModal({
               </CardContent>
             </SectionCard>
 
-            {/* Entities / Links */}
-            <SectionCard title="الروابط">
-              <CardContent sx={{ pt: 1 }}>
-                <List dense disablePadding>
-                  {p.companyBankAccount && (
-                    <EntityRow
-                      icon={<AccountBalanceIcon />}
-                      primary={`حساب شركة: ${p.companyBankAccount.name}`}
-                      href={`/bank-accounts/${p.companyBankAccount.id}`}
-                    />
-                  )}
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+              تفاصيل الاسطر
+            </Typography>
 
-                  {p.glAccount && (
-                    <EntityRow
-                      icon={<AccountTreeIcon />}
-                      primary={`حساب GL: ${p.glAccount.code} - ${p.glAccount.name}`}
-                    />
-                  )}
-
-                  {p.partyClient && (
-                    <EntityRow
-                      icon={<PersonOutlineIcon />}
-                      primary={`طرف: ${
-                        p.partyType === "OWNER" ? "مالك" : "مستأجر"
-                      } - ${p.partyClient.name}`}
-                      href={`/clients/${p.partyClient.id}`}
-                    />
-                  )}
-
-                  {p.property && (
-                    <EntityRow
-                      icon={<HomeWorkIcon />}
-                      primary={`عقار #${p.property.id} - ${p.property.name}`}
-                      href={`/properties/${p.property.id}`}
-                    />
-                  )}
-
-                  {p.unit && (
-                    <EntityRow
-                      icon={<ApartmentIcon />}
-                      primary={`وحدة #${p.unit.id} - ${p.unit.number || ""}`}
-                      href={`/units/${p.unit.id}`}
-                    />
-                  )}
-
-                  {p.rentAgreement && (
-                    <EntityRow
-                      icon={<DescriptionIcon />}
-                      primary={`عقد إيجار #${p.rentAgreement.id}`}
-                      href={`/rent/${p.rentAgreement.id}`}
-                    />
-                  )}
-
-                  {p.payment && (
-                    <EntityRow
-                      icon={<PaymentsIcon />}
-                      primary={`دفعة #${p.payment.id}`}
-                    />
-                  )}
-
-                  {p.securityDeposit && (
-                    <EntityRow
-                      icon={<PaymentsIcon />}
-                      primary={`وديعة #${p.securityDeposit.id} - الحالة: ${p.securityDeposit.status}`}
-                      href={`/security-deposits/${p.securityDeposit.id}`}
-                    />
-                  )}
-
-                  {p.maintenance && (
-                    <EntityRow
-                      icon={<HandymanIcon />}
-                      primary={`صيانة #${p.maintenance.id}`}
-                    />
-                  )}
-                </List>
-              </CardContent>
-            </SectionCard>
+            <Grid container spacing={1.5}>
+              {p.lines.map((line) => (
+                <Grid item xs={12} sm={6} key={line.id}>
+                  <LineRelations p={line} />
+                </Grid>
+              ))}
+            </Grid>
 
             {/* Settlements */}
             <SectionCard title="التسويات المرتبطة">
@@ -268,22 +213,32 @@ export default function JournalLineDetailsModal({
                         variant="outlined"
                         sx={{ borderRadius: 2 }}
                       >
-                        <CardContent sx={{ p: 1.5 }}>
-                          <Typography
-                            variant="subtitle1"
-                            sx={{ mb: 1, fontWeight: 600 }}
+                        <CardContent sx={{ p: 1.25 }}>
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            justifyContent="space-between"
+                            sx={{ mb: 1 }}
                           >
-                            تسوية #{sett.id} •{" "}
-                            {dayjs(sett.matchedAt).format("YYYY-MM-DD")}
-                          </Typography>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ fontWeight: 600 }}
+                            >
+                              تسوية #{sett.id} •{" "}
+                              {dayjs(sett.matchedAt).format("YYYY-MM-DD")}
+                            </Typography>
+                            <Chip
+                              size="small"
+                              variant="outlined"
+                              label={`قيمة: ${Number(
+                                sett.lines[0].amountMatched || 0
+                              ).toLocaleString()}`}
+                            />
+                          </Stack>
 
                           <Stack spacing={1}>
                             {sett.lines.map((ln) => (
-                              <SettlementLineCard
-                                key={ln.id}
-                                ln={ln}
-                                onJumpToLine={onJumpToLine}
-                              />
+                              <SettlementLineCard key={ln.id} ln={ln} />
                             ))}
                           </Stack>
                         </CardContent>
@@ -312,7 +267,14 @@ export default function JournalLineDetailsModal({
 
 function SectionCard({ title, children }) {
   return (
-    <Card variant="outlined" sx={{ borderRadius: 2 }}>
+    <Card
+      variant="outlined"
+      sx={{
+        borderRadius: 2,
+        transition: "border-color 120ms ease",
+        "&:hover": { borderColor: "primary.light" },
+      }}
+    >
       {title && (
         <CardHeader
           title={
@@ -320,7 +282,7 @@ function SectionCard({ title, children }) {
               {title}
             </Typography>
           }
-          sx={{ pb: 0.5 }}
+          sx={{ py: 1.25, pb: 0.75 }}
         />
       )}
       {children}
@@ -333,6 +295,7 @@ function EntityRow({ icon, primary, href }) {
     <ListItem
       sx={{
         px: 0,
+        py: 0.5,
         "&:not(:last-of-type) .MuiDivider-root": { display: "block" },
       }}
       secondaryAction={
@@ -352,7 +315,7 @@ function EntityRow({ icon, primary, href }) {
         ) : null
       }
     >
-      <ListItemAvatar>
+      <ListItemAvatar sx={{ minWidth: 48 }}>
         <Box
           sx={{
             width: 36,
@@ -361,66 +324,58 @@ function EntityRow({ icon, primary, href }) {
             bgcolor: "action.hover",
             display: "grid",
             placeItems: "center",
+            border: (t) => `1px solid ${t.palette.divider}`,
           }}
         >
           {icon}
         </Box>
       </ListItemAvatar>
-      <ListItemText
-        primaryTypographyProps={{ variant: "body2", noWrap: true }}
-        primary={primary}
-      />
+      <Tooltip title={primary} placement="top" enterDelay={600}>
+        <ListItemText
+          primary={primary}
+          primaryTypographyProps={{
+            variant: "body2",
+            noWrap: true,
+            sx: { fontWeight: 500 },
+          }}
+        />
+      </Tooltip>
     </ListItem>
   );
 }
 
-function SettlementLineCard({ ln, onJumpToLine }) {
-  const sideIsDebit = ln.side === "DEBIT";
+function SettlementLineCard({ ln }) {
+  const sideIsDebit = ln.line.side === "DEBIT";
   const sideLabel = sideIsDebit ? "مدين" : "دائن";
-
+  const lineData = getJournalLineDisplay(ln.line);
   return (
-    <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 2 }}>
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        spacing={1.5}
-      >
-        <Box minWidth={0}>
-          <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }}>
-            سطر #{ln.lineId} • {sideLabel}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" noWrap>
-            {ln.line?.memo || "بدون وصف"}
-          </Typography>
-        </Box>
-
+    <Paper
+      variant="outlined"
+      sx={{
+        p: 1.25,
+        borderRadius: 2,
+        display: "flex",
+        alignItems: "center",
+        gap: 1.25,
+        borderLeft: (t) =>
+          `4px solid ${sideIsDebit ? t.palette.success.main : t.palette.info.main}`,
+      }}
+    >
+      <Box sx={{ minWidth: 0, flex: 1 }}>
         <Stack
           direction="row"
-          spacing={1}
           alignItems="center"
-          justifyContent="flex-end"
-          flexShrink={0}
+          justifyContent="space-between"
         >
-          <Chip
-            size="small"
-            color={sideIsDebit ? "success" : "info"}
-            variant="outlined"
-            label={`قيمة: ${Number(ln.amountMatched || 0).toLocaleString()}`}
-          />
-          <Typography variant="caption" color="text.secondary" noWrap>
-            {dayjs(ln.createdAt).format("YYYY-MM-DD")}
+          <Typography variant="subtitle2" noWrap sx={{ fontWeight: 600 }}>
+            سطر {sideLabel}
           </Typography>
-          <Button
-            size="small"
-            variant="outlined"
-            endIcon={<OpenInNewIcon />}
-            onClick={() => onJumpToLine(ln.lineId)}
-          >
-            فتح
-          </Button>
         </Stack>
-      </Stack>
+        {lineData.label}
+        <Typography variant="body2" color="text.secondary" noWrap>
+          {ln.line?.memo || "بدون وصف"}
+        </Typography>
+      </Box>
     </Paper>
   );
 }
@@ -430,7 +385,7 @@ function LoadingSkeleton() {
     <Fragment>
       <Stack spacing={2.5}>
         <Card variant="outlined" sx={{ borderRadius: 2 }}>
-          <CardContent>
+          <CardContent sx={{ pt: 2, pb: 2 }}>
             <Skeleton variant="text" width="40%" height={28} />
             <Skeleton variant="text" width="60%" />
             <Stack direction="row" spacing={1} mt={1}>
@@ -444,7 +399,7 @@ function LoadingSkeleton() {
           <CardHeader
             title={<Skeleton variant="text" width={120} height={24} />}
           />
-          <CardContent>
+          <CardContent sx={{ pt: 2, pb: 2 }}>
             {[...Array(4)].map((_, i) => (
               <Stack
                 key={i}
@@ -465,17 +420,106 @@ function LoadingSkeleton() {
           <CardHeader
             title={<Skeleton variant="text" width={160} height={24} />}
           />
-          <CardContent>
+          <CardContent sx={{ pt: 2, pb: 2 }}>
             <Skeleton variant="rounded" height={64} />
             <Skeleton variant="rounded" height={64} sx={{ mt: 1 }} />
           </CardContent>
         </Card>
       </Stack>
 
-      {/* Fallback spinner if you like */}
       <Stack alignItems="center" py={2}>
         <CircularProgress size={22} />
       </Stack>
     </Fragment>
+  );
+}
+
+function LineRelations({ p }) {
+  return (
+    <>
+      <SectionCard title={p.side === "DEBIT" ? "المدين" : "الدائن"}>
+        <CardContent sx={{ pt: 0.5, pb: 1 }}>
+          <List
+            dense
+            disablePadding
+            sx={{
+              "& .MuiListItem-root": { py: 0.25 },
+              "& .MuiListItemSecondaryAction-root": { right: 0 },
+            }}
+          >
+            {p.companyBankAccount && (
+              <EntityRow
+                icon={<AccountBalanceIcon />}
+                primary={`حساب شركة: ${p.companyBankAccount.name}`}
+                href={`/bank-accounts/${p.companyBankAccount.id}`}
+              />
+            )}
+
+            {p.glAccount && (
+              <EntityRow
+                icon={<AccountTreeIcon />}
+                primary={`حساب GL: ${p.glAccount.code} - ${p.glAccount.name}`}
+              />
+            )}
+
+            {p.partyClient && (
+              <EntityRow
+                icon={<PersonOutlineIcon />}
+                primary={`طرف: ${
+                  p.partyType === "OWNER" ? "مالك" : "مستأجر"
+                } - ${p.partyClient.name}`}
+                href={`/clients/${p.partyClient.id}`}
+              />
+            )}
+
+            {p.property && (
+              <EntityRow
+                icon={<HomeWorkIcon />}
+                primary={`عقار #${p.property.id} - ${p.property.name}`}
+                href={`/properties/${p.property.id}`}
+              />
+            )}
+
+            {p.unit && (
+              <EntityRow
+                icon={<ApartmentIcon />}
+                primary={`وحدة #${p.unit.id} - ${p.unit.number || ""}`}
+                href={`/units/${p.unit.id}`}
+              />
+            )}
+
+            {p.rentAgreement && (
+              <EntityRow
+                icon={<DescriptionIcon />}
+                primary={`عقد إيجار #${p.rentAgreement.id}`}
+                href={`/rent/${p.rentAgreement.id}`}
+              />
+            )}
+
+            {p.payment && (
+              <EntityRow
+                icon={<PaymentsIcon />}
+                primary={`دفعة #${p.payment.id}`}
+              />
+            )}
+
+            {p.securityDeposit && (
+              <EntityRow
+                icon={<PaymentsIcon />}
+                primary={`وديعة #${p.securityDeposit.id} - الحالة: ${p.securityDeposit.status}`}
+                href={`/security-deposits/${p.securityDeposit.id}`}
+              />
+            )}
+
+            {p.maintenance && (
+              <EntityRow
+                icon={<HandymanIcon />}
+                primary={`صيانة #${p.maintenance.id}`}
+              />
+            )}
+          </List>
+        </CardContent>
+      </SectionCard>
+    </>
   );
 }
