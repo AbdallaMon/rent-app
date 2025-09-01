@@ -673,7 +673,6 @@ model WhatsappMessageLog {
   client       Client?  @relation(fields: [clientId], references: [id])
   sendSchema     String?   
 
-  // ربط عام بأي نوع كيان
   relationKey    String?   
   relationId     String?      
   @@index([relationKey, relationId])
@@ -687,6 +686,7 @@ model WhatsappIncomingMessage {
   sender      String
   messageType String
   content     String?  @db.Text
+  status      String?        
   language    String?
   metadata    Json?
   receivedAt  DateTime @default(now())

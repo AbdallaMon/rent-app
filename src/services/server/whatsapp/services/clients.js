@@ -1,5 +1,6 @@
 import { withReadOnlyConnection } from "@/lib/database-connection";
 import { buildPhoneVariants, cleanDigits, splitCountryCode } from "@/lib/phone";
+import prisma from "@/lib/prisma";
 
 export async function findClinetData(id) {
   return await prisma.client.findUnique({

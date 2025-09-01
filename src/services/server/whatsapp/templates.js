@@ -120,7 +120,7 @@ const TARGET_NAMES = [
 //   console.log("Template submitted:", JSON.stringify(data, null, 2));
 // }
 async function deleteTemplate() {
-  const url = `${GRAPH}/${WABA_ID}/message_templates?name=maintenance_request_tc`;
+  const url = `${GRAPH}/${WABA_ID}/message_templates?name=maintenance_request_tc_v2`;
 
   const res = await fetch(url, {
     method: "DELETE",
@@ -142,47 +142,43 @@ async function createTemplate() {
   const url = `${GRAPH}/${WABA_ID}/message_templates`;
 
   const payload = {
-    name: "maintenance_request_tc_v2",
+    name: "maintenance_request_tc_v3",
     language: "ar_AE",
     category: "UTILITY",
     components: [
-      {
-        type: "HEADER",
-        format: "TEXT",
-        text: "طلب صيانة جديد (تفاصيل)",
-      },
+      { type: "HEADER", format: "TEXT", text: "طلب صيانة جديد" },
       {
         type: "BODY",
         text:
-          "تم استلام طلب صيانة جديد:\n" +
+          "تم تسجيل طلب صيانة.\n" +
           "رقم الطلب: {{1}}\n" +
           "اسم العميل: {{2}}\n" +
           "الأولوية: {{3}}\n" +
           "نوع الصيانة: {{4}}\n" +
-          "تفاصيل الشكوى: {{5}}\n" +
-          "رقم العميل: {{6}}\n" +
+          "تفاصيل: {{5}}\n" +
+          "هاتف العميل: {{6}}\n" +
           "العقار: {{7}}\n" +
           "الوحدة: {{8}}\n" +
           "تاريخ الطلب: {{9}}\n\n" +
-          "يرجى المراجعة والمتابعة من قبل خدمة العملاء/الفريق الفني.",
+          "يرجى المتابعة من فريق خدمة العملاء/الفني.",
         example: {
           body_text: [
             [
               "MR-00190", // {{1}} requestId
               "أحمد علي", // {{2}} clientName
-              "عاجلة", // {{4}} priority
-              "سباكة", // {{3}} maintenanceType
-              "تسريب مياه في الحمام", // {{4}} issueDetails
-              "+971500000000", // {{5}} clientPhone
-              "برج الريان", // {{6}} propertyName
-              "A-1203", // {{7}} unitNumber
-              "15/03/2025", // {{8}} requestDate (date-only)
+              "عاجلة", // {{3}} priority
+              "سباكة", // {{4}} maintenanceType
+              "تسريب مياه بالحمام", // {{5}} issueDetails
+              "+971500000000", // {{6}} clientPhone
+              "برج الريان", // {{7}} propertyName
+              "A-1203", // {{8}} unitNumber
+              "15/03/2025", // {{9}} requestDate
             ],
           ],
         },
       },
-      // (اختياري) أزرار رد سريع:
-      // ,{
+      // Optional quick reply button (safe for Utility):
+      // {
       //   type: "BUTTONS",
       //   buttons: [{ type: "QUICK_REPLY", text: "تم" }]
       // }

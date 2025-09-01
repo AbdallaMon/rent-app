@@ -1,6 +1,13 @@
-import { getTeamSettings } from "../cron-jobs/reminderService";
-import { normalizePhone } from "../cron-jobs/utility";
+import {
+  formatDate,
+  logWhatsApp,
+  messageStatus,
+  messageTypes,
+  normalizePhone,
+  updateWhatsAppLog,
+} from "../utility";
 import { sendSmart } from "../whatsapp";
+import { getTeamSettings } from "./settings";
 
 function buildArabicMessageByType(type, extra = {}) {
   const { note } = extra || {};
@@ -36,12 +43,34 @@ export async function sendContactFormSubmissionToCS({
   clientEmail,
   clientPhone,
   preferedLng,
+  id,
 }) {
+  console.log("trigger sendContactFormSubmissionToCS");
+
+  const teamSettings = await getTeamSettings();
+  const customerServicePhone = teamSettings?.customerServicePhone;
+  const recipient = normalizePhone(customerServicePhone);
+  const templateName = "contact_form_submission";
+  const language = "ar_AE";
+  const relationKey =
+    type === "RENEW_CONTRACT"
+      ? messageTypes.RENEW_RENTAGREEMENT_REQUEST
+      : messageTypes.CUSTOMER_SUPPORT_REQUEST;
+  const logData = {
+    relationId: String(id),
+    relationKey,
+    recipient,
+    language,
+    status: messageStatus.SCHEDULED,
+    messageType: relationKey,
+    templateName,
+  };
+  const log = await logWhatsApp({
+    ...logData,
+  });
+
   try {
-    const teamSettings = await getTeamSettings();
-    const customerServicePhone = teamSettings?.customerServicePhone;
-    const recipient = normalizePhone(customerServicePhone);
-    const textForSession = buildArabicMessageByType(type, { note });
+    const textForSession = buildArabicMessageByType(type);
     const bodyParams = [
       clientName,
       clientEmail,
@@ -53,13 +82,27 @@ export async function sendContactFormSubmissionToCS({
       to: recipient,
       text: textForSession,
       spec: {
-        templateName: "contact_form_submission",
-        language: "ar_AE",
+        templateName: templateName,
+        language,
         bodyParams,
       },
     });
+    await updateWhatsAppLog({
+      logId: log.id,
+      status: messageStatus.DELIVERED,
+      other: {
+        language: result.language,
+        metadata: result.meta,
+      },
+    });
+
     return result;
   } catch (e) {
+    await updateWhatsAppLog({
+      logId: log.id,
+      status: messageStatus.FAILED,
+      other: { metadata: e?.response || { error: e?.message } },
+    });
     console.log("error sending notifcation to customer service", e.message);
   }
 }
@@ -76,33 +119,64 @@ export async function sendMaintainceRequestToTech({
   priority,
   clientName,
 }) {
+  const teamSettings = await getTeamSettings();
+  const technicianPhone = teamSettings?.technicianPhone;
+  const recipient = normalizePhone(technicianPhone);
+  const templateName = "maintenance_request_tc_v3";
+  const language = "ar_AE";
+  const relationKey = messageTypes.MAINTAINCE_REQUEST_TO_TECH;
+  const logData = {
+    relationId: String(requestId),
+    relationKey,
+    recipient,
+    language,
+    status: messageStatus.SCHEDULED,
+    messageType: relationKey,
+    templateName,
+  };
+  const log = await logWhatsApp({
+    ...logData,
+  });
   try {
-    const teamSettings = await getTeamSettings();
-    const technicianPhone = teamSettings?.technicianPhone;
-    const recipient = normalizePhone(technicianPhone);
-    const textForSession = buildArabicMessageByType(type, { note });
+    const textForSession = buildArabicMessageByType(type);
     const bodyParams = [
-      requestId,
-      clientName,
-      priority,
-      maintenanceType,
-      description,
-      clientPhone,
-      propertyName,
-      unitNumber,
-      requestDate,
+      str(requestId),
+      str(clientName),
+      str(priority),
+      str(maintenanceType),
+      str(description),
+      str(clientPhone),
+      str(propertyName),
+      str(unitNumber),
+      formatDate(requestDate),
     ];
     const result = await sendSmart({
       to: recipient,
       text: textForSession,
       spec: {
-        templateName: "maintenance_request_tc_v2",
-        language: "ar_AE",
+        templateName,
+        language,
         bodyParams,
       },
     });
+    await updateWhatsAppLog({
+      logId: log.id,
+      status: messageStatus.DELIVERED,
+      other: {
+        language: result.language,
+        metadata: result.meta,
+      },
+    });
+    console.log("sent text to tehc phone:", teamSettings.technicianPhone);
     return result;
   } catch (e) {
+    console.error("WA template failed:", e?.response?.data || e);
+
+    await updateWhatsAppLog({
+      logId: log.id,
+      status: messageStatus.FAILED,
+      other: { metadata: e?.response || { error: e?.message } },
+    });
     console.log("error sending notifcation to technician", e.message);
   }
 }
@@ -119,36 +193,72 @@ export async function sendComplaintRequestToCs({
   displayId,
   priority,
 }) {
+  console.log("trigger sendComplaintRequestToCs");
+
+  const teamSettings = await getTeamSettings();
+  const customerServicePhone = teamSettings?.customerServicePhone;
+  const recipient = normalizePhone(customerServicePhone);
+  const templateName = "complaint_request_cs_v2";
+  const language = "ar_AE";
+  const relationKey = messageTypes.COMPLAINT_REQUEST_TO_CS;
+  const logData = {
+    relationId: String(requestId),
+    relationKey,
+    recipient,
+    language,
+    status: messageStatus.SCHEDULED,
+    messageType: relationKey,
+    templateName,
+  };
+  const log = await logWhatsApp({
+    ...logData,
+  });
   try {
-    const teamSettings = await getTeamSettings();
-    const technicianPhone = teamSettings?.technicianPhone;
-    const customerServicePhone = teamSettings?.customerServicePhone;
-    const recipient = normalizePhone(customerServicePhone);
-    const textForSession = buildArabicMessageByType(type, { note });
+    const textForSession = buildArabicMessageByType(type);
     const bodyParams = [
-      requestId,
-      displayId,
-      clientName,
-      priority,
-      complaintType,
-      description,
-      clientPhone,
-      propertyName,
-      unitNumber,
-      requestDate,
+      str(requestId),
+      str(displayId),
+      str(clientName),
+      str(priority),
+      str(complaintType),
+      str(description),
+      str(clientPhone),
+      str(propertyName),
+      str(unitNumber),
+      formatDate(requestDate),
     ];
     const result = await sendSmart({
       to: recipient,
       text: textForSession,
       spec: {
-        templateName: "complaint_request_cs_v2",
-        language: "ar_AE",
+        templateName,
+        language,
         bodyParams,
+      },
+    });
+    await updateWhatsAppLog({
+      logId: log.id,
+      status: messageStatus.DELIVERED,
+      other: {
+        language: result.language,
+        metadata: result.meta,
       },
     });
     return result;
   } catch (e) {
-    console.log("error sending notifcation to technician", e.message);
+    console.error("WA template failed:", e?.response?.data || e);
+
+    await updateWhatsAppLog({
+      logId: log.id,
+      status: messageStatus.FAILED,
+      other: { metadata: e?.response || { error: e?.message } },
+    });
+    console.log("error sending notifcation to customer service", e.message);
   }
 }
 // complaint_request_cs
+function str(v) {
+  return (v == null ? "" : String(v))
+    .replace(/[\u200E\u200F\u202A-\u202E]/g, "")
+    .trim();
+}

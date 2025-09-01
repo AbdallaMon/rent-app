@@ -11,6 +11,11 @@ import { handleTextMessage } from "@/services/server/whatsapp/handlers/text";
 import { getSession, setSession } from "@/services/server/whatsapp/session";
 import { findClientWithPropertyProduction } from "@/services/server/whatsapp/services/clients";
 import { sendLanguage } from "@/services/server/whatsapp/responders";
+import {
+  createAWhatsAppIncomingMessage,
+  messageStatus,
+  updateAWhatsAppIncomingMessage,
+} from "@/services/server/whatsapp/utility";
 
 const processedMsgIds = new Set();
 
@@ -48,37 +53,63 @@ export async function POST(request) {
 
           const from = msg?.from;
           if (!from) continue;
-
+          let incomingMessage;
           try {
-            // 1) أولًا: لو مفيش جلسة أو لسه في بداية الجلسة → اختـيار اللغة
             const sess = getSession(from);
             if (!sess || !sess.step || sess.step === "greeting") {
               setSession(from, { step: "awaiting_language_selection" });
               await sendLanguage(from);
-              continue; // أول حاجة اللغة
+              continue;
             }
 
-            // 2) بعد ما يكون في جلسة، اعمل الـ dual-lookup
             const { e164, core } = normalizePhone(from);
-            await findClientWithPropertyProduction(e164);
-            await findClientWithPropertyProduction(core);
-            console.log(e164, "e164");
-            console.log(core, "core");
+            const e164Req = await findClientWithPropertyProduction(e164);
+            const coreReq = await findClientWithPropertyProduction(core);
+            let client;
+            if (e164Req.success) {
+              client = e164Req.client;
+            }
+            if (coreReq.success) {
+              client = coreReq.client;
+            }
+            if (client) {
+              incomingMessage = await createAWhatsAppIncomingMessage({
+                msg,
+                client,
+              });
+            }
 
-            // 3) تفرعات الرسائل
             if (msg?.interactive?.type === "button_reply") {
-              await handleButtonReply(from, msg.interactive.button_reply?.id);
+              await handleButtonReply(
+                from,
+                msg.interactive.button_reply?.id,
+                incomingMessage
+              );
               continue;
             }
             if (msg?.interactive?.type === "list_reply") {
-              await handleListReply(from, msg.interactive.list_reply?.id);
+              await handleListReply(
+                from,
+                msg.interactive.list_reply?.id,
+                incomingMessage
+              );
               continue;
             }
 
             const text = msg?.text?.body;
-            await handleTextMessage(from, typeof text === "string" ? text : "");
+            await handleTextMessage(
+              from,
+              typeof text === "string" ? text : "",
+              incomingMessage
+            );
           } catch (err) {
             console.error("Per-message error:", err);
+            if (incomingMessage) {
+              await updateAWhatsAppIncomingMessage({
+                messageId: incomingMessage.id,
+                status: messageStatus.FAILED,
+              });
+            }
             try {
               await sendWhatsAppMessage(
                 from,

@@ -208,8 +208,11 @@ CREATE INDEX `WhatsappMessageLog_status_sentAt_idx`
 CREATE INDEX `WhatsappMessageLog_recipient_sentAt_idx`
   ON `WhatsappMessageLog` (`recipient`, `sentAt`);
 
-ALTER TABLE WhatsappMessageLog 
+ALTER TABLE "WhatsappMessageLog" 
 MODIFY COLUMN relationId VARCHAR(191) NULL;
+
+ALTER TABLE `WhatsappIncomingMessage`
+ADD COLUMN `status` VARCHAR(191) NULL;
 
 
 RENAME TABLE state TO State;

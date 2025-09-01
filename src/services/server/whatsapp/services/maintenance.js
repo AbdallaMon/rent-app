@@ -59,23 +59,21 @@ export async function createMaintenanceRequestProduction(
       },
       include: { client: true, property: true, unit: true },
     });
-
-    // notify tech / CX (best-effort)
+    console.log(maintenanceRequest, "maintenanceRequest");
     try {
       await sendMaintainceRequestToTech({
         requestId: maintenanceRequest.id,
         clientName: client.name,
         clientPhone: phoneNumber,
         propertyName: property?.name || "غير محدد",
-        maintenanceType: MaintenanceTypeLabels[maintenanceRequest.type],
-        priority: PriorityLabels[maintenanceRequest.priority],
+        maintenanceType: MaintenanceTypeLabels[maintenanceRequest.type].ar,
+        priority: PriorityLabels[maintenanceRequest.priority].ar,
         description,
         unitNumber:
           unit?.number ||
           unit?.unitId ||
           (unit?.floor ? `الطابق ${unit.floor}` : "غير محدد"),
         requestDate: new Date(),
-
         type: "MAINTAINCE",
       });
     } catch (e) {

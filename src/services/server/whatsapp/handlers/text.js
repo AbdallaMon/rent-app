@@ -14,7 +14,7 @@ import {
 import { createMaintenanceRequestProduction } from "../services/maintenance";
 import { createComplaintProduction } from "../services/complaints";
 
-export async function handleTextMessage(phone, text) {
+export async function handleTextMessage(phone, text, incomingMessage) {
   const sess = getSession(phone);
   if (!sess) return sendLanguage(phone);
 
@@ -24,8 +24,10 @@ export async function handleTextMessage(phone, text) {
 
   switch (sess.step) {
     case "awaiting_language_selection":
-      if (t === "1" || t.includes("english")) return sendMain(phone, LANG.EN);
-      if (t === "2" || t.includes("عرب")) return sendMain(phone, LANG.AR);
+      if (t === "1" || t.includes("english"))
+        return sendMain(phone, LANG.EN, incomingMessage);
+      if (t === "2" || t.includes("عرب"))
+        return sendMain(phone, LANG.AR, incomingMessage);
       return sendLanguage(phone);
 
     case "awaiting_description": {
@@ -35,17 +37,22 @@ export async function handleTextMessage(phone, text) {
         return;
       }
       const r = res.data?.request;
-      await sendMaintenanceConfirmation(phone, language, {
-        id: r?.displayId || r?.id,
-        property: res.data?.property?.name || (ar ? "غير محدد" : "N/A"),
-        unit:
-          res.data?.unit?.number ||
-          res.data?.unit?.unitId ||
-          (ar ? "غير محدد" : "N/A"),
-        type: MaintenanceTypeLabels[r?.type || "OTHER"],
-        priority: PriorityLabels[r?.priority || "MEDIUM"],
-        desc: text,
-      });
+      await sendMaintenanceConfirmation(
+        phone,
+        language,
+        {
+          id: r?.displayId || r?.id,
+          property: res.data?.property?.name || (ar ? "غير محدد" : "N/A"),
+          unit:
+            res.data?.unit?.number ||
+            res.data?.unit?.unitId ||
+            (ar ? "غير محدد" : "N/A"),
+          type: MaintenanceTypeLabels[r?.type || "OTHER"][ar ? "ar" : "en"],
+          priority: PriorityLabels[r?.priority || "MEDIUM"][ar ? "ar" : "en"],
+          desc: text,
+        },
+        incomingMessage
+      );
       setSession(phone, { data: {}, step: "completed" });
       return;
     }
@@ -57,17 +64,22 @@ export async function handleTextMessage(phone, text) {
         return;
       }
       const c = res.data?.complaint;
-      await sendComplaintConfirmation(phone, language, {
-        id: c?.displayId || c?.id,
-        property: res.data?.property?.name || (ar ? "غير محدد" : "N/A"),
-        unit:
-          res.data?.unit?.number ||
-          res.data?.unit?.unitId ||
-          (ar ? "غير محدد" : "N/A"),
-        type: ComplaintCategoryLabels[c?.type || "OTHER"],
-        priority: PriorityLabels[c?.priority || "MEDIUM"],
-        desc: text,
-      });
+      await sendComplaintConfirmation(
+        phone,
+        language,
+        {
+          id: c?.displayId || c?.id,
+          property: res.data?.property?.name || (ar ? "غير محدد" : "N/A"),
+          unit:
+            res.data?.unit?.number ||
+            res.data?.unit?.unitId ||
+            (ar ? "غير محدد" : "N/A"),
+          type: ComplaintCategoryLabels[c?.type || "OTHER"][ar ? "ar" : "en"],
+          priority: PriorityLabels[c?.priority || "MEDIUM"][ar ? "ar" : "en"],
+          desc: text,
+        },
+        incomingMessage
+      );
       setSession(phone, { data: {}, step: "completed" });
       return;
     }

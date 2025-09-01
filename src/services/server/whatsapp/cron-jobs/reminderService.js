@@ -1,75 +1,42 @@
-// lib/reminderService.js
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
-
-const {
+import {
+  checkIfThereIsALog,
+  logWhatsApp,
+  messageStatus,
+  messageTypes,
+  normalizePhone,
+  updateWhatsAppLog,
+} from "../utility.js";
+import { sendSmart } from "../whatsapp.js";
+import {
   daysUntil,
   sleep,
   formatDateDubai,
   isWithinWorkingHours,
   nowDubai,
-} = require("./time");
-const { normalizePhone } = require("./utility");
-const {
-  getSettings,
-  getTeamSettings,
-} = require("../staff-notifications/settings");
-const { sendSmart } = require("../whatsapp");
+} from "./time.js";
+import { getSettings, getTeamSettings } from "../staff-notifications/settings";
 
+import prisma from "@/lib/prisma";
 // ===== language mapping =====
 function toWhatsAppLang(enumVal) {
   return enumVal === "ENGLISH" ? "en" : "ar_AE";
 }
 
 const SELECT_TEMPLATE = {
-  payment_reminder(lang) {
+  [messageTypes.PAYMENT_REMINDER](lang) {
     return lang === "en" ? "payment_due_reminder_en" : "payment_due_reminder";
   },
-  contract_expiry_reminder(lang) {
+  [messageTypes.CONTRACT_EXPIRY_REMINDER](lang) {
     return lang === "en"
       ? "contract_expiration_reminder_en"
       : "contract_expiration";
   },
-  maintenance_followup(lang) {
+  [messageTypes.MAINTAINCE_FOLLOW_UP](lang) {
     return lang === "en"
       ? "maintenance_request_reminder_en"
       : "maintenance_request_reminder";
   },
 };
-
-async function logWhatsApp(body) {
-  try {
-    return await prisma.whatsappMessageLog.create({
-      data: {
-        messageId: `local_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-        ...body,
-      },
-    });
-  } catch (e) {
-    console.error("logWhatsApp error:", e.message);
-  }
-}
-async function updateWhatsAppLog({ logId, status, other }) {
-  const log = await prisma.whatsappMessageLog.findFirst({
-    where: { id: logId },
-  });
-  if (!log) return;
-  await prisma.whatsappMessageLog.update({
-    where: { id: log.id },
-    data: { status, ...(other && { ...other }) },
-  });
-}
-async function checkIfThereIsALog({ sendSchema, relationKey, relationId }) {
-  return await prisma.whatsappMessageLog.findFirst({
-    where: {
-      sendSchema,
-      relationKey,
-      relationId,
-      status: { not: "failed" },
-    },
-  });
-}
-
 // ===== generic smart reminder sender (no template creation) =====
 async function sendReminderSmart({
   relationKey, // "payment_reminder" | "contract_expiry_reminder" | "maintenance_reminder"
@@ -86,7 +53,7 @@ async function sendReminderSmart({
   const log = await logWhatsApp({
     recipient,
     language: lang,
-    status: "scheduled",
+    status: messageStatus.SCHEDULED,
     messageType: relationKey,
     ...logData,
   });
@@ -109,11 +76,11 @@ async function sendReminderSmart({
     // };
     await updateWhatsAppLog({
       logId: log.id,
-      status: "delivered",
+      status: messageStatus.DELIVERED,
       other: {
-        messageType: result.type, // "session" | "template"
-        language: result.language, // "session" | "ar_AE" | "en"
+        language: result.language,
         metadata: result.meta,
+        templateName,
       },
     });
 
@@ -121,18 +88,13 @@ async function sendReminderSmart({
   } catch (e) {
     await updateWhatsAppLog({
       logId: log.id,
-      status: "failed",
+      status: messageStatus.FAILED,
       other: { metadata: e?.response || { error: e?.message } },
     });
     return { ok: false, error: e?.message };
   }
 }
 
-// ====== FLOWS ======
-
-// ---- Payments ----
-// Template params order (AR & EN):
-// 1: name, 2: amount AED, 3: property, 4: due date
 async function processPaymentReminders(now = new Date(), settings) {
   const daysList = settings.paymentReminderDays;
   if (!daysList.length) return { ok: true, skipped: "no_days" };
@@ -170,7 +132,7 @@ async function processPaymentReminders(now = new Date(), settings) {
     const logData = {
       sendSchema: String(diff),
       relationId: String(p.id),
-      relationKey: "payment_reminder",
+      relationKey: messageTypes.PAYMENT_REMINDER,
     };
     const oldLog = await checkIfThereIsALog(logData);
     if (oldLog) continue;
@@ -198,7 +160,7 @@ async function processPaymentReminders(now = new Date(), settings) {
         : `Dear ${name},\n\nRent payment reminder:\n- Amount: ${p.amount} AED\n- Property: ${propertyName}\n- Due date: ${dueStr}\n\nPlease complete payment as soon as possible.`;
 
     const res = await sendReminderSmart({
-      relationKey: "payment_reminder",
+      relationKey: messageTypes.PAYMENT_REMINDER,
       to: phone,
       lang,
       textForSession,
@@ -243,7 +205,7 @@ async function processContractReminders(now = new Date(), settings) {
     const logData = {
       sendSchema: String(diff),
       relationId: String(ra.id),
-      relationKey: "contract_expiry_reminder",
+      relationKey: messageTypes.CONTRACT_EXPIRY_REMINDER,
     };
     const oldLog = await checkIfThereIsALog(logData);
     if (oldLog) continue;
@@ -266,7 +228,7 @@ async function processContractReminders(now = new Date(), settings) {
         : `Dear / ${name},\n\nYour lease will expire soon.\n🏠 Property: ${propertyName}\n🔑 Unit: ${unitNo}\n📅 Expiration date: ${endStr}\n\nPlease contact us as soon as possible.`;
 
     const res = await sendReminderSmart({
-      relationKey: "contract_expiry_reminder",
+      relationKey: messageTypes.CONTRACT_EXPIRY_REMINDER,
       to: phone,
       lang,
       textForSession,
@@ -329,7 +291,7 @@ async function processMaintenanceFollowups(
     const logData = {
       sendSchema: String(diff),
       relationId: r.id,
-      relationKey: "maintenance_followup", // <— NEW key
+      relationKey: messageTypes.MAINTAINCE_FOLLOW_UP, // <— NEW key
     };
     const oldLog = await checkIfThereIsALog(logData);
     if (oldLog) continue;
@@ -365,7 +327,7 @@ async function processMaintenanceFollowups(
         : `Delayed maintenance request follow-up (${ticketId}):\nProperty: ${propertyName}\nUnit: ${unitNo}\nIssue: ${issue}\nRequest date: ${reqDateStr}\nAge: ${ageDays} day(s)\n\nPlease review the request status with the technician and ensure timely completion.`;
 
     const res = await sendReminderSmart({
-      relationKey: "maintenance_followup",
+      relationKey: messageTypes.MAINTAINCE_FOLLOW_UP,
       to: technicianPhone,
       lang: techLang,
       textForSession,
@@ -373,9 +335,12 @@ async function processMaintenanceFollowups(
       settings,
       logData,
     });
+    if (res.ok) sent += 1;
+
+    await sleep(settings.messageDelay || 0);
 
     const customerServiceRes = await sendReminderSmart({
-      relationKey: "maintenance_followup",
+      relationKey: messageTypes.MAINTAINCE_FOLLOW_UP,
       to: customerServicePhone,
       lang: techLang,
       textForCustomerService,
@@ -383,7 +348,7 @@ async function processMaintenanceFollowups(
       settings,
       logData,
     });
-    if (res.ok) sent += 1;
+    if (customerServiceRes.ok) sent += 1;
     await sleep(settings.messageDelay || 0);
   }
 
@@ -391,7 +356,7 @@ async function processMaintenanceFollowups(
 }
 
 // ---- Orchestrator ----
-async function runAllReminders({ now = new Date() } = {}) {
+export async function runAllReminders({ now = new Date() } = {}) {
   const results = {};
   const settings = await getSettings();
   const teamSettings = await getTeamSettings();
@@ -450,11 +415,3 @@ async function checkIfAllowedToSendByTeamSettings(teamSettings) {
 
   return { ok: true };
 }
-module.exports = {
-  getSettings,
-  processPaymentReminders,
-  processContractReminders,
-  processMaintenanceFollowups,
-  runAllReminders,
-  getTeamSettings,
-};
