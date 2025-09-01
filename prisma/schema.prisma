@@ -671,7 +671,13 @@ model WhatsappMessageLog {
   updatedAt    DateTime @default(now())
   clientId     Int?
   client       Client?  @relation(fields: [clientId], references: [id])
+  sendSchema     String?   
 
+  // ربط عام بأي نوع كيان
+  relationKey    String?   
+  relationId     String?      
+  @@index([relationKey, relationId])
+  @@index([status, sentAt])
   @@index([clientId], map: "WhatsappMessageLog_clientId_fkey")
 }
 

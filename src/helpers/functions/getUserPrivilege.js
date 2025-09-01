@@ -13,7 +13,7 @@ export const getCurrentPrivilege = (user, pathName) => {
     "/renters": "RENTER",
     "/settings": "SETTING",
     "/admin": "SETTING",
-    "/whatsapp": "SETTING",
+    "/whatsapp": "WHATSAPP",
     "/accounting": "ACCOUNTING",
     "/security-deposits": "SECURITY_DEPOSIT",
   };

@@ -319,7 +319,7 @@ export async function refundDeposit({
     });
     if (moveDeductCash) {
       await createJournalEntry({
-        description: `تحويل المبلغ المصادَر من حساب الوديعة إلى الجاري - SD#${sd.id}`,
+        description: `تحويل المبلغ المصادَر من حساب التوفير إلى الجاري - SD#${sd.id}`,
         entryDate: date,
         lines: [
           {

@@ -193,3 +193,68 @@ ADD COLUMN `isSystem` BOOLEAN NOT NULL DEFAULT FALSE AFTER `isActive`;
 
 ALTER TABLE `JournalEntry`
 ADD COLUMN `manull` BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE `WhatsappMessageLog`
+  ADD COLUMN `sendSchema` VARCHAR(191) NULL,
+  ADD COLUMN `relationKey` VARCHAR(191) NULL,
+  ADD COLUMN `relationId` INT NULL;
+
+CREATE INDEX `WhatsappMessageLog_relation_idx`
+  ON `WhatsappMessageLog` (`relationKey`, `relationId`);
+
+CREATE INDEX `WhatsappMessageLog_status_sentAt_idx`
+  ON `WhatsappMessageLog` (`status`, `sentAt`);
+
+CREATE INDEX `WhatsappMessageLog_recipient_sentAt_idx`
+  ON `WhatsappMessageLog` (`recipient`, `sentAt`);
+
+ALTER TABLE WhatsappMessageLog 
+MODIFY COLUMN relationId VARCHAR(191) NULL;
+
+
+RENAME TABLE state TO State;
+RENAME TABLE city TO City;
+RENAME TABLE district TO District;
+RENAME TABLE neighbour TO Neighbour;
+RENAME TABLE propertytype TO PropertyType;
+RENAME TABLE unittype TO UnitType;
+RENAME TABLE property TO Property;
+RENAME TABLE electricitymeter TO ElectricityMeter;
+RENAME TABLE attachment TO Attachment;
+RENAME TABLE unit TO Unit;
+RENAME TABLE contractexpense TO ContractExpense;
+RENAME TABLE rentagreement TO RentAgreement;
+RENAME TABLE contractexpensetorentagreement TO ContractExpenseToRentAgreement;
+RENAME TABLE rentagreementtype TO RentAgreementType;
+RENAME TABLE installment TO Installment;
+RENAME TABLE maintenanceinstallment TO MaintenanceInstallment;
+RENAME TABLE maintenance TO Maintenance;
+RENAME TABLE propertyexpensetype TO PropertyExpenseType;
+RENAME TABLE bank TO Bank;
+RENAME TABLE user TO User;
+RENAME TABLE userproperty TO UserProperty;
+RENAME TABLE privilege TO Privilege;
+RENAME TABLE userprivilege TO UserPrivilege;
+RENAME TABLE client TO Client;
+RENAME TABLE bankaccount TO BankAccount;
+RENAME TABLE contact TO Contact;
+RENAME TABLE income TO Income;
+RENAME TABLE expense TO Expense;
+RENAME TABLE collector TO Collector;
+RENAME TABLE payment TO Payment;
+RENAME TABLE invoice TO Invoice;
+RENAME TABLE maintenancerequest TO MaintenanceRequest;
+RENAME TABLE complaint TO Complaint;
+RENAME TABLE whatsappmessagelog TO WhatsappMessageLog;
+RENAME TABLE whatsappincomingmessage TO WhatsappIncomingMessage;
+RENAME TABLE whatsappconversation TO WhatsappConversation;
+RENAME TABLE whatsapptemplate TO WhatsappTemplate;
+RENAME TABLE remindersettings TO ReminderSettings;
+RENAME TABLE whatsappteamsettings TO WhatsAppTeamSettings;
+RENAME TABLE glaccount TO GLAccount;
+RENAME TABLE companybankaccount TO CompanyBankAccount;
+RENAME TABLE journalentry TO JournalEntry;
+RENAME TABLE journalline TO JournalLine;
+RENAME TABLE journalsettlement TO JournalSettlement;
+RENAME TABLE journalsettlementline TO JournalSettlementLine;
+RENAME TABLE securitydeposit TO SecurityDeposit;
