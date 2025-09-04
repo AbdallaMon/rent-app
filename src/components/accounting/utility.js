@@ -33,6 +33,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { MobileDatePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
+import { Typography } from "antd";
 
 const locales = ["en-gb"];
 
@@ -108,7 +109,12 @@ function CounterpartyPicker({ value, onChange }) {
   );
 }
 
-export function BankCashForm({ variant = "inflow", onCancel, onSubmit }) {
+export function BankCashForm({
+  variant = "inflow",
+  onCancel,
+  onSubmit,
+  isPettyCash,
+}) {
   const theme = useTheme();
   const isTransfer = variant === "transfer";
   const isInflow = variant === "inflow";
@@ -123,15 +129,18 @@ export function BankCashForm({ variant = "inflow", onCancel, onSubmit }) {
   const [partyClientLabel, setPartyClientLabel] = useState("");
 
   // keep same keys
-  const [fromId, setFromId] = useState(""); // will represent "مدين (Dr)" for transfer
-  const [toId, setToId] = useState(""); // will represent "دائن (Cr)" for transfer
+  const [fromId, setFromId] = useState("");
+  const [toId, setToId] = useState("");
   const [accountId, setAccountId] = useState("");
 
   const canSubmit = useMemo(() => {
     if (Number(amount) <= 0 || !memo.trim()) return false;
     if (isTransfer) return fromId && toId && fromId !== toId;
     if (isInflow || (!isInflow && !isTransfer)) {
-      return partyClientLabel.trim().length > 0 && Boolean(accountId);
+      return (
+        partyClientLabel.trim().length > 0 &&
+        (Boolean(accountId) || isPettyCash)
+      );
     }
     return Boolean(accountId);
   }, [amount, memo, isTransfer, fromId, toId, accountId, partyClientLabel]);
@@ -142,6 +151,7 @@ export function BankCashForm({ variant = "inflow", onCancel, onSubmit }) {
       memo: memo.trim(),
       entryDate: new Date(date).toISOString(),
       partyClientLabel,
+      isPettyCash,
     };
 
     if (isTransfer) {
@@ -151,7 +161,6 @@ export function BankCashForm({ variant = "inflow", onCancel, onSubmit }) {
         toGlAccountId: Number(toId), // دائن
         ...base,
       };
-      console.log(payload, "payload");
       onSubmit ? onSubmit(payload) : console.log(payload);
       return;
     }
@@ -195,8 +204,8 @@ export function BankCashForm({ variant = "inflow", onCancel, onSubmit }) {
               {isTransfer
                 ? "قيد محاسبي (مدين/دائن)  "
                 : isInflow
-                  ? "إيداع / إضافة مبلغ للحساب"
-                  : "سحب / صرف مبلغ من الحساب"}
+                  ? `إيداع / إضافة مبلغ ${isPettyCash ? "إلى صندوق النثرية" : "الى الحساب"}`
+                  : `سحب / صرف مبلغ من ${isPettyCash ? "صندوق النثرية" : "الحساب"}`}{" "}
             </Box>
 
             <Divider />
@@ -206,6 +215,7 @@ export function BankCashForm({ variant = "inflow", onCancel, onSubmit }) {
               // transfer: show vertically (each under the other)
               <Stack direction="column" spacing={2}>
                 {/* مدين (Dr) — keep key as fromId */}
+
                 <ItemsSelect
                   label="مدين (Dr)"
                   value={fromId}
@@ -230,16 +240,22 @@ export function BankCashForm({ variant = "inflow", onCancel, onSubmit }) {
                 />
               </Stack>
             ) : (
-              // inflow / outflow: unchanged
               <>
-                <ItemsSelect
-                  label="الحساب"
-                  value={accountId}
-                  onChange={setAccountId}
-                  options={accounts}
-                  loading={accLoading}
-                  disabled={accLoading}
-                />
+                {isPettyCash ? (
+                  <Typography variant="body2" color="textSecondary">
+                    سيتم تسجيل العملية على حساب صندوق النثرية ك{" "}
+                    {isInflow ? "مدين" : "دائن"}
+                  </Typography>
+                ) : (
+                  <ItemsSelect
+                    label="الحساب"
+                    value={accountId}
+                    onChange={setAccountId}
+                    options={accounts}
+                    loading={accLoading}
+                    disabled={accLoading}
+                  />
+                )}
                 <TextField
                   label={isInflow ? "الدائن" : "المدين"}
                   value={partyClientLabel}

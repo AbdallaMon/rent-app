@@ -6,7 +6,10 @@ import {
   PriorityLabels,
 } from "./constants";
 import { findClientWithPropertyProduction } from "./clients";
-import { sendMaintainceRequestToTech } from "../staff-notifications/services";
+import {
+  sendMaintainceRequestToCS,
+  sendMaintainceRequestToTech,
+} from "../staff-notifications/services";
 async function generateMaintenanceDisplayId(prisma) {
   const seq = await prisma.maintenanceRequest.count();
   return "MR-" + String(seq + 1).padStart(6, "0");
@@ -59,9 +62,23 @@ export async function createMaintenanceRequestProduction(
       },
       include: { client: true, property: true, unit: true },
     });
-    console.log(maintenanceRequest, "maintenanceRequest");
     try {
       await sendMaintainceRequestToTech({
+        requestId: maintenanceRequest.id,
+        clientName: client.name,
+        clientPhone: phoneNumber,
+        propertyName: property?.name || "غير محدد",
+        maintenanceType: MaintenanceTypeLabels[maintenanceRequest.type].ar,
+        priority: PriorityLabels[maintenanceRequest.priority].ar,
+        description,
+        unitNumber:
+          unit?.number ||
+          unit?.unitId ||
+          (unit?.floor ? `الطابق ${unit.floor}` : "غير محدد"),
+        requestDate: new Date(),
+        type: "MAINTAINCE",
+      });
+      await sendMaintainceRequestToCS({
         requestId: maintenanceRequest.id,
         clientName: client.name,
         clientPhone: phoneNumber,

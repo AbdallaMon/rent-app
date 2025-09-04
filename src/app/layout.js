@@ -61,30 +61,14 @@ const font = Cairo({
  */
 export default function RootLayout({ children }) {
   return (
-    // ===== عنصر HTML الجذر =====
     <html lang="ar" dir="rtl">
-      {" "}
-      {/* تحديد اللغة العربية والاتجاه من اليمين لليسار */}
-      {/* ===== عنصر Body مع الخط المخصص ===== */}
       <body className={font.className}>
-        {" "}
-        {/* تطبيق خط Cairo على كامل الصفحة */}
-        {/* ===== هرمية مقدمي الخدمات (Providers Hierarchy) ===== */}
-        {/* يتم ترتيب المقدمين من الخارج للداخل حسب الأولوية */}
-        {/* مقدم الإشعارات - أعلى مستوى */}
         <MUIContextProvider>
           <ToastProvider>
-            {/* مقدم المصادقة - إدارة حالة تسجيل الدخول */}
             <AuthProvider>
-              {/* مقدم تحميل البيانات - إدارة حالة جلب البيانات */}
               <DataLoaderProvider>
-                {/* مقدم تحميل الإرسال - إدارة حالة إرسال النماذج */}
                 <SubmitLoaderProvider>
-                  {/* مكون دعم الاتجاه من اليمين لليسار */}
-                  {/* شريط التنقل الرئيسي مع محتوى الصفحة */}
-                  <DashboardNav>
-                    {children} {/* محتوى الصفحة الفعلي */}
-                  </DashboardNav>
+                  <DashboardNav>{children}</DashboardNav>
                 </SubmitLoaderProvider>
               </DataLoaderProvider>
             </AuthProvider>

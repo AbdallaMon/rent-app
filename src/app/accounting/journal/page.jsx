@@ -14,6 +14,7 @@ import TableJournalLine from "@/components/accounting/TableJournalLine";
 import TableJournalEntry from "@/components/accounting/TableJournalEntry";
 import CreateAJournalEntry from "@/components/accounting/CreateAJournalEntry";
 import DeleteModal from "@/components/ui/Modals/DeleteModal";
+import { fmt } from "../statements/page";
 dayjs.locale("ar");
 
 export default function JournalPage({ searchParams }) {
@@ -37,6 +38,7 @@ function JournalWrapper({ searchParams }) {
     setData,
     setTotal,
     setRender,
+    otherData,
   } = useDataFetcher(`main/accounting/journal`, null, searchParams);
   const [startDate, setStartDate] = useState(dayjs().startOf("month"));
   const [endDate, setEndDate] = useState(dayjs().endOf("month"));
@@ -154,7 +156,29 @@ function JournalWrapper({ searchParams }) {
       },
     },
   ];
+  let rowFooter = [];
 
+  if (otherData) {
+    rowFooter = [
+      {
+        label: "",
+        value: "",
+        colSpan: 3,
+      },
+      {
+        label: "اجمالي المبلغ",
+        value: fmt(otherData.totalAmount),
+      },
+      {
+        label: "اجمالي المسدد",
+        value: fmt(otherData.totalSettled),
+      },
+      {
+        label: "اجمالي المتبقي",
+        value: fmt(otherData.totalLeft),
+      },
+    ];
+  }
   return (
     <>
       <Box sx={{ display: "flex", gap: 2, mb: 4, pr: 8, alignItems: "center" }}>
@@ -200,6 +224,7 @@ function JournalWrapper({ searchParams }) {
         setData={setData}
         setTotal={setTotal}
         total={total}
+        footerRow={rowFooter}
       ></ViewComponent>
     </>
   );

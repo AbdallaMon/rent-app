@@ -7,7 +7,7 @@ export const ToastContext = createContext(null);
 export default function ToastProvider({ children }) {
   const [loading, setLoading] = useState(false);
   return (
-    <ToastContext.Provider value={{ setLoading }}>
+    <ToastContext.Provider value={{ loading, setLoading }}>
       <DisplayLoadingAndErrors loading={loading} />
       {children}
     </ToastContext.Provider>

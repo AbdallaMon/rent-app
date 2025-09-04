@@ -2,7 +2,6 @@ import {
   withReadOnlyConnection,
   withWriteConnection,
 } from "@/lib/database-connection";
-import { sendWhatsAppMessage } from "@/lib/whatsapp";
 import {
   findClientWithPropertyProduction,
   findClinetData,
@@ -24,6 +23,7 @@ import {
 } from "../services/constants";
 import { sendContactFormSubmissionToCS } from "../staff-notifications/services";
 import { formatDate } from "../utility";
+import { sendWhatsAppText } from "../whatsapp";
 
 function safeID(x) {
   if (!x) return "";
@@ -148,7 +148,7 @@ export async function handleStatus(phone, language, incomingMessage) {
 
   const res = await getClientRequestHistory(phone, 5);
   if (!res?.success) {
-    await sendWhatsAppMessage(
+    await sendWhatsAppText(
       phone,
       ar
         ? "❌ لم نعثر على حسابك. يرجى الاتصال: +971507935566"
@@ -165,7 +165,7 @@ export async function handleStatus(phone, language, incomingMessage) {
   } = res.data || {};
 
   if (!totalRequests) {
-    await sendWhatsAppMessage(
+    await sendWhatsAppText(
       phone,
       ar
         ? `📊 لا توجد طلبات سابقة، ${client?.name || ""}`
@@ -185,7 +185,7 @@ export async function handleStatus(phone, language, incomingMessage) {
 
   if (msg.length > 3500) msg = msg.slice(0, 3490) + (ar ? "\n…\n" : "\n…\n");
 
-  await sendWhatsAppMessage(phone, msg.trim(), incomingMessage);
+  await sendWhatsAppText(phone, msg.trim(), incomingMessage);
   // return sendMain(phone, lang);
 }
 export async function handleSupport(phone, language, incomingMessage) {
@@ -193,7 +193,7 @@ export async function handleSupport(phone, language, incomingMessage) {
   let contact;
   const found = await findClientWithPropertyProduction(phone);
   if (!found?.success || !found?.client) {
-    await sendWhatsAppMessage(
+    await sendWhatsAppText(
       phone,
       ar
         ? "❌ لم نجد حسابك. يرجى الاتصال: +971507935566"
@@ -219,7 +219,7 @@ export async function handleSupport(phone, language, incomingMessage) {
     id: contact.id,
   });
 
-  return await sendWhatsAppMessage(
+  return await sendWhatsAppText(
     phone,
     ar
       ? "✅ تم تسجيل طلب الدعم. سيتواصل معك فريقنا قريباً."
@@ -235,7 +235,7 @@ export async function handlePayments(phone, language, incomingMessage) {
 
   const found = await findClientWithPropertyProduction(phone);
   if (!found?.success || !found?.client) {
-    await sendWhatsAppMessage(
+    await sendWhatsAppText(
       phone,
       ar
         ? "❌ لم نعثر على حسابك. برجاء الاتصال بنا للاستعلام عن الدفعات."
@@ -311,7 +311,7 @@ export async function handlePayments(phone, language, incomingMessage) {
     });
 
     if (!pendingPayments.length) {
-      await sendWhatsAppMessage(
+      await sendWhatsAppText(
         phone,
         ar
           ? "لا توجد دفعات مستحقة حالياً."
@@ -358,7 +358,7 @@ export async function handlePayments(phone, language, incomingMessage) {
     // شريط سفلي بسيط (اختياري)
     text += ar ? "────────────────────────" : "────────────────────────";
 
-    await sendWhatsAppMessage(phone, text.trim(), incomingMessage);
+    await sendWhatsAppText(phone, text.trim(), incomingMessage);
   });
 
   // return sendMain(phone, lang);
@@ -370,7 +370,7 @@ export async function handleRenewal(phone, language, incomingMessage) {
   let contact;
 
   if (!found?.success || !found?.client) {
-    await sendWhatsAppMessage(
+    await sendWhatsAppText(
       phone,
       ar
         ? "❌ لم نجد حسابك. اتصل بنا لتجديد العقد."
@@ -396,7 +396,7 @@ export async function handleRenewal(phone, language, incomingMessage) {
     preferedLng: found.client.language,
     id: contact.id,
   });
-  return await sendWhatsAppMessage(
+  return await sendWhatsAppText(
     phone,
     ar
       ? "✅ تم تسجيل طلب التجديد. سيتواصل معك فريق المبيعات خلال 24 ساعة."

@@ -1,26 +1,209 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Settings, 
-  Clock, 
-  Users, 
-  Phone, 
-  Bell, 
-  Save, 
-  RefreshCw,
-  CheckCircle,
-  AlertTriangle,
-  User,
-  Headphones
-} from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 
+// MUI
+import {
+  Box,
+  Container,
+  Paper,
+  Typography,
+  Button,
+  Tabs,
+  Tab,
+  Grid,
+  TextField,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  Divider,
+  Switch,
+  Stack,
+  IconButton,
+  Tooltip,
+  InputAdornment,
+  Chip,
+} from "@mui/material";
+import { useTheme, styled } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
+
+// React Icons
+import {
+  FiSettings,
+  FiClock,
+  FiUsers,
+  FiBell,
+  FiSave,
+  FiRefreshCw,
+  FiCheckCircle,
+  FiAlertTriangle,
+  FiUser,
+  FiHeadphones,
+  FiPlus,
+  FiX,
+  FiInfo,
+} from "react-icons/fi";
+import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
+import { handleRequestSubmit } from "@/helpers/functions/handleRequestSubmit";
+import { getDataAndSet } from "../../../helpers/functions/getDataAndSet";
+
+/* ---------- Helpers ---------- */
+function a11yProps(index) {
+  return {
+    id: `settings-tab-${index}`,
+    "aria-controls": `settings-tabpanel-${index}`,
+  };
+}
+
+function TabPanel({ children, value, index }) {
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`settings-tabpanel-${index}`}
+      aria-labelledby={`settings-tab-${index}`}
+    >
+      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+    </div>
+  );
+}
+
+const SectionCard = ({ icon, title, children, sx }) => {
+  const theme = useTheme();
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2.5,
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: 2,
+        ...sx,
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={1.25} sx={{ mb: 2 }}>
+        <Box sx={{ display: "grid", placeItems: "center" }}>{icon}</Box>
+        <Typography variant="subtitle1" fontWeight={700}>
+          {title}
+        </Typography>
+      </Stack>
+      {children}
+    </Paper>
+  );
+};
+
+/** محرر أيام التذكيرات كـ Chips + إدخال سريع */
+const DaysChipsEditor = ({
+  label,
+  value = [],
+  onChange,
+  helperText,
+  adornmentLabel = "يوم",
+}) => {
+  const [input, setInput] = useState("");
+
+  const addDay = useCallback(() => {
+    const n = parseInt(String(input).trim(), 10);
+    if (!Number.isFinite(n) || n <= 0) return;
+    const next = Array.from(new Set([...value, n])).sort((a, b) => a - b);
+    onChange(next);
+    setInput("");
+  }, [input, value, onChange]);
+
+  const removeDay = (day) => {
+    onChange(value.filter((d) => d !== day));
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addDay();
+    }
+  };
+
+  return (
+    <Box>
+      <TextField
+        fullWidth
+        label={label}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="اكتب رقم اليوم ثم Enter"
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">{adornmentLabel}</InputAdornment>
+          ),
+          endAdornment: (
+            <InputAdornment position="end">
+              <Tooltip title="إضافة">
+                <span>
+                  <IconButton size="small" onClick={addDay} disabled={!input}>
+                    <FiPlus />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </InputAdornment>
+          ),
+        }}
+        helperText={helperText}
+      />
+      <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: "wrap" }}>
+        {value.map((d) => (
+          <Chip
+            key={d}
+            label={`${d}`}
+            onDelete={() => removeDay(d)}
+            deleteIcon={<FiX />}
+            sx={{ mb: 1 }}
+          />
+        ))}
+      </Stack>
+    </Box>
+  );
+};
+
+const SaveBar = ({ saving, disabled, onClick, tooltipTitle }) => {
+  return (
+    <Tooltip
+      title={disabled && tooltipTitle ? tooltipTitle : ""}
+      placement="bottom"
+      arrow
+      disableHoverListener={!disabled}
+    >
+      <span>
+        <Button
+          variant="contained"
+          loading={saving}
+          loadingPosition="start"
+          startIcon={saving ? <FiRefreshCw /> : <FiSave />}
+          onClick={onClick}
+          disabled={disabled}
+          sx={{ minWidth: 180, borderRadius: 2 }}
+        >
+          {saving ? "جاري الحفظ..." : "حفظ الإعدادات"}
+        </Button>
+      </span>
+    </Tooltip>
+  );
+};
+
+/* ---------- Page ---------- */
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('reminders');
+  const theme = useTheme();
+  const isSmDown = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
-  
+  const { loading: saving, setLoading: setSaving } = useToastContext();
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
   // إعدادات التذكيرات
   const [reminderSettings, setReminderSettings] = useState({
     paymentReminderDays: [7, 3, 1],
@@ -29,679 +212,773 @@ export default function SettingsPage() {
     maxRetries: 3,
     messageDelay: 2000,
     enableAutoReminders: true,
-    workingHoursStart: '09:00:00',
-    workingHoursEnd: '18:00:00',
-    workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-    enabledReminderTypes: ['payment_reminder', 'contract_expiry_reminder'],
+    workingHoursStart: "09:00",
+    workingHoursEnd: "18:00",
+    workingDays: [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ],
+    enabledReminderTypes: ["payment_reminder", "contract_expiry_reminder"],
     highPriorityThreshold: 3,
     mediumPriorityThreshold: 7,
-    defaultLanguage: 'ar_AE',
+    defaultLanguage: "ar_AE",
     includeCompanySignature: true,
-    isActive: true
+    isActive: true,
   });
 
   // إعدادات فريق العمل
   const [teamSettings, setTeamSettings] = useState({
-    technicianPhone: '',
-    technicianName: '',
+    technicianPhone: "",
+    technicianName: "",
     notifyTechnicianForMaintenance: true,
-    technicianWorkingHours: 'من 8:00 صباحاً إلى 5:00 مساءً',
-    customerServicePhone: '',
-    customerServiceName: '',
+    technicianWorkingHours: "من 8:00 صباحاً إلى 5:00 مساءً",
+    customerServicePhone: "",
+    customerServiceName: "",
     notifyCustomerServiceForComplaints: true,
     notifyCustomerServiceForContacts: true,
-    customerServiceWorkingHours: 'من 9:00 صباحاً إلى 6:00 مساءً',
+    customerServiceWorkingHours: "من 9:00 صباحاً إلى 6:00 مساءً",
     maxDailyNotifications: 10,
     notificationDelay: 5,
     enableUrgentNotifications: true,
     enableBackupNotifications: false,
-    customNotificationMessage: ''
+    customNotificationMessage: "",
   });
 
-  // جلب البيانات عند تحميل الصفحة
+  /* ---- effects ---- */
   useEffect(() => {
     fetchSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSettings = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/admin/whatsapp/settings');
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.reminderSettings) {
-          setReminderSettings(data.reminderSettings);
-        }
-        if (data.teamSettings) {
-          setTeamSettings(data.teamSettings);
-        }
-      }
-    } catch (error) {
-      console.error('خطأ في جلب الإعدادات:', error);
-      showNotification('خطأ في جلب الإعدادات', 'error');
-    } finally {
-      setLoading(false);
+    const response = await getDataAndSet({
+      setLoading,
+      setData: () => {},
+      url: `whatsapp/v2/settings`,
+    });
+    if (response.status === 200) {
+      const data = response;
+      if (data.reminderSettings)
+        setReminderSettings((prev) => ({
+          ...prev,
+          ...data.reminderSettings,
+        }));
+      if (data.teamSettings)
+        setTeamSettings((prev) => ({ ...prev, ...data.teamSettings }));
+    } else {
+      throw new Error("Failed to fetch settings");
     }
   };
 
   const saveSettings = async () => {
-    try {
-      setSaving(true);
-      const response = await fetch('/api/admin/whatsapp/settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          reminderSettings,
-          teamSettings
-        }),
-      });
-
-      if (response.ok) {
-        showNotification('تم حفظ الإعدادات بنجاح!', 'success');
-      } else {
-        throw new Error('فشل في حفظ الإعدادات');
-      }
-    } catch (error) {
-      console.error('خطأ في حفظ الإعدادات:', error);
-      showNotification('خطأ في حفظ الإعدادات', 'error');
-    } finally {
-      setSaving(false);
-    }
+    await handleRequestSubmit(
+      { reminderSettings, teamSettings },
+      setSaving,
+      "/whatsapp/v2/settings",
+      false,
+      "جاري حفظ الإعدادات..."
+    );
   };
 
-  const showNotification = (message, type) => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => {
-      setNotification({ show: false, message: '', type: '' });
-    }, 3000);
-  };
+  const handleCloseSnack = () =>
+    setNotification((prev) => ({ ...prev, open: false }));
 
-  // تحديث أيام التذكيرات
-  const updateReminderDays = (type, days) => {
-    setReminderSettings(prev => ({
-      ...prev,
-      [type]: days.split(',').map(day => parseInt(day.trim())).filter(day => day > 0)
-    }));
-  };
+  const validatePhoneNumber = (phone) =>
+    process.env.NEXT_PUBLIC_EG === "true"
+      ? /^20\d{10}$/.test(String(phone || "").replace(/\s/g, ""))
+      : /^971\d{9}$/.test(String(phone || "").replace(/\s/g, ""));
 
-  // تحديث أيام العمل
+  const isTechnicianPhoneInvalid =
+    teamSettings.technicianPhone &&
+    !validatePhoneNumber(teamSettings.technicianPhone);
+  const isCSPhoneInvalid =
+    teamSettings.customerServicePhone &&
+    !validatePhoneNumber(teamSettings.customerServicePhone);
+
   const updateWorkingDays = (day, checked) => {
-    setReminderSettings(prev => ({
+    setReminderSettings((prev) => ({
       ...prev,
-      workingDays: checked 
-        ? [...prev.workingDays, day]
-        : prev.workingDays.filter(d => d !== day)
+      workingDays: checked
+        ? [...new Set([...prev.workingDays, day])]
+        : prev.workingDays.filter((d) => d !== day),
     }));
   };
+  const disabledReasons = useMemo(() => {
+    const reasons = [];
+    if (saving) reasons.push("لا يمكن الحفظ أثناء عملية حفظ سابقة");
+    if (isTechnicianPhoneInvalid)
+      reasons.push(
+        "رقم هاتف الفني غير صالح: يجب أن يبدأ بـ 971 ويتكوّن من 12 رقمًا"
+      );
+    if (isCSPhoneInvalid)
+      reasons.push(
+        "رقم هاتف خدمة العملاء غير صالح: يجب أن يبدأ بـ 971 ويتكوّن من 12 رقمًا"
+      );
+    // لو عندك شروط أخرى لتعطيل الحفظ ضيفها هنا...
+    return reasons;
+  }, [saving, isTechnicianPhoneInvalid, isCSPhoneInvalid]);
 
-  // التحقق من صحة رقم الهاتف
-  const validatePhoneNumber = (phone) => {
-    const phoneRegex = /^971[0-9]{9}$/;
-    return phoneRegex.test(phone.replace(/\s/g, ''));
-  };
+  const saveDisabled = useMemo(
+    () => saving || isTechnicianPhoneInvalid || isCSPhoneInvalid,
+    [saving, isTechnicianPhoneInvalid, isCSPhoneInvalid]
+  );
 
+  const saveDisabledTooltip = disabledReasons.join(" • ");
+
+  /* Loading state */
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <RefreshCw className="w-6 h-6 animate-spin text-blue-600" />
-          <span className="text-lg text-gray-600">جاري تحميل الإعدادات...</span>
-        </div>
-      </div>
+      <Box
+        // dir="ltr"
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          bgcolor: "background.default",
+          px: 2,
+        }}
+      >
+        <Stack direction="row" spacing={1} alignItems="center">
+          <CircularProgress size={24} />
+          <Typography color="text.secondary">
+            جاري تحميل الإعدادات...
+          </Typography>
+        </Stack>
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* العنوان الرئيسي */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Settings className="w-8 h-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">إعدادات الواتساب</h1>
-                <p className="text-gray-600">إدارة إعدادات التذكيرات وفريق العمل</p>
-              </div>
-            </div>
-            <button
+    <Box
+      // dir="rtl"
+      sx={{ minHeight: "100vh", bgcolor: "background.default", py: 4 }}
+    >
+      <Container maxWidth="lg">
+        {/* Header */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: isSmDown ? 2 : 3,
+            mb: 3,
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: 2,
+            position: "sticky",
+            top: 16,
+            zIndex: 1,
+            backdropFilter: "blur(4px)",
+          }}
+        >
+          <Stack
+            direction={isSmDown ? "column" : "row"}
+            alignItems={isSmDown ? "flex-start" : "center"}
+            justifyContent="space-between"
+            spacing={2}
+          >
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <FiSettings
+                size={28}
+                style={{ color: theme.palette.primary.main }}
+              />
+              <Box>
+                <Typography variant={isSmDown ? "h6" : "h5"} fontWeight={700}>
+                  إعدادات الواتساب
+                </Typography>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2" color="text.secondary">
+                    إدارة إعدادات التذكيرات وفريق العمل
+                  </Typography>
+                  <Tooltip title="يتم حفظ الإعدادات في الـ API الخاص بك">
+                    <Box
+                      sx={{
+                        display: "grid",
+                        placeItems: "center",
+                        color: "text.disabled",
+                      }}
+                    >
+                      <FiInfo />
+                    </Box>
+                  </Tooltip>
+                </Stack>
+              </Box>
+            </Stack>
+
+            <SaveBar
+              saving={saving}
+              disabled={saveDisabled}
               onClick={saveSettings}
-              disabled={saving}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              tooltipTitle={saveDisabledTooltip}
+            />
+          </Stack>
+        </Paper>
+
+        {/* Snackbar notifications */}
+        <Snackbar
+          open={notification.open}
+          autoHideDuration={3000}
+          onClose={handleCloseSnack}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={handleCloseSnack}
+            severity={notification.severity}
+            variant="filled"
+            iconMapping={{
+              success: <FiCheckCircle />,
+              error: <FiAlertTriangle />,
+              warning: <FiAlertTriangle />,
+              info: <FiBell />,
+            }}
+            sx={{ width: "100%" }}
+          >
+            {notification.message}
+          </Alert>
+        </Snackbar>
+
+        {/* Tabs */}
+        <Paper
+          elevation={0}
+          sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 2 }}
+        >
+          <Box
+            sx={{
+              borderBottom: 1,
+              borderColor: "divider",
+              bgcolor: "background.paper",
+              borderTopLeftRadius: 8,
+              borderTopRightRadius: 8,
+            }}
+          >
+            <Tabs
+              value={activeTab}
+              onChange={(_, v) => setActiveTab(v)}
+              variant="scrollable"
+              scrollButtons="auto"
+              aria-label="WhatsApp settings tabs"
+              sx={{
+                "& .MuiTab-root": {
+                  gap: 8,
+                  alignItems: "center",
+                  minHeight: 56,
+                },
+              }}
             >
-              {saving ? (
-                <RefreshCw className="w-5 h-5 animate-spin" />
-              ) : (
-                <Save className="w-5 h-5" />
-              )}
-              <span>{saving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}</span>
-            </button>
-          </div>
-        </div>
+              <Tab
+                icon={<FiBell />}
+                iconPosition="end"
+                label="إعدادات التذكيرات"
+                {...a11yProps(0)}
+              />
+              <Tab
+                icon={<FiClock />}
+                iconPosition="end"
+                label="إعدادات النظام"
+                {...a11yProps(1)}
+              />
+              <Tab
+                icon={<FiUsers />}
+                iconPosition="end"
+                label="فريق العمل"
+                {...a11yProps(2)}
+              />
+            </Tabs>
+          </Box>
 
-        {/* إشعار النجاح/الخطأ */}
-        {notification.show && (
-          <div className={`mb-6 p-4 rounded-lg flex items-center space-x-2 ${
-            notification.type === 'success' 
-              ? 'bg-green-50 border border-green-200 text-green-800' 
-              : 'bg-red-50 border border-red-200 text-red-800'
-          }`}>
-            {notification.type === 'success' ? (
-              <CheckCircle className="w-5 h-5" />
-            ) : (
-              <AlertTriangle className="w-5 h-5" />
-            )}
-            <span>{notification.message}</span>
-          </div>
-        )}
+          <Box sx={{ p: isSmDown ? 2 : 3 }}>
+            {/* Tab 0: Reminders */}
+            <TabPanel value={activeTab} index={0}>
+              <Stack spacing={3}>
+                <SectionCard
+                  icon={<FiBell size={18} color={theme.palette.primary.main} />}
+                  title="أيام التذكيرات"
+                >
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={4}>
+                      <DaysChipsEditor
+                        label="تذكيرات الدفع (أيام قبل الاستحقاق)"
+                        value={reminderSettings.paymentReminderDays}
+                        onChange={(list) =>
+                          setReminderSettings((p) => ({
+                            ...p,
+                            paymentReminderDays: list,
+                          }))
+                        }
+                        helperText="أضف رقم واضغط Enter — مثال: 7, 3, 1"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <DaysChipsEditor
+                        label="تذكيرات العقود (أيام قبل انتهاء العقد)"
+                        value={reminderSettings.contractReminderDays}
+                        onChange={(list) =>
+                          setReminderSettings((p) => ({
+                            ...p,
+                            contractReminderDays: list,
+                          }))
+                        }
+                        helperText="مثال: 60, 30, 15, 7"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <DaysChipsEditor
+                        label="متابعة الصيانة (أيام بعد الطلب)"
+                        value={reminderSettings.maintenanceFollowupDays}
+                        onChange={(list) =>
+                          setReminderSettings((p) => ({
+                            ...p,
+                            maintenanceFollowupDays: list,
+                          }))
+                        }
+                        helperText="مثال: 3, 7, 14"
+                        adornmentLabel="بعد"
+                      />
+                    </Grid>
+                  </Grid>
+                </SectionCard>
 
-        {/* التبويبات */}
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <div className="border-b border-gray-200">
-            <nav className="flex">
-              <button
-                onClick={() => setActiveTab('reminders')}
-                className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium border-b-2 ${
-                  activeTab === 'reminders'
-                    ? 'border-blue-500 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Bell className="w-5 h-5" />
-                <span>إعدادات التذكيرات</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('system')}
-                className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium border-b-2 ${
-                  activeTab === 'system'
-                    ? 'border-blue-500 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Clock className="w-5 h-5" />
-                <span>إعدادات النظام</span>
-              </button>
-              <button
-                onClick={() => setActiveTab('team')}
-                className={`flex items-center space-x-2 px-6 py-4 text-sm font-medium border-b-2 ${
-                  activeTab === 'team'
-                    ? 'border-blue-500 text-blue-600 bg-blue-50'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Users className="w-5 h-5" />
-                <span>فريق العمل</span>
-              </button>
-            </nav>
-          </div>
-
-          <div className="p-6">
-            {/* تبويب إعدادات التذكيرات */}
-            {activeTab === 'reminders' && (
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">أيام التذكيرات</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        تذكيرات الدفع (أيام قبل الاستحقاق)
-                      </label>
-                      <input
-                        type="text"
-                        value={reminderSettings.paymentReminderDays.join(', ')}
-                        onChange={(e) => updateReminderDays('paymentReminderDays', e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="7, 3, 1"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">مثال: 7, 3, 1 (أسبوع، 3 أيام، يوم واحد)</p>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        تذكيرات العقود (أيام قبل انتهاء العقد)
-                      </label>
-                      <input
-                        type="text"
-                        value={reminderSettings.contractReminderDays.join(', ')}
-                        onChange={(e) => updateReminderDays('contractReminderDays', e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="60, 30, 15, 7"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">مثال: 60, 30, 15, 7 (شهرين، شهر، أسبوعين، أسبوع)</p>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        متابعة الصيانة (أيام بعد الطلب)
-                      </label>
-                      <input
-                        type="text"
-                        value={reminderSettings.maintenanceFollowupDays.join(', ')}
-                        onChange={(e) => updateReminderDays('maintenanceFollowupDays', e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="3, 7, 14"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">مثال: 3, 7, 14 (3 أيام، أسبوع، أسبوعين)</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">خيارات التفعيل</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={reminderSettings.enableAutoReminders}
-                        onChange={(e) => setReminderSettings(prev => ({
-                          ...prev,
-                          enableAutoReminders: e.target.checked
-                        }))}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label className="mr-2 text-sm text-gray-700">
-                        تفعيل التذكيرات التلقائية
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={reminderSettings.includeCompanySignature}
-                        onChange={(e) => setReminderSettings(prev => ({
-                          ...prev,
-                          includeCompanySignature: e.target.checked
-                        }))}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label className="mr-2 text-sm text-gray-700">
-                        إدراج توقيع الشركة في الرسائل
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* تبويب إعدادات النظام */}
-            {activeTab === 'system' && (
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">إعدادات الإرسال</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        عدد محاولات الإعادة
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={reminderSettings.maxRetries}
-                        onChange={(e) => setReminderSettings(prev => ({
-                          ...prev,
-                          maxRetries: parseInt(e.target.value)
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">عدد المحاولات عند فشل إرسال الرسالة</p>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        التأخير بين الرسائل (بالميلي ثانية)
-                      </label>
-                      <input
-                        type="number"
-                        min="1000"
-                        max="10000"
-                        step="500"
-                        value={reminderSettings.messageDelay}
-                        onChange={(e) => setReminderSettings(prev => ({
-                          ...prev,
-                          messageDelay: parseInt(e.target.value)
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <p className="text-xs text-gray-500 mt-1">التأخير لتجنب Rate Limiting (موصى به: 2000ms)</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">ساعات العمل</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        وقت البداية
-                      </label>
-                      <input
-                        type="time"
-                        value={reminderSettings.workingHoursStart}
-                        onChange={(e) => setReminderSettings(prev => ({
-                          ...prev,
-                          workingHoursStart: e.target.value
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        وقت النهاية
-                      </label>
-                      <input
-                        type="time"
-                        value={reminderSettings.workingHoursEnd}
-                        onChange={(e) => setReminderSettings(prev => ({
-                          ...prev,
-                          workingHoursEnd: e.target.value
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">أيام العمل</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[
-                      { key: 'Sunday', label: 'الأحد' },
-                      { key: 'Monday', label: 'الاثنين' },
-                      { key: 'Tuesday', label: 'الثلاثاء' },
-                      { key: 'Wednesday', label: 'الأربعاء' },
-                      { key: 'Thursday', label: 'الخميس' },
-                      { key: 'Friday', label: 'الجمعة' },
-                      { key: 'Saturday', label: 'السبت' }
-                    ].map(day => (
-                      <div key={day.key} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={reminderSettings.workingDays.includes(day.key)}
-                          onChange={(e) => updateWorkingDays(day.key, e.target.checked)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                <SectionCard
+                  icon={
+                    <FiSettings size={18} color={theme.palette.success.main} />
+                  }
+                  title="خيارات التفعيل"
+                >
+                  <FormGroup>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={reminderSettings.enableAutoReminders}
+                          onChange={(e) =>
+                            setReminderSettings((prev) => ({
+                              ...prev,
+                              enableAutoReminders: e.target.checked,
+                            }))
+                          }
                         />
-                        <label className="mr-2 text-sm text-gray-700">
-                          {day.label}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+                      }
+                      label="تفعيل التذكيرات التلقائية"
+                    />
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={reminderSettings.includeCompanySignature}
+                          onChange={(e) =>
+                            setReminderSettings((prev) => ({
+                              ...prev,
+                              includeCompanySignature: e.target.checked,
+                            }))
+                          }
+                        />
+                      }
+                      label="إدراج توقيع الشركة في الرسائل"
+                    />
+                  </FormGroup>
+                </SectionCard>
+              </Stack>
+            </TabPanel>
 
-            {/* تبويب فريق العمل */}
-            {activeTab === 'team' && (
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <User className="w-5 h-5 mr-2 text-blue-600" />
-                    إعدادات الفني
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        رقم هاتف الفني
-                      </label>
-                      <input
+            {/* Tab 1: System */}
+            <TabPanel value={activeTab} index={1}>
+              <Stack spacing={3}>
+                <SectionCard
+                  icon={
+                    <FiClock size={18} color={theme.palette.primary.main} />
+                  }
+                  title="إعدادات الإرسال"
+                >
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        inputProps={{ min: 1, max: 10 }}
+                        label="عدد محاولات الإعادة"
+                        value={reminderSettings.maxRetries}
+                        onChange={(e) =>
+                          setReminderSettings((prev) => ({
+                            ...prev,
+                            maxRetries: parseInt(e.target.value || "0", 10),
+                          }))
+                        }
+                        helperText="عدد المحاولات عند فشل إرسال الرسالة"
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        inputProps={{ min: 500, step: 500 }}
+                        label="التأخير بين الرسائل (ms)"
+                        value={reminderSettings.messageDelay}
+                        onChange={(e) =>
+                          setReminderSettings((prev) => ({
+                            ...prev,
+                            messageDelay: parseInt(e.target.value || "0", 10),
+                          }))
+                        }
+                        helperText="موصى به: 2000ms لتجنّب Rate Limiting"
+                      />
+                    </Grid>
+                  </Grid>
+                </SectionCard>
+
+                <SectionCard
+                  icon={
+                    <FiClock size={18} color={theme.palette.warning.main} />
+                  }
+                  title="ساعات العمل"
+                >
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        type="time"
+                        label="وقت البداية"
+                        value={reminderSettings.workingHoursStart}
+                        onChange={(e) =>
+                          setReminderSettings((p) => ({
+                            ...p,
+                            workingHoursStart: e.target.value,
+                          }))
+                        }
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        type="time"
+                        label="وقت النهاية"
+                        value={reminderSettings.workingHoursEnd}
+                        onChange={(e) =>
+                          setReminderSettings((p) => ({
+                            ...p,
+                            workingHoursEnd: e.target.value,
+                          }))
+                        }
+                        InputLabelProps={{ shrink: true }}
+                      />
+                    </Grid>
+                  </Grid>
+                </SectionCard>
+
+                <SectionCard
+                  icon={<FiUsers size={18} color={theme.palette.info.main} />}
+                  title="أيام العمل"
+                >
+                  <Grid container spacing={1}>
+                    {[
+                      { key: "Sunday", label: "الأحد" },
+                      { key: "Monday", label: "الاثنين" },
+                      { key: "Tuesday", label: "الثلاثاء" },
+                      { key: "Wednesday", label: "الأربعاء" },
+                      { key: "Thursday", label: "الخميس" },
+                      { key: "Friday", label: "الجمعة" },
+                      { key: "Saturday", label: "السبت" },
+                    ].map((day) => (
+                      <Grid item xs={6} md={3} key={day.key}>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={reminderSettings.workingDays.includes(
+                                day.key
+                              )}
+                              onChange={(e) =>
+                                updateWorkingDays(day.key, e.target.checked)
+                              }
+                            />
+                          }
+                          label={day.label}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                </SectionCard>
+              </Stack>
+            </TabPanel>
+
+            {/* Tab 2: Team */}
+            <TabPanel value={activeTab} index={2}>
+              <Stack spacing={3}>
+                <SectionCard
+                  icon={<FiUser size={18} color={theme.palette.primary.main} />}
+                  title="إعدادات الفني"
+                >
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="رقم هاتف الفني"
                         type="tel"
                         value={teamSettings.technicianPhone}
-                        onChange={(e) => setTeamSettings(prev => ({
-                          ...prev,
-                          technicianPhone: e.target.value
-                        }))}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                          teamSettings.technicianPhone && !validatePhoneNumber(teamSettings.technicianPhone)
-                            ? 'border-red-300 bg-red-50'
-                            : 'border-gray-300'
-                        }`}
+                        onChange={(e) =>
+                          setTeamSettings((p) => ({
+                            ...p,
+                            technicianPhone: e.target.value,
+                          }))
+                        }
+                        error={isTechnicianPhoneInvalid}
+                        helperText={
+                          isTechnicianPhoneInvalid
+                            ? "يجب أن يبدأ الرقم بـ 971 ويتكون من 12 رقماً"
+                            : " "
+                        }
                         placeholder="971501234567"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">+</InputAdornment>
+                          ),
+                        }}
                       />
-                      {teamSettings.technicianPhone && !validatePhoneNumber(teamSettings.technicianPhone) && (
-                        <p className="text-xs text-red-500 mt-1">يجب أن يبدأ الرقم بـ 971 ويتكون من 12 رقماً</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        اسم الفني
-                      </label>
-                      <input
-                        type="text"
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="اسم الفني"
                         value={teamSettings.technicianName}
-                        onChange={(e) => setTeamSettings(prev => ({
-                          ...prev,
-                          technicianName: e.target.value
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) =>
+                          setTeamSettings((p) => ({
+                            ...p,
+                            technicianName: e.target.value,
+                          }))
+                        }
                         placeholder="أدخل اسم الفني"
                       />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        ساعات عمل الفني
-                      </label>
-                      <input
-                        type="text"
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="ساعات عمل الفني"
                         value={teamSettings.technicianWorkingHours}
-                        onChange={(e) => setTeamSettings(prev => ({
-                          ...prev,
-                          technicianWorkingHours: e.target.value
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) =>
+                          setTeamSettings((p) => ({
+                            ...p,
+                            technicianWorkingHours: e.target.value,
+                          }))
+                        }
                         placeholder="من 8:00 صباحاً إلى 5:00 مساءً"
                       />
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={teamSettings.notifyTechnicianForMaintenance}
-                        onChange={(e) => setTeamSettings(prev => ({
-                          ...prev,
-                          notifyTechnicianForMaintenance: e.target.checked
-                        }))}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    </Grid>
+                    <Grid
+                      item
+                      xs={12}
+                      md={6}
+                      display="flex"
+                      alignItems="center"
+                    >
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={
+                              teamSettings.notifyTechnicianForMaintenance
+                            }
+                            onChange={(e) =>
+                              setTeamSettings((p) => ({
+                                ...p,
+                                notifyTechnicianForMaintenance:
+                                  e.target.checked,
+                              }))
+                            }
+                          />
+                        }
+                        label="إرسال تنبيهات الصيانة للفني"
                       />
-                      <label className="mr-2 text-sm text-gray-700">
-                        إرسال تنبيهات الصيانة للفني
-                      </label>
-                    </div>
-                  </div>
-                </div>
+                    </Grid>
+                  </Grid>
+                </SectionCard>
 
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <Headphones className="w-5 h-5 mr-2 text-green-600" />
-                    إعدادات خدمة العملاء
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        رقم هاتف خدمة العملاء
-                      </label>
-                      <input
+                <SectionCard
+                  icon={
+                    <FiHeadphones
+                      size={18}
+                      color={theme.palette.success.main}
+                    />
+                  }
+                  title="إعدادات خدمة العملاء"
+                >
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="رقم هاتف خدمة العملاء"
                         type="tel"
                         value={teamSettings.customerServicePhone}
-                        onChange={(e) => setTeamSettings(prev => ({
-                          ...prev,
-                          customerServicePhone: e.target.value
-                        }))}
-                        className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                          teamSettings.customerServicePhone && !validatePhoneNumber(teamSettings.customerServicePhone)
-                            ? 'border-red-300 bg-red-50'
-                            : 'border-gray-300'
-                        }`}
+                        onChange={(e) =>
+                          setTeamSettings((p) => ({
+                            ...p,
+                            customerServicePhone: e.target.value,
+                          }))
+                        }
+                        error={isCSPhoneInvalid}
+                        helperText={
+                          isCSPhoneInvalid
+                            ? "يجب أن يبدأ الرقم بـ 971 ويتكون من 12 رقماً"
+                            : " "
+                        }
                         placeholder="971501234567"
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">+</InputAdornment>
+                          ),
+                        }}
                       />
-                      {teamSettings.customerServicePhone && !validatePhoneNumber(teamSettings.customerServicePhone) && (
-                        <p className="text-xs text-red-500 mt-1">يجب أن يبدأ الرقم بـ 971 ويتكون من 12 رقماً</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        اسم خدمة العملاء
-                      </label>
-                      <input
-                        type="text"
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="اسم خدمة العملاء"
                         value={teamSettings.customerServiceName}
-                        onChange={(e) => setTeamSettings(prev => ({
-                          ...prev,
-                          customerServiceName: e.target.value
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) =>
+                          setTeamSettings((p) => ({
+                            ...p,
+                            customerServiceName: e.target.value,
+                          }))
+                        }
                         placeholder="أدخل اسم خدمة العملاء"
                       />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        ساعات عمل خدمة العملاء
-                      </label>
-                      <input
-                        type="text"
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="ساعات عمل خدمة العملاء"
                         value={teamSettings.customerServiceWorkingHours}
-                        onChange={(e) => setTeamSettings(prev => ({
-                          ...prev,
-                          customerServiceWorkingHours: e.target.value
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) =>
+                          setTeamSettings((p) => ({
+                            ...p,
+                            customerServiceWorkingHours: e.target.value,
+                          }))
+                        }
                         placeholder="من 9:00 صباحاً إلى 6:00 مساءً"
                       />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={teamSettings.notifyCustomerServiceForComplaints}
-                          onChange={(e) => setTeamSettings(prev => ({
-                            ...prev,
-                            notifyCustomerServiceForComplaints: e.target.checked
-                          }))}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <label className="mr-2 text-sm text-gray-700">
-                          إرسال تنبيهات الشكاوى
-                        </label>
-                      </div>
-                      
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={teamSettings.notifyCustomerServiceForContacts}
-                          onChange={(e) => setTeamSettings(prev => ({
-                            ...prev,
-                            notifyCustomerServiceForContacts: e.target.checked
-                          }))}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <label className="mr-2 text-sm text-gray-700">
-                          إرسال تنبيهات التواصل
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                    </Grid>
 
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <Bell className="w-5 h-5 mr-2 text-orange-600" />
-                    إعدادات التنبيهات
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        الحد الأقصى للتنبيهات اليومية
-                      </label>
-                      <input
+                    <Grid item xs={12} md={6}>
+                      <FormGroup>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={
+                                teamSettings.notifyCustomerServiceForComplaints
+                              }
+                              onChange={(e) =>
+                                setTeamSettings((p) => ({
+                                  ...p,
+                                  notifyCustomerServiceForComplaints:
+                                    e.target.checked,
+                                }))
+                              }
+                            />
+                          }
+                          label="إرسال تنبيهات الشكاوى"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={
+                                teamSettings.notifyCustomerServiceForContacts
+                              }
+                              onChange={(e) =>
+                                setTeamSettings((p) => ({
+                                  ...p,
+                                  notifyCustomerServiceForContacts:
+                                    e.target.checked,
+                                }))
+                              }
+                            />
+                          }
+                          label="إرسال تنبيهات التواصل"
+                        />
+                      </FormGroup>
+                    </Grid>
+                  </Grid>
+                </SectionCard>
+
+                <SectionCard
+                  icon={<FiBell size={18} color={theme.palette.warning.main} />}
+                  title="إعدادات التنبيهات"
+                >
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
                         type="number"
-                        min="1"
-                        max="50"
+                        inputProps={{ min: 1, max: 50 }}
+                        label="الحد الأقصى للتنبيهات اليومية"
                         value={teamSettings.maxDailyNotifications}
-                        onChange={(e) => setTeamSettings(prev => ({
-                          ...prev,
-                          maxDailyNotifications: parseInt(e.target.value)
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        onChange={(e) =>
+                          setTeamSettings((p) => ({
+                            ...p,
+                            maxDailyNotifications: parseInt(
+                              e.target.value || "0",
+                              10
+                            ),
+                          }))
+                        }
                       />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        تأخير التنبيهات (بالدقائق)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="60"
-                        value={teamSettings.notificationDelay}
-                        onChange={(e) => setTeamSettings(prev => ({
-                          ...prev,
-                          notificationDelay: parseInt(e.target.value)
-                        }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={teamSettings.enableUrgentNotifications}
-                        onChange={(e) => setTeamSettings(prev => ({
-                          ...prev,
-                          enableUrgentNotifications: e.target.checked
-                        }))}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label className="mr-2 text-sm text-gray-700">
-                        تفعيل التنبيهات العاجلة
-                      </label>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={teamSettings.enableBackupNotifications}
-                        onChange={(e) => setTeamSettings(prev => ({
-                          ...prev,
-                          enableBackupNotifications: e.target.checked
-                        }))}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                      />
-                      <label className="mr-2 text-sm text-gray-700">
-                        تفعيل التنبيهات الاحتياطية
-                      </label>
-                    </div>
-                  </div>
-                </div>
+                    </Grid>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    رسالة تنبيه مخصصة
-                  </label>
-                  <textarea
-                    value={teamSettings.customNotificationMessage}
-                    onChange={(e) => setTeamSettings(prev => ({
-                      ...prev,
-                      customNotificationMessage: e.target.value
-                    }))}
-                    rows={4}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="أدخل رسالة تنبيه مخصصة (اختياري)"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">ستُستخدم هذه الرسالة في التنبيهات الخاصة</p>
-                </div>
-              </div>
-            )}
-          </div>        </div>      </div>
-    </div>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        inputProps={{ min: 1, max: 60 }}
+                        label="تأخير التنبيهات (بالدقائق)"
+                        value={teamSettings.notificationDelay}
+                        onChange={(e) =>
+                          setTeamSettings((p) => ({
+                            ...p,
+                            notificationDelay: parseInt(
+                              e.target.value || "0",
+                              10
+                            ),
+                          }))
+                        }
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={teamSettings.enableUrgentNotifications}
+                            onChange={(e) =>
+                              setTeamSettings((p) => ({
+                                ...p,
+                                enableUrgentNotifications: e.target.checked,
+                              }))
+                            }
+                          />
+                        }
+                        label="تفعيل التنبيهات العاجلة"
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={teamSettings.enableBackupNotifications}
+                            onChange={(e) =>
+                              setTeamSettings((p) => ({
+                                ...p,
+                                enableBackupNotifications: e.target.checked,
+                              }))
+                            }
+                          />
+                        }
+                        label="تفعيل التنبيهات الاحتياطية"
+                      />
+                    </Grid>
+                  </Grid>
+                </SectionCard>
+              </Stack>
+            </TabPanel>
+          </Box>
+        </Paper>
+      </Container>
+    </Box>
   );
 }

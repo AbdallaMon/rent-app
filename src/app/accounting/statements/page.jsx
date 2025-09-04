@@ -8,10 +8,6 @@ import {
   TextField,
   Typography,
   Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
   ToggleButtonGroup,
   ToggleButton,
 } from "@mui/material";
@@ -49,8 +45,8 @@ function getSettlementTotals(row) {
   return { total, settled, left, pct };
 }
 
-function fmt(n) {
-  return Number(n || 0).toLocaleString("ar-EG", { maximumFractionDigits: 2 });
+export function fmt(n) {
+  return Number(n || 0).toLocaleString("ar-AE", { maximumFractionDigits: 2 });
 }
 function StatementWrapper({ searchParams }) {
   const {
@@ -65,6 +61,8 @@ function StatementWrapper({ searchParams }) {
     limit,
     setLimit,
     setData,
+    otherData,
+    setOtherData,
   } = useDataFetcher(
     `main/accounting/statements?type=statement&`,
     null,
@@ -211,6 +209,29 @@ function StatementWrapper({ searchParams }) {
     setFilters({ mode: next });
   };
 
+  let rowFooter = [];
+
+  if (otherData) {
+    rowFooter = [
+      {
+        label: "",
+        value: "",
+        colSpan: 3,
+      },
+      {
+        label: "اجمالي المبلغ",
+        value: fmt(otherData.totalAmount),
+      },
+      {
+        label: "اجمالي المسدد",
+        value: fmt(otherData.totalSettled),
+      },
+      {
+        label: "اجمالي المتبقي",
+        value: fmt(otherData.totalLeft),
+      },
+    ];
+  }
   return (
     <>
       {/* Top Controls */}
@@ -334,6 +355,7 @@ function StatementWrapper({ searchParams }) {
         setTotal={setTotal}
         total={total}
         noCreate
+        footerRow={rowFooter}
       />
     </>
   );

@@ -6,6 +6,7 @@ import { useAuth } from "@/app/context/AuthProvider/AuthProvider";
 import { handleRequestSubmit } from "@/helpers/functions/handleRequestSubmit";
 import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function LoginPage() {
   const { setLoading } = useToastContext();
@@ -24,15 +25,26 @@ export default function LoginPage() {
       if (req.user) {
         setUser(req.user);
         setIsLoggedIn(true);
-        router.push("/");
+        // handleRedirect();
       }
     }
   }
+  useEffect(() => {
+    function handleRedirect() {
+      const redirect = window.localStorage.getItem("redirect");
+      console.log(isLoggedIn, "isLoggedIn");
+      console.log(redirect, "redirect");
+      if (isLoggedIn) {
+        if (redirect) {
+          router.push(redirect);
+        } else {
+          router.push("/");
+        }
+      }
+    }
+    handleRedirect();
+  }, [isLoggedIn, router]);
 
-  if (isLoggedIn) {
-    router.push("/");
-    return;
-  }
   return (
     <>
       <AuthForm

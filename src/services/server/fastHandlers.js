@@ -341,7 +341,12 @@ async function getUnits(searchParams) {
 async function getFastRentAgreements(searchParams) {
   const renterId = searchParams.get("renterId");
 
-  let whereClause = {};
+  let whereClause = {
+    status: "ACTIVE",
+    endDate: {
+      gte: new Date(),
+    },
+  };
   if (renterId) {
     whereClause.renterId = +renterId;
   }

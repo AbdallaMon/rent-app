@@ -4,8 +4,8 @@ export async function getSecurityDeposits(page, limit, searchParams) {
   const filters = searchParams.get("filters")
     ? JSON.parse(searchParams.get("filters"))
     : {};
-
-  let { startDate, endDate, dateField, renterId, rentId, unitId } = filters;
+  let { startDate, endDate, dateField, renterId, rentId, unitId, refunded } =
+    filters;
   const where = {};
   const offset = (page - 1) * limit;
   if (dateField) {
@@ -25,6 +25,15 @@ export async function getSecurityDeposits(page, limit, searchParams) {
   }
   if (unitId && unitId !== "undefined" && unitId !== "all") {
     where.unitId = Number(unitId);
+  }
+  if (refunded === "true") {
+    where.status = {
+      not: "HELD",
+    };
+  } else {
+    where.status = {
+      equals: "HELD",
+    };
   }
   const deposits = await prisma.securityDeposit.findMany({
     where,

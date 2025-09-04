@@ -1,584 +1,1053 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import StatCard from '@/components/ui/Cards/StatCard';
-import RefreshButton from '@/components/ui/Buttons/RefreshButton';
-import ActivityCard from '@/components/ui/Cards/ActivityCard';
-import DashboardSection from '@/components/ui/Cards/DashboardSection';
-import ListItem from '@/components/ui/Cards/ListItem';
-import QuickActionButton from '@/components/ui/Buttons/QuickActionButton';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Box,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Divider,
+  Chip,
+  Stack,
+  IconButton,
+  LinearProgress,
+  Tooltip,
+  CardHeader,
+  Switch,
+  FormControlLabel,
+  Badge,
+  useTheme,
+  Skeleton,
+  Container,
+  useMediaQuery,
+  Paper,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+} from "@mui/material";
+import {
+  FiRefreshCw,
+  FiMessageSquare,
+  FiBarChart2,
+  FiSend,
+  FiTrendingUp,
+  FiAlertTriangle,
+} from "react-icons/fi";
+import { getDataAndSet } from "@/helpers/functions/getDataAndSet";
 
-// SVG Icons Components
-const UsersIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-  </svg>
+// Charts
+import { Doughnut, Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip as ChartTooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement,
+} from "chart.js";
+
+ChartJS.register(
+  ArcElement,
+  ChartTooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  PointElement,
+  LineElement
 );
 
-const ContractIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-  </svg>
-);
+/* -------------------------------- Helpers -------------------------------- */
 
-const MessageIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-  </svg>
-);
+function phonePretty(p) {
+  if (!p) return "—";
+  return p.startsWith("+") ? p : `+${p}`;
+}
 
-const ReminderIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM4.5 5.653c0-.856.917-1.407 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971L6.167 19.334c-.75.421-1.667-.13-1.667-.986V5.653z" />
-  </svg>
-);
-
-const MaintenanceIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-
-const ComplaintIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-  </svg>
-);
-
-const BotIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-  </svg>
-);
-
-const PhoneIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-  </svg>
-);
-
-const RefreshIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-  </svg>
-);
-
-const ClockIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-const ActivityIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-  </svg>
-);
-
-const LinkIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-  </svg>
-);
-
-const SettingsIcon = () => (
-  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-
-const AlertIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM11 19H6.2c-.8 0-1.6-.3-2.1-.9-.6-.5-.9-1.3-.9-2.1V8c0-.8.3-1.6.9-2.1.6-.6 1.3-.9 2.1-.9h9.6c.8 0 1.6.3 2.1.9.6.5.9 1.3.9 2.1v3M16 14v6m0 0l-2-2m2 2l2-2" />
-  </svg>
-);
-
-export default function WhatsAppDashboard() {
-  const router = useRouter();
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  // جلب البيانات من API
-  const fetchDashboardData = async () => {
+/* ---------- Intl helpers ---------- */
+function makeNumberFormatter(localeCandidates = ["ar-AE", "ar", "en"]) {
+  for (const loc of localeCandidates) {
     try {
-      setLoading(true);
-      
-      // جلب البيانات الرئيسية
-      const [dashResponse, requestsResponse, complaintsResponse, conversationsResponse, remindersResponse] = await Promise.all([
-        fetch('/api/admin/whatsapp/dashboard'),
-        fetch('/api/admin/whatsapp/requests?limit=5'),
-        fetch('/api/admin/whatsapp/complaints?limit=5'),
-        fetch('/api/admin/whatsapp/conversations?limit=5'),
-        fetch('/api/admin/whatsapp/reminders?limit=5')
-      ]);
+      return new Intl.NumberFormat(loc);
+    } catch {}
+  }
+  return new Intl.NumberFormat();
+}
+const nf = makeNumberFormatter(["ar-AE", "ar", "en"]);
+function fmtNum(v) {
+  const n = Number.isFinite(Number(v)) ? Number(v) : 0;
+  return nf.format(n);
+}
+function pctClamp(v) {
+  const n = Number(v) || 0;
+  return Math.max(0, Math.min(100, n));
+}
 
-      if (!dashResponse.ok) {
-        throw new Error('فشل في جلب بيانات الداشبورد');
-      }      const dashData = await dashResponse.json();
-      const requestsData = requestsResponse.ok ? await requestsResponse.json() : { requests: [], total: 0 };
-      const complaintsData = complaintsResponse.ok ? await complaintsResponse.json() : { complaints: [], total: 0 };
-      const conversationsData = conversationsResponse.ok ? await conversationsResponse.json() : { data: [], total: 0 };
-      const remindersData = remindersResponse.ok ? await remindersResponse.json() : { data: { reminders: [], summary: {} }, total: 0 };
+/* ---------- tiny colored dot ---------- */
+function Dot({ color = "#999" }) {
+  return (
+    <Box
+      sx={{
+        width: 10,
+        height: 10,
+        borderRadius: "50%",
+        bgcolor: color,
+        display: "inline-block",
+        mr: 1,
+      }}
+    />
+  );
+}
 
-      // تصحيح هيكل البيانات - الـ API يرجع البيانات مباشرة
-      const processedData = dashData.success && dashData.data ? dashData.data : dashData;
-      
-      setDashboardData({
-        ...processedData,
-        requests: { data: requestsData.requests || [], total: requestsData.pagination?.total || 0 },
-        complaints: { data: complaintsData.complaints || [], total: complaintsData.pagination?.total || 0 },
-        conversations: conversationsData,
-        reminders: remindersData.data || { reminders: [], summary: {} }
-      });
+/* ---------- table under charts ---------- */
+function ChartDataTable({ labels = [], rows = {}, columns = [] }) {
+  // columns: [{ key, label, color?, postfix? }]
+  return (
+    <Paper variant="outlined" sx={{ mt: 1.5, borderRadius: 2 }}>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ whiteSpace: "nowrap", fontWeight: 700 }}>
+              البند
+            </TableCell>
+            {columns.map((c) => (
+              <TableCell key={c.key} align="right" sx={{ fontWeight: 700 }}>
+                <Stack direction="row" alignItems="center" justifyContent="end">
+                  {c.color ? <Dot color={c.color} /> : null}
+                  <span>{c.label}</span>
+                </Stack>
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {labels.map((label, i) => (
+            <TableRow key={label + i}>
+              <TableCell sx={{ maxWidth: 360 }}>{label}</TableCell>
+              {columns.map((c) => (
+                <TableCell key={c.key} align="right">
+                  {fmtNum(rows?.[c.key]?.[i] ?? 0)}
+                  {c.postfix === "%" ? "%" : ""}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Paper>
+  );
+}
 
-      setLastUpdated(new Date());
-      setError(null);
-    } catch (err) {
-      console.error('خطأ في جلب البيانات:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+/* ---------- center total plugin for doughnut ---------- */
+const CenterTotalPlugin = {
+  id: "centerTotal",
+  afterDraw(chart, _args, opts) {
+    const { ctx, chartArea } = chart;
+    const dataset = chart.data.datasets?.[0];
+    if (!dataset) return;
+    const total = (dataset.data || []).reduce((a, b) => a + Number(b || 0), 0);
+    const { top, bottom, left, right } = chartArea;
+    const x = (left + right) / 2;
+    const y = (top + bottom) / 2;
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = opts?.color || "#666";
+    ctx.font = "700 18px sans-serif";
+    ctx.fillText(fmtNum(total), x, y - 6);
+    ctx.font = "400 12px sans-serif";
+    ctx.fillText(opts?.label || "الإجمالي", x, y + 12);
+    ctx.restore();
+  },
+};
+
+/* ---------- UI atoms ---------- */
+function SectionTitle({ icon, title, subtitle }) {
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={1.25}
+      sx={{ mb: 1.5, flexWrap: "wrap" }}
+    >
+      <Box
+        sx={{ display: "inline-flex", fontSize: 22, color: "text.secondary" }}
+      >
+        {icon}
+      </Box>
+      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+        {title}
+      </Typography>
+      {subtitle && (
+        <Typography variant="body2" color="text.secondary">
+          {subtitle}
+        </Typography>
+      )}
+    </Stack>
+  );
+}
+
+function StatChip({ label, value, color = "default" }) {
+  return (
+    <Chip
+      size="medium"
+      color={color}
+      variant="outlined"
+      label={`${label}: ${fmtNum(value ?? 0)}`}
+      sx={(t) => ({
+        mr: 1,
+        mb: 1,
+        fontSize: t.typography.pxToRem(13),
+        height: 34,
+        px: 1,
+      })}
+    />
+  );
+}
+
+function PercentBar({ value, label = "نسبة النجاح" }) {
+  const pct = pctClamp(value);
+  return (
+    <Box>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ mb: 0.75 }}
+      >
+        <Typography variant="body2" color="text.secondary">
+          {label}
+        </Typography>
+        <Typography variant="body2" fontWeight={700}>
+          {fmtNum(Number(pct.toFixed(1)))}%
+        </Typography>
+      </Stack>
+      <LinearProgress
+        variant="determinate"
+        value={pct}
+        sx={{
+          height: 10,
+          borderRadius: 6,
+          "& .MuiLinearProgress-bar": { borderRadius: 6 },
+        }}
+      />
+    </Box>
+  );
+}
+
+function ChartPlaceholder({ height = 300, text = "لا توجد بيانات للعرض" }) {
+  return (
+    <Stack
+      alignItems="center"
+      justifyContent="center"
+      spacing={1}
+      sx={{
+        height,
+        borderRadius: 3,
+        border: "1px dashed",
+        borderColor: "divider",
+        bgcolor: "background.default",
+      }}
+    >
+      <Skeleton variant="circular" width={52} height={52} />
+      <Typography variant="body2" color="text.secondary">
+        {text}
+      </Typography>
+    </Stack>
+  );
+}
+
+/* ---------- KPI Card ---------- */
+function KpiCard({ icon, title, total, success, fail, successPct, colors }) {
+  return (
+    <Card sx={{ height: "100%", borderRadius: 4 }}>
+      <CardContent sx={{ p: 2.75 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.25}
+          sx={{ mb: 1 }}
+        >
+          <Box sx={{ fontSize: 22, color: "text.secondary" }}>{icon}</Box>
+          <Typography variant="subtitle1" fontWeight={800}>
+            {title}
+          </Typography>
+        </Stack>
+
+        <Paper
+          variant="outlined"
+          sx={(t) => ({
+            p: 1.5,
+            mb: 1.25,
+            borderRadius: 3,
+            bgcolor:
+              t.palette.mode === "light" ? "grey.50" : "background.paper",
+          })}
+        >
+          <Typography variant="h4" fontWeight={900} sx={{ lineHeight: 1.1 }}>
+            {fmtNum(total || 0)}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            الإجمالي
+          </Typography>
+        </Paper>
+
+        <Stack direction="row" flexWrap="wrap" gap={1.25} mb={1.25}>
+          <StatChip label="تم" value={success} color={colors.successChip} />
+          <StatChip label="فشل" value={fail} color={colors.failChip} />
+        </Stack>
+
+        <PercentBar value={successPct} />
+      </CardContent>
+    </Card>
+  );
+}
+
+/* -------------------------------- Main -------------------------------- */
+
+export default function WhatsappStats() {
+  const theme = useTheme();
+  const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
+  const isLgUp = useMediaQuery(theme.breakpoints.up("lg"));
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const timerRef = useRef(null);
+
+  const fetchData = async () => {
+    await getDataAndSet({
+      url: "/whatsapp/v2/stats",
+      setData,
+      setLoading,
+    });
+    setLastUpdated(new Date());
   };
 
-  // التحديث التلقائي كل 30 ثانية
   useEffect(() => {
-    fetchDashboardData();
-    
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (autoRefresh) {
-      const interval = setInterval(fetchDashboardData, 30000);
-      return () => clearInterval(interval);
+      timerRef.current = setInterval(fetchData, 60 * 1000);
     }
+    return () => timerRef.current && clearInterval(timerRef.current);
   }, [autoRefresh]);
 
-  // تحديث يدوي
-  const handleRefresh = () => {
-    fetchDashboardData();
-  };
+  const incoming = data?.incoming;
+  const outgoing = data?.outgoing;
 
-  if (loading && !dashboardData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">جاري تحميل لوحة التحكم...</p>
-        </div>
-      </div>
-    );
-  }
+  const incomingToday = incoming?.overview?.today ?? {};
+  const incomingAll = incoming?.overview?.all ?? {};
+  const outgoingToday = outgoing?.overview?.today ?? {};
+  const outgoingAll = outgoing?.overview?.all ?? {};
 
-  if (error && !dashboardData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            <p className="font-bold">خطأ في تحميل البيانات</p>
-            <p>{error}</p>
-            <button 
-              onClick={handleRefresh}
-              className="mt-2 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-            >
-              إعادة المحاولة
-            </button>
-          </div>
-        </div>
-      </div>
+  // intents ranked (limit to top 6, always show in roomy horizontal layout)
+  const intentsRanked = useMemo(() => {
+    if (!incoming?.byIntent?.ranked) return [];
+    return incoming.byIntent.ranked.slice(0, 6);
+  }, [incoming]);
+
+  // chart sizes
+  const chartHeight = isLgUp ? 360 : isMdUp ? 320 : 280;
+  const intentsHeight = Math.max(420, (intentsRanked?.length || 0) * 64);
+
+  // colors
+  const cSuccess = theme.palette.success.main;
+  const cError = theme.palette.error.main;
+  const cPrimary = theme.palette.primary.main;
+  const cInfo = theme.palette.info.main;
+  const cMuted =
+    theme.palette.mode === "light"
+      ? theme.palette.grey[300]
+      : theme.palette.grey[700];
+
+  /* ---------- Doughnuts (today) ---------- */
+  const doughnutIncomingToday = useMemo(() => {
+    const total = Number(incomingToday.total || 0);
+    const success = Number(incomingToday.responded || 0);
+    const failed = Number(incomingToday.failed || 0);
+    const other = Math.max(0, total - success - failed);
+    if (total <= 0) return null;
+    return {
+      labels: ["تم الرد", "فشل", "أخرى"],
+      datasets: [
+        {
+          data: [success, failed, other],
+          backgroundColor: [cSuccess, cError, cMuted],
+          hoverOffset: 6,
+          borderWidth: 2,
+          borderColor: theme.palette.background.paper,
+          spacing: 2,
+        },
+      ],
+    };
+  }, [incomingToday, cSuccess, cError, cMuted, theme.palette.background.paper]);
+
+  const doughnutOutgoingToday = useMemo(() => {
+    const total = Number(outgoingToday.total || 0);
+    const delivered = Number(outgoingToday.delivered || 0);
+    const failed = Number(outgoingToday.failed || 0);
+    const other = Math.max(0, total - delivered - failed);
+    if (total <= 0) return null;
+    return {
+      labels: ["تم التسليم", "فشل", "أخرى"],
+      datasets: [
+        {
+          data: [delivered, failed, other],
+          backgroundColor: [cPrimary, cError, cMuted],
+          hoverOffset: 6,
+          borderWidth: 2,
+          borderColor: theme.palette.background.paper,
+          spacing: 2,
+        },
+      ],
+    };
+  }, [outgoingToday, cPrimary, cError, cMuted, theme.palette.background.paper]);
+
+  /* ---------- Intents: roomy, horizontal, grouped bars (today vs period) ---------- */
+  const intentsBar = useMemo(() => {
+    if (!intentsRanked.length) return null;
+    const labels = intentsRanked.map(
+      (r) => incoming?.byIntent?.labels?.[r.key] || r.key
     );
-  }
-  const stats = dashboardData?.stats || {};
-  const todayActivity = dashboardData?.todayActivity || {};
-  const recentMessages = dashboardData?.recentMessages || [];
-  const requests = dashboardData?.requests?.data || [];
-  const complaints = dashboardData?.complaints?.data || [];
-  const conversations = dashboardData?.conversations?.data || [];
-  const reminders = dashboardData?.reminders || { reminders: [], summary: {} };
-  const remindersSummary = reminders.summary || {};
+
+    // values
+    const todayVals = intentsRanked.map((r) => r.today || 0);
+    const allVals = intentsRanked.map((r) => r.all || 0);
+
+    return {
+      labels,
+      datasets: [
+        {
+          type: "bar",
+          label: "طوال الفترة",
+          data: allVals,
+          backgroundColor:
+            theme.palette.mode === "light"
+              ? theme.palette.grey[400]
+              : theme.palette.grey[600],
+          borderRadius: 8,
+          barPercentage: 0.6,
+          categoryPercentage: 0.7,
+        },
+        {
+          type: "bar",
+          label: "اليوم",
+          data: todayVals,
+          backgroundColor: theme.palette.info.main,
+          borderRadius: 8,
+          barPercentage: 0.6,
+          categoryPercentage: 0.7,
+        },
+      ],
+    };
+  }, [intentsRanked, incoming, theme.palette]);
+
+  /* ---------- Times ---------- */
+  const lastUpdatedText = lastUpdated
+    ? new Intl.DateTimeFormat("ar-EG", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }).format(lastUpdated)
+    : "—";
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 3 } }} dir="rtl">
       {/* Header */}
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">لوحة تحكم الواتساب</h1>
-            <p className="text-gray-600 mt-1">إدارة شاملة لنظام الواتساب والطلبات</p>
-          </div>
-            <div className="flex items-center space-x-4 space-x-reverse">
-            {/* زر التحديث */}
-            <RefreshButton 
-              onRefresh={handleRefresh}
-              loading={loading}
-              size="medium"
-            />
-            
-            {/* التحديث التلقائي */}
-            <label className="flex items-center space-x-2 space-x-reverse">
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-                className="rounded"
+      <Card sx={{ mb: 3, borderRadius: 4, boxShadow: 1 }}>
+        <CardHeader
+          sx={{ pb: 0 }}
+          title={
+            <Stack direction="row" alignItems="center" spacing={1.25}>
+              <Box sx={{ display: "inline-flex", fontSize: 26 }}>
+                <FiBarChart2 />
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 900 }}>
+                إحصاءات واتساب
+              </Typography>
+              <Badge
+                sx={{ ml: 1 }}
+                color="secondary"
+                badgeContent={incomingToday?.total ?? 0}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  وارد اليوم
+                </Typography>
+              </Badge>
+            </Stack>
+          }
+          action={
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1.25}
+              sx={{ pr: 1 }}
+            >
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ mr: 1 }}
+              >
+                آخر تحديث: {lastUpdatedText}
+              </Typography>
+              <FormControlLabel
+                sx={{ m: 0 }}
+                control={
+                  <Switch
+                    size="small"
+                    checked={autoRefresh}
+                    onChange={(e) => setAutoRefresh(e.target.checked)}
+                  />
+                }
+                label={<Typography variant="body2">تحديث تلقائي</Typography>}
               />
-              <span className="text-sm text-gray-600">تحديث تلقائي</span>
-            </label>
-              {/* آخر تحديث */}
-            {lastUpdated && (
-              <div className="flex items-center space-x-2 space-x-reverse text-sm text-gray-500">
-                <div className={`w-2 h-2 rounded-full ${error ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                <span>آخر تحديث: {lastUpdated.toLocaleTimeString('en-US')}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>      {/* الإحصائيات الرئيسية */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        {/* العملاء */}
-        <StatCard
-          title="إجمالي العملاء"
-          value={stats.totalClients || 0}
-          icon={UsersIcon}
-          color="blue"
-          layout="horizontal"
+              <Tooltip title="تحديث الكل">
+                <span>
+                  <IconButton onClick={fetchData} disabled={loading}>
+                    <FiRefreshCw />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Stack>
+          }
         />
+        {loading && <LinearProgress />}
+      </Card>
 
-        {/* العقود النشطة */}
-        <StatCard
-          title="العقود النشطة"
-          value={stats.activeContracts || 0}
-          icon={ContractIcon}
-          color="green"
-          layout="horizontal"
-        />
+      <Grid container spacing={3}>
+        {/* KPIs */}
+        <Grid item xs={12} md={6} lg={3}>
+          <KpiCard
+            icon={<FiMessageSquare />}
+            title="الوارد — اليوم"
+            total={incomingToday.total}
+            success={incomingToday.responded}
+            fail={incomingToday.failed}
+            successPct={incomingToday.successPct}
+            colors={{ successChip: "success", failChip: "error" }}
+          />
+        </Grid>
+        <Grid item xs={12} md={6} lg={3}>
+          <KpiCard
+            icon={<FiMessageSquare />}
+            title="الوارد — طوال الفترة"
+            total={incomingAll.total}
+            success={incomingAll.responded}
+            fail={incomingAll.failed}
+            successPct={incomingAll.successPct}
+            colors={{ successChip: "success", failChip: "error" }}
+          />
+        </Grid>
+        <Grid item xs={12} md={6} lg={3}>
+          <KpiCard
+            icon={<FiSend />}
+            title="الصادر — اليوم"
+            total={outgoingToday.total}
+            success={outgoingToday.delivered}
+            fail={outgoingToday.failed}
+            successPct={outgoingToday.successPct}
+            colors={{ successChip: "primary", failChip: "error" }}
+          />
+        </Grid>
+        <Grid item xs={12} md={6} lg={3}>
+          <KpiCard
+            icon={<FiSend />}
+            title="الصادر — طوال الفترة"
+            total={outgoingAll.total}
+            success={outgoingAll.delivered}
+            fail={outgoingAll.failed}
+            successPct={outgoingAll.successPct}
+            colors={{ successChip: "primary", failChip: "error" }}
+          />
+        </Grid>
 
-        {/* الرسائل اليوم */}
-        <StatCard
-          title="رسائل اليوم"
-          value={todayActivity.totalToday || 0}
-          icon={MessageIcon}
-          color="purple"
-          layout="horizontal"
-        />
-
-        {/* الأقساط المعلقة */}
-        <StatCard
-          title="أقساط معلقة"
-          value={stats.pendingInstallments || 0}
-          icon={ReminderIcon}
-          color="orange"
-          layout="horizontal"
-        />
-      </div>
-
-      {/* حالة النظام والبوت */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* حالة البوت */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-              <BotIcon className="ml-2" />
-              حالة البوت
-            </h3>            <div className="flex items-center space-x-2 space-x-reverse">
-              <div className={`w-3 h-3 rounded-full ${
-                (stats.successRate || 0) >= 80 ? 'bg-green-500 animate-pulse' :
-                (stats.successRate || 0) >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-              }`}></div>
-              <span className={`text-sm font-medium ${
-                (stats.successRate || 0) >= 80 ? 'text-green-600' :
-                (stats.successRate || 0) >= 50 ? 'text-yellow-600' : 'text-red-600'
-              }`}>
-                {(stats.successRate || 0) >= 80 ? 'نشط ومستقر' :
-                 (stats.successRate || 0) >= 50 ? 'نشط مع تحذيرات' : 'يحتاج انتباه'}
-              </span>
-            </div>
-          </div>
-            <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">إجمالي الرسائل</p>
-              <p className="text-xl font-bold text-gray-900">{stats.totalMessages || 0}</p>
-              <p className="text-xs text-gray-500">آخر 30 يوماً</p>
-            </div>
-            <div className="text-center p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">معدل النجاح</p>
-              <div className="flex items-center justify-center space-x-1 space-x-reverse">
-                <p className={`text-xl font-bold ${
-                  (stats.successRate || 0) >= 80 ? 'text-green-600' :
-                  (stats.successRate || 0) >= 50 ? 'text-yellow-600' : 'text-red-600'
-                }`}>
-                  {stats.successRate || 0}%
-                </p>
-                {(stats.successRate || 0) >= 80 && (
-                  <CheckIcon className="w-4 h-4 text-green-500" />
+        {/* Doughnut: Incoming Today */}
+        <Grid item xs={12} md={6} lg={6}>
+          <Card sx={{ height: "100%", borderRadius: 4 }}>
+            <CardContent sx={{ p: 2.75 }}>
+              <SectionTitle icon={<FiTrendingUp />} title="تفصيل وارد اليوم" />
+              <Box
+                sx={{
+                  height: chartHeight,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                {doughnutIncomingToday ? (
+                  <Doughnut
+                    data={doughnutIncomingToday}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      cutout: "64%",
+                      plugins: {
+                        legend: {
+                          position: "bottom",
+                          labels: { usePointStyle: true },
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: (ctx) => `${ctx.label}: ${fmtNum(ctx.raw)}`,
+                          },
+                        },
+                        centerTotal: {
+                          color: theme.palette.text.secondary,
+                          label: "الإجمالي",
+                        },
+                      },
+                    }}
+                    plugins={[CenterTotalPlugin]}
+                  />
+                ) : (
+                  <ChartPlaceholder height={chartHeight} />
                 )}
-              </div>
-              <p className="text-xs text-gray-500">
-                {stats.sentMessages || 0} نجح من {stats.totalMessages || 0}
-              </p>
-            </div>
-          </div>
-          
-          {/* إحصائيات إضافية */}
-          <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-            <div className="p-2 bg-blue-50 rounded">
-              <p className="text-xs text-blue-600">مُرسل</p>
-              <p className="font-bold text-blue-800">{stats.sentMessages || 0}</p>
-            </div>
-            <div className="p-2 bg-green-50 rounded">
-              <p className="text-xs text-green-600">مُسلم</p>
-              <p className="font-bold text-green-800">{stats.deliveredMessages || 0}</p>
-            </div>
-            <div className="p-2 bg-red-50 rounded">
-              <p className="text-xs text-red-600">فشل</p>
-              <p className="font-bold text-red-800">{stats.failedMessages || 0}</p>
-            </div>
-          </div>
-        </div>        {/* إحصائيات اليوم */}
-        <DashboardSection
-          title="نشاط اليوم"
-          icon={ActivityIcon}
-          className="lg:col-span-1"
-        >
-          <div className="space-y-3">
-            <ActivityCard
-              title="رسائل واردة"
-              value={todayActivity.incomingToday || 0}
-              color="blue"
-              trend={(todayActivity.incomingToday || 0) > 10 ? 'up' : 'neutral'}
-            />
-            
-            <ActivityCard
-              title="طلبات صيانة"
-              value={todayActivity.maintenanceToday || 0}
-              color="orange"
-              badge={(todayActivity.maintenanceToday || 0) > 0 ? 'جديد' : null}
-            />
-            
-            <ActivityCard
-              title="شكاوى جديدة"
-              value={todayActivity.complaintsToday || 0}
-              color="red"
-              badge={(todayActivity.complaintsToday || 0) > 0 ? 'عاجل' : null}
-            />
-            
-            <div className="pt-2 border-t border-gray-200">
-              <ActivityCard
-                title="زمن الاستجابة"
-                value={stats.responseTime || stats.avgResponseTime || '1.2 ثانية'}
-                color="green"
-              />
-              
-              <ActivityCard
-                title="وقت التشغيل"
-                value={dashboardData?.systemHealth?.uptime || 'غير محدد'}
-                color="blue"
-                className="mt-3"
-              />
-            </div>
-          </div>
-        </DashboardSection>
-      </div>      {/* طلبات الصيانة والشكاوي */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">        {/* طلبات الصيانة */}
-        <DashboardSection
-          title="طلبات الصيانة"
-          icon={MaintenanceIcon}
-          action={() => router.push('/whatsapp/requests')}
-          actionText="عرض الكل"
-        >
-          <div className="space-y-3">
-            {requests.length > 0 ? requests.slice(0, 3).map((request) => (
-              <ListItem
-                key={request.id}
-                title={request.client?.name || 'عميل غير محدد'}
-                subtitle={request.description?.substring(0, 50) + '...'}
-                status={request.status}
-                onClick={() => router.push(`/whatsapp/requests/${request.id}`)}
-              />
-            )) : (
-              <p className="text-gray-500 text-center py-4">لا توجد طلبات صيانة حديثة</p>
-            )}
-          </div>
-        </DashboardSection>        {/* الشكاوي */}
-        <DashboardSection
-          title="الشكاوي"
-          icon={ComplaintIcon}
-          action={() => router.push('/whatsapp/complaints')}
-          actionText="عرض الكل"
-        >
-          <div className="space-y-3">
-            {complaints.length > 0 ? complaints.slice(0, 3).map((complaint) => (
-              <ListItem
-                key={complaint.id}
-                title={complaint.client?.name || 'عميل غير محدد'}
-                subtitle={complaint.description?.substring(0, 50) + '...'}
-                priority={complaint.priority}
-                onClick={() => router.push(`/whatsapp/complaints/${complaint.id}`)}
-              />
-            )) : (
-              <p className="text-gray-500 text-center py-4">لا توجد شكاوى حديثة</p>
-            )}
-          </div>
-        </DashboardSection>        {/* التذكيرات والتنبيهات */}
-        <DashboardSection
-          title="التذكيرات والتنبيهات"
-          icon={AlertIcon}
-          action={() => router.push('/whatsapp/reminders')}
-          actionText="عرض الكل"
-        >
-          <div className="space-y-3">
-            <ActivityCard
-              title="إجمالي التذكيرات"
-              subtitle="جميع الأنواع"
-              value={remindersSummary.total || 0}
-              color="blue"
-            />
+              </Box>
 
-            <ActivityCard
-              title="تذكيرات الدفع"
-              subtitle="أقساط وفواتير"
-              value={remindersSummary.byType?.payment || 0}
-              color="red"
-            />
+              {doughnutIncomingToday && (
+                <ChartDataTable
+                  labels={doughnutIncomingToday.labels}
+                  columns={[
+                    {
+                      key: "values",
+                      label: "عدد",
+                      color:
+                        doughnutIncomingToday.datasets[0].backgroundColor[0],
+                    },
+                  ]}
+                  rows={{ values: doughnutIncomingToday.datasets[0].data }}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
 
-            <ActivityCard
-              title="تذكيرات الصيانة"
-              subtitle="مواعيد الصيانة"
-              value={remindersSummary.byType?.maintenance || 0}
-              color="yellow"
-            />
+        {/* Doughnut: Outgoing Today */}
+        <Grid item xs={12} md={6} lg={6}>
+          <Card sx={{ height: "100%", borderRadius: 4 }}>
+            <CardContent sx={{ p: 2.75 }}>
+              <SectionTitle icon={<FiTrendingUp />} title="تفصيل صادر اليوم" />
+              <Box
+                sx={{
+                  height: chartHeight,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                {doughnutOutgoingToday ? (
+                  <Doughnut
+                    data={doughnutOutgoingToday}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      cutout: "64%",
+                      plugins: {
+                        legend: {
+                          position: "bottom",
+                          labels: { usePointStyle: true },
+                        },
+                        tooltip: {
+                          callbacks: {
+                            label: (ctx) => `${ctx.label}: ${fmtNum(ctx.raw)}`,
+                          },
+                        },
+                        centerTotal: {
+                          color: theme.palette.text.secondary,
+                          label: "الإجمالي",
+                        },
+                      },
+                    }}
+                    plugins={[CenterTotalPlugin]}
+                  />
+                ) : (
+                  <ChartPlaceholder height={chartHeight} />
+                )}
+              </Box>
 
-            <ActivityCard
-              title="انتهاء العقود"
-              subtitle="تجديد العقود"
-              value={remindersSummary.byType?.contract || 0}
-              color="orange"
-            />
+              {doughnutOutgoingToday && (
+                <ChartDataTable
+                  labels={doughnutOutgoingToday.labels}
+                  columns={[
+                    {
+                      key: "values",
+                      label: "عدد",
+                      color:
+                        doughnutOutgoingToday.datasets[0].backgroundColor[0],
+                    },
+                  ]}
+                  rows={{ values: doughnutOutgoingToday.datasets[0].data }}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
 
-            <ActivityCard
-              title="معدل النجاح"
-              subtitle="التسليم الناجح"
-              value={`${remindersSummary.successRate || 0}%`}
-              color="green"
-            />
-          </div>
-        </DashboardSection>
-      </div>
-
-      {/* المحادثات النشطة وآخر الرسائل */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">        {/* المحادثات النشطة */}
-        <DashboardSection
-          title="المحادثات النشطة"
-          icon={PhoneIcon}
-          action={() => router.push('/whatsapp/conversations')}
-          actionText="عرض الكل"
-        >
-          <div className="space-y-3">            {conversations.length > 0 ? conversations.slice(0, 3).map((conversation) => (
-              <ListItem
-                key={conversation.id}
-                title={conversation.client?.name || conversation.phoneNumber}
-                timestamp={new Date(conversation.lastMessageAt).toLocaleString('en-US', {
-                  year: 'numeric',
-                  month: '2-digit', 
-                  day: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false
-                })}
-                action={
-                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                    {conversation.messageCount || 0} رسالة
-                  </span>
-                }
-                onClick={() => router.push(`/whatsapp/conversations/${conversation.id}`)}
+        {/* Intents: Bigger, Horizontal, Grouped Bars + Table */}
+        <Grid item xs={12} lg={12}>
+          <Card sx={{ height: "100%", borderRadius: 4 }}>
+            <CardContent sx={{ p: 2.75 }}>
+              <SectionTitle
+                icon={<FiTrendingUp />}
+                title="أكثر الخدمات طلباً (مقارنة اليوم بالفترة)"
+                subtitle="حتى ٦ عناصر — عرض أفقي أوضح"
               />
-            )) : (
-              <p className="text-gray-500 text-center py-4">لا توجد محادثات نشطة</p>
-            )}
-          </div>
-        </DashboardSection>        {/* آخر الرسائل */}
-        <DashboardSection
-          title="آخر الرسائل"
-          icon={MessageIcon}
-          action={() => router.push('/whatsapp/messages')}
-          actionText="عرض الكل"
-        >
-          <div className="space-y-3">            {recentMessages.length > 0 ? recentMessages.slice(0, 3).map((message) => (
-              <ListItem
-                key={message.id}
-                title={message.client || 'عميل غير محدد'}
-                subtitle={message.phone}
-                timestamp={new Date(message.sentAt).toLocaleString('en-US', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit', 
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false
-                })}
-                action={
-                  <div className="flex items-center space-x-1 space-x-reverse">
-                    {message.status === 'delivered' && <CheckIcon className="w-4 h-4 text-green-500" />}
-                    <span className={`text-xs ${
-                      message.status === 'delivered' ? 'text-green-600' :
-                      message.status === 'sent' ? 'text-blue-600' :
-                      'text-red-600'
-                    }`}>
-                      {message.status === 'delivered' ? 'تم التسليم' :
-                       message.status === 'sent' ? 'مرسل' : 'فشل'}
-                    </span>
-                  </div>
-                }
-                onClick={() => router.push(`/whatsapp/messages/${message.id}`)}
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ height: intentsHeight }}>
+                    {intentsBar ? (
+                      <Bar
+                        data={intentsBar}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          indexAxis: "y",
+                          plugins: {
+                            legend: { position: "bottom" },
+                            tooltip: {
+                              mode: "index",
+                              intersect: false,
+                              callbacks: {
+                                label: (ctx) =>
+                                  `${ctx.dataset.label}: ${fmtNum(
+                                    ctx.parsed.x ?? ctx.parsed
+                                  )}`,
+                              },
+                            },
+                          },
+                          scales: {
+                            x: {
+                              beginAtZero: true,
+                              grid: { color: theme.palette.divider },
+                              ticks: { precision: 0 },
+                            },
+                            y: {
+                              grid: { display: false },
+                              ticks: {
+                                callback: (val) => {
+                                  const lbl = intentsBar.labels[val] || "";
+                                  return lbl.length > 28
+                                    ? lbl.slice(0, 26) + "…"
+                                    : lbl;
+                                },
+                              },
+                            },
+                          },
+                          interaction: { mode: "index", intersect: false },
+                        }}
+                      />
+                    ) : (
+                      <ChartPlaceholder height={intentsHeight} />
+                    )}
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  {intentsBar && (
+                    <ChartDataTable
+                      labels={intentsBar.labels}
+                      columns={[
+                        {
+                          key: "all",
+                          label: "طوال الفترة",
+                          color: intentsBar.datasets[0].backgroundColor,
+                        },
+                        {
+                          key: "today",
+                          label: "اليوم",
+                          color: theme.palette.info.main,
+                        },
+                      ]}
+                      rows={{
+                        all: intentsBar.datasets[0].data,
+                        today: intentsBar.datasets[1].data,
+                      }}
+                    />
+                  )}
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Divider sx={{ my: 2, width: "100%" }} />
+        {/* Reminders */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 4, height: "100%" }}>
+            <CardContent sx={{ p: 2.75 }}>
+              <SectionTitle
+                icon={<FiAlertTriangle />}
+                title="التذكيرات (تم التسليم مقابل فشل)"
               />
-            )) : (
-              <p className="text-gray-500 text-center py-4">لا توجد رسائل حديثة</p>
-            )}
-          </div>
-        </DashboardSection>
-      </div>      {/* الإجراءات السريعة */}
-      <DashboardSection
-        title="الإجراءات السريعة"
-        className="mt-6"
-      >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <QuickActionButton
-            title="إرسال رسالة"
-            icon={MessageIcon}
-            color="blue"
-            onClick={() => router.push('/whatsapp/send-message')}
+
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                طوال الفترة
+              </Typography>
+              <Stack direction="row" flexWrap="wrap" gap={1.25} mb={1.25}>
+                <StatChip
+                  label="إجمالي"
+                  value={outgoing?.reminders?.all?.total}
+                />
+                <StatChip
+                  label="تم التسليم"
+                  value={outgoing?.reminders?.all?.delivered}
+                  color="primary"
+                />
+                <StatChip
+                  label="فشل"
+                  value={outgoing?.reminders?.all?.failed}
+                  color="error"
+                />
+              </Stack>
+              <PercentBar value={outgoing?.reminders?.all?.successPct} />
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                اليوم
+              </Typography>
+              <Stack direction="row" flexWrap="wrap" gap={1.25} mb={1.25}>
+                <StatChip
+                  label="إجمالي"
+                  value={outgoing?.reminders?.today?.total}
+                />
+                <StatChip
+                  label="تم التسليم"
+                  value={outgoing?.reminders?.today?.delivered}
+                  color="primary"
+                />
+                <StatChip
+                  label="فشل"
+                  value={outgoing?.reminders?.today?.failed}
+                  color="error"
+                />
+              </Stack>
+              <PercentBar value={outgoing?.reminders?.today?.successPct} />
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Team alerts */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 4, height: "100%" }}>
+            <CardContent sx={{ p: 2.75 }}>
+              <SectionTitle
+                icon={<FiAlertTriangle />}
+                title="تنبيهات الفريق (تم التسليم مقابل فشل)"
+              />
+
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                طوال الفترة
+              </Typography>
+              <Stack direction="row" flexWrap="wrap" gap={1.25} mb={1.25}>
+                <StatChip
+                  label="إجمالي"
+                  value={outgoing?.teamAlerts?.all?.total}
+                />
+                <StatChip
+                  label="تم التسليم"
+                  value={outgoing?.teamAlerts?.all?.delivered}
+                  color="primary"
+                />
+                <StatChip
+                  label="فشل"
+                  value={outgoing?.teamAlerts?.all?.failed}
+                  color="error"
+                />
+              </Stack>
+              <PercentBar value={outgoing?.teamAlerts?.all?.successPct} />
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                اليوم
+              </Typography>
+              <Stack direction="row" flexWrap="wrap" gap={1.25} mb={1.25}>
+                <StatChip
+                  label="إجمالي"
+                  value={outgoing?.teamAlerts?.today?.total}
+                />
+                <StatChip
+                  label="تم التسليم"
+                  value={outgoing?.teamAlerts?.today?.delivered}
+                  color="primary"
+                />
+                <StatChip
+                  label="فشل"
+                  value={outgoing?.teamAlerts?.today?.failed}
+                  color="error"
+                />
+              </Stack>
+              <PercentBar value={outgoing?.teamAlerts?.today?.successPct} />
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Conversations — KPIs */}
+        <Grid item xs={12} md={6} lg={3}>
+          <KpiCard
+            icon={<FiMessageSquare />}
+            title="المحادثات — المفتوحة"
+            total={data?.conversations?.overview?.open}
+            success={data?.conversations?.overview?.activeToday}
+            fail={data?.conversations?.overview?.closed}
+            successPct={0}
+            colors={{ successChip: "info", failChip: "default" }}
           />
-          
-          <QuickActionButton
-            title="التذكيرات"
-            icon={ReminderIcon}
-            color="purple"
-            onClick={() => router.push('/whatsapp/reminders')}
-          />
-          
-          <QuickActionButton
-            title="الإعدادات"
-            icon={SettingsIcon}
-            color="green"
-            onClick={() => router.push('/whatsapp/settings')}
-          />
-          
-          <QuickActionButton
-            title="التحليلات"
-            icon={ActivityIcon}
-            color="orange"
-            onClick={() => router.push('/whatsapp/analytics')}
-          />
-        </div>
-      </DashboardSection>
-    </div>
+        </Grid>
+
+        <Grid item xs={12} md={6} lg={3}>
+          <Card sx={{ height: "100%", borderRadius: 4 }}>
+            <CardContent sx={{ p: 2.75 }}>
+              <SectionTitle icon={<FiTrendingUp />} title="متوسط مدة الإغلاق" />
+              <Typography
+                variant="h4"
+                fontWeight={900}
+                sx={{ lineHeight: 1.1 }}
+              >
+                {data?.conversations?.overview?.avgCloseDuration?.hmm || "0:00"}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                ساعات : دقائق (لعينات مُغلقة حديثًا)
+              </Typography>
+
+              <Divider sx={{ my: 1.5 }} />
+
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                <StatChip
+                  label="إجمالي"
+                  value={data?.conversations?.overview?.total}
+                />
+                <StatChip
+                  label="مفتوحة"
+                  value={data?.conversations?.overview?.open}
+                  color="info"
+                />
+                <StatChip
+                  label="مغلقة"
+                  value={data?.conversations?.overview?.closed}
+                />
+                <StatChip
+                  label="نشطة اليوم"
+                  value={data?.conversations?.overview?.activeToday}
+                  color="secondary"
+                />
+              </Stack>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Top sending clients */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ borderRadius: 4, height: "100%" }}>
+            <CardContent sx={{ p: 2.75 }}>
+              <SectionTitle
+                icon={<FiBarChart2 />}
+                title="أكثر العملاء إرسالاً"
+                subtitle="حسب مجموع الرسائل في المحادثات المرتبطة بالعميل"
+              />
+              <Box sx={{ height: 360 }}>
+                {Array.isArray(data?.conversations?.topClients) &&
+                data.conversations.topClients.length ? (
+                  <Bar
+                    data={{
+                      labels: data.conversations.topClients.map(
+                        (c) => c.name || c.phone || "—"
+                      ),
+                      datasets: [
+                        {
+                          label: "إجمالي الرسائل",
+                          data: data.conversations.topClients.map(
+                            (c) => c.totalMessages
+                          ),
+                          backgroundColor:
+                            theme.palette.mode === "light"
+                              ? theme.palette.primary.main
+                              : theme.palette.primary.light,
+                          borderRadius: 8,
+                          maxBarThickness: 36,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                          callbacks: {
+                            label: (ctx) => `الرسائل: ${ctx.parsed.y || 0}`,
+                          },
+                        },
+                      },
+                      scales: {
+                        x: {
+                          grid: {
+                            color: theme.palette.divider,
+                            borderDash: [3, 3],
+                          },
+                          ticks: {
+                            maxRotation: 0,
+                            minRotation: 0,
+                            autoSkip: true,
+                            callback: (val) => {
+                              const c = data.conversations.topClients[val];
+                              const lbl = `${c?.name || phonePretty(c?.phone) || ""}`;
+                              return lbl.length > 16
+                                ? lbl.slice(0, 14) + "…"
+                                : lbl;
+                            },
+                          },
+                        },
+                        y: {
+                          beginAtZero: true,
+                          grid: { color: theme.palette.divider },
+                          ticks: { precision: 0 },
+                        },
+                      },
+                    }}
+                  />
+                ) : (
+                  <ChartPlaceholder height={360} />
+                )}
+              </Box>
+
+              {Array.isArray(data?.conversations?.topClients) &&
+                data.conversations.topClients.length > 0 && (
+                  <ChartDataTable
+                    labels={data.conversations.topClients.map(
+                      (c) => c.name || phonePretty(c.phone) || "—"
+                    )}
+                    columns={[
+                      {
+                        key: "msgs",
+                        label: "إجمالي الرسائل",
+                        color: theme.palette.primary.main,
+                      },
+                      { key: "convos", label: "عدد المحادثات" },
+                    ]}
+                    rows={{
+                      msgs: data.conversations.topClients.map(
+                        (c) => c.totalMessages
+                      ),
+                      convos: data.conversations.topClients.map(
+                        (c) => c.conversations
+                      ),
+                    }}
+                  />
+                )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Container>
   );
 }

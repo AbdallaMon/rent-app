@@ -17,14 +17,6 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
 import { handleRequestSubmit } from "@/helpers/functions/handleRequestSubmit";
 
-const RentCollectionType = {
-  TWO_MONTHS: 2,
-  THREE_MONTHS: 3,
-  FOUR_MONTHS: 4,
-  SIX_MONTHS: 6,
-  ONE_YEAR: 12,
-};
-
 export function InstallmentComponent({
   getValues,
   control,
@@ -41,7 +33,7 @@ export function InstallmentComponent({
   const [editChequeNumber, setEditChequeNumber] = useState("");
   const { setLoading: setSubmitLoading } = useToastContext();
 
-  let { rentCollectionType, startDate, endDate, totalPrice, discount } =
+  let { rentCollectionNumber, startDate, endDate, totalPrice, discount } =
     dataState;
   const [installments, setInstallments] = useState([]);
 
@@ -55,7 +47,7 @@ export function InstallmentComponent({
 
   useEffect(() => {
     if (
-      data.rentCollectionType &&
+      data.rentCollectionNumber &&
       data.startDate &&
       data.endDate &&
       data.totalPrice
@@ -69,60 +61,70 @@ export function InstallmentComponent({
   }, [installments]);
 
   useEffect(() => {
-    if (rentCollectionType && startDate && endDate && totalPrice) {
+    if (rentCollectionNumber && startDate && endDate && totalPrice) {
       calculateInstallments();
     }
-  }, [rentCollectionType, startDate, endDate, totalPrice, discount]);
+  }, [rentCollectionNumber, startDate, endDate, totalPrice, discount]);
 
   const calculateInstallments = () => {
+    const n = parseInt(rentCollectionNumber, 10);
+    if (isNaN(n) || n <= 0) return;
+
     const start = dayjs(startDate);
     const end = dayjs(endDate);
 
-    const monthDifference = end
+    // total whole-month span between start and end (floor)
+    let totalMonths = end
       .startOf("month")
       .diff(start.startOf("month"), "month");
 
-    const totalInstallments = Math.ceil(
-      monthDifference / RentCollectionType[rentCollectionType]
+    // If end is on/after the same day-of-month as start, treat as inclusive of the final month
+    if (end.date() >= start.date()) totalMonths += 1;
+
+    // We want EXACTLY n installments
+    const totalInstallments = n;
+
+    // Months per installment (spread across the period)
+    const monthsPerInstallment = Math.max(
+      1,
+      Math.floor(totalMonths / totalInstallments) || 1
     );
 
     const discountedPrice = totalPrice - (discount || 0);
     const installmentBaseAmount = discountedPrice / totalInstallments;
     let remainingAmount = discountedPrice;
 
-    const newInstallments = Array(totalInstallments)
-      .fill()
-      .map((_, i) => {
-        let dueDate = start.add(
-          i * RentCollectionType[rentCollectionType],
-          "month"
-        );
-        let endDate = dueDate.add(
-          RentCollectionType[rentCollectionType],
-          "month"
-        );
+    const newInstallments = Array.from({ length: totalInstallments }).map(
+      (_, i) => {
+        const dueDate = start.add(i * monthsPerInstallment, "month");
+        const segmentEnd =
+          i === totalInstallments - 1
+            ? end // last one ends at the contract end
+            : start.add((i + 1) * monthsPerInstallment, "month");
 
         let installmentAmount;
         if (i === totalInstallments - 1) {
-          installmentAmount = remainingAmount;
+          installmentAmount = remainingAmount; // last gets the remainder
         } else {
           installmentAmount = Math.round(installmentBaseAmount / 50) * 50;
           remainingAmount -= installmentAmount;
         }
+
         setValue(`installments[${i}].dueDate`, dueDate.format("YYYY-MM-DD"));
         setValue(`installments[${i}].amount`, installmentAmount);
-        setValue(`installments[${i}].paymentTypeMethod`, "CASH"); // Default payment method
+        setValue(`installments[${i}].paymentTypeMethod`, "CASH");
         setValue(`installments[${i}].chequeNumber`, "");
 
         return {
           startDate: start.format("YYYY-MM-DD"),
           dueDate: dueDate.format("YYYY-MM-DD"),
-          endDate: endDate.format("YYYY-MM-DD"),
+          endDate: segmentEnd.format("YYYY-MM-DD"),
           amount: installmentAmount,
           paymentTypeMethod: "CASH",
           chequeNumber: "",
         };
-      });
+      }
+    );
 
     setInstallments(newInstallments);
   };

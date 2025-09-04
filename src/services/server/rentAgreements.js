@@ -1,17 +1,20 @@
 import prisma from "@/lib/prisma"; // Adjust the path to your Prisma instance
 import { convertToISO } from "@/helpers/functions/convertDateToIso";
-import { generateUniqueId } from "@/helpers/functions/generateUniqueId";
 import { updateWhereClauseWithUserProperties } from "@/app/api/utlis/userProperties";
 import { sendNotifications } from "@/lib/notifications";
 import { createJournalEntry, getGLIdByCode } from "./accounting/main.js";
-const RentCollectionType = {
-  TWO_MONTHS: 2,
-  THREE_MONTHS: 3,
-  FOUR_MONTHS: 4,
-  SIX_MONTHS: 6,
-  ONE_YEAR: 12,
-};
+import dayjs from "dayjs";
 
+async function generateRentAgreementNumber(startDate, unitId) {
+  const prefix = "CONTRACT";
+  const month = dayjs(startDate).format("MM");
+  const year = dayjs(startDate).format("YY");
+  const count = await prisma.rentAgreement.count({});
+
+  const seq = String(count + 1).padStart(3, "0");
+
+  return `${prefix}_${year}_${month}_${seq}_UN${unitId}`;
+}
 export async function getRentAgreements(_, limit, searchParams, params) {
   const page = searchParams.get("?page") || 1;
   const offset = (page - 1) * limit;
@@ -342,9 +345,13 @@ export async function getRentAgreementById(page, limit, serachParams, params) {
 // rent creation with invoices
 export async function createRentAgreement(data) {
   try {
+    const rentAgreementNumber = await generateRentAgreementNumber(
+      data.startDate,
+      +data.unitId
+    );
     const newRentAgreement = await prisma.rentAgreement.create({
       data: {
-        rentAgreementNumber: generateUniqueId(),
+        rentAgreementNumber: rentAgreementNumber,
         startDate: convertToISO(data.startDate),
         endDate: convertToISO(data.endDate),
         tax: +data.tax,
@@ -352,7 +359,7 @@ export async function createRentAgreement(data) {
         insuranceFees: +data.insuranceFees,
         totalPrice: +data.totalPrice - data.discount,
         totalContractPrice: +data.totalPrice,
-        rentCollectionType: data.rentCollectionType,
+        rentCollectionNumber: +data.rentCollectionNumber,
         renter: {
           connect: {
             id: +data.renterId,
@@ -423,7 +430,7 @@ export async function createRentAgreement(data) {
 
 export async function createInstallmentsAndPayments(rentAgreement) {
   try {
-    const { rentCollectionType, startDate, endDate, installments } =
+    const { rentCollectionNumber, startDate, endDate, installments } =
       rentAgreement;
 
     const start = new Date(startDate);
@@ -434,7 +441,7 @@ export async function createInstallmentsAndPayments(rentAgreement) {
     //       start.getMonth();
     //
     // const totalInstallments = Math.ceil(
-    //       monthDifference / RentCollectionType[rentCollectionType],
+    //       monthDifference / rentCollectionNumber,
     // );
     // const installmentBaseAmount = rentAgreement.totalPrice / totalInstallments;
     // let remainingAmount = rentAgreement.totalPrice;
@@ -442,9 +449,7 @@ export async function createInstallmentsAndPayments(rentAgreement) {
     const installmentsData = installments.map((_, i) => {
       let dueDate = new Date(installments[i].dueDate);
       const endDate = new Date(dueDate);
-      endDate.setMonth(
-        dueDate.getMonth() + RentCollectionType[rentCollectionType]
-      );
+      endDate.setMonth(dueDate.getMonth() + rentCollectionNumber);
 
       // let installmentAmount
       // if (i === totalInstallments - 1) {
@@ -956,18 +961,15 @@ export async function getEndingRentAgreements() {
   const threeMonthsAgo = new Date();
   threeMonthsAgo.setMonth(today.getMonth() - 3);
 
-  // جلب العقود النشطة التي تنتهي خلال شهرين أو العقود المنتهية خلال 3 أشهر مضت
   const where = {
     OR: [
       {
-        // العقود النشطة التي تنتهي قريباً
         status: "ACTIVE",
         endDate: {
           lte: twoMonthsFromToday,
         },
       },
       {
-        // العقود المنتهية خلال 3 أشهر مضت (للمراجعة)
         status: "ACTIVE",
         endDate: {
           gte: threeMonthsAgo,
@@ -989,6 +991,151 @@ export async function getEndingRentAgreements() {
       where,
       orderBy: {
         endDate: "asc", // ترتيب حسب تاريخ الانتهاء (الأقرب أولاً)
+      },
+      include: {
+        renter: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            language: true,
+          },
+        },
+        contractExpenses: {
+          select: {
+            contractExpense: true,
+          },
+        },
+        unit: {
+          select: {
+            id: true,
+            unitId: true,
+            number: true,
+            floor: true,
+            property: {
+              select: {
+                id: true,
+                name: true,
+                propertyId: true,
+                client: {
+                  select: {
+                    id: true,
+                    name: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    return {
+      data: rentAgreements,
+    };
+  } catch (error) {
+    console.error("Error fetching rent agreements:", error);
+    throw error;
+  }
+}
+
+export async function getNearToEndRentAgreements() {
+  const today = new Date();
+
+  const threeMonthAfter = new Date();
+  threeMonthAfter.setMonth(today.getMonth() + 3);
+
+  const where = {
+    status: "ACTIVE",
+    endDate: {
+      lt: threeMonthAfter,
+      gte: today,
+    },
+  };
+
+  let unitWhere = {};
+  unitWhere = await updateWhereClauseWithUserProperties(
+    "propertyId",
+    unitWhere
+  );
+  where.unit = unitWhere;
+
+  try {
+    const rentAgreements = await prisma.rentAgreement.findMany({
+      where,
+      orderBy: {
+        endDate: "asc",
+      },
+      include: {
+        renter: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            language: true,
+          },
+        },
+        contractExpenses: {
+          select: {
+            contractExpense: true,
+          },
+        },
+        unit: {
+          select: {
+            id: true,
+            unitId: true,
+            number: true,
+            floor: true,
+            property: {
+              select: {
+                id: true,
+                name: true,
+                propertyId: true,
+                client: {
+                  select: {
+                    id: true,
+                    name: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    return {
+      data: rentAgreements,
+    };
+  } catch (error) {
+    console.error("Error fetching rent agreements:", error);
+    throw error;
+  }
+}
+export async function getEndedRentAgreementsWhichNeedToBeRenewed() {
+  const today = new Date();
+  const where = {
+    status: "ACTIVE",
+    endDate: {
+      lt: today,
+    },
+  };
+
+  let unitWhere = {};
+  unitWhere = await updateWhereClauseWithUserProperties(
+    "propertyId",
+    unitWhere
+  );
+  where.unit = unitWhere;
+  try {
+    const rentAgreements = await prisma.rentAgreement.findMany({
+      where,
+      orderBy: {
+        endDate: "asc",
       },
       include: {
         renter: {

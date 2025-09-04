@@ -17,13 +17,11 @@ export default function AuthProvider({ children }) {
   useEffect(() => {
     async function auth() {
       setCheckAccess(true);
-      // Only show loading toast if not on public pages
       const isPublicPage =
         pathName === "/reset-password" ||
         pathName === "/forgot-password" ||
         pathName === "/login";
 
-      // Only create toast if not on a public page
       const toastId = isPublicPage
         ? null
         : toast.loading("يتم التحقق من الصلاحيات...");
@@ -32,16 +30,12 @@ export default function AuthProvider({ children }) {
       const result = await response.json();
 
       if (result.auth === false) {
-        // Non-authenticated user handling
         if (isPublicPage) {
-          // No need for toast on public pages
           return;
         }
+        window.localStorage.setItem("redirect", window.location.pathname);
 
-        // Redirect to login
         router.push("/login");
-
-        // Only show failed toast if not redirecting to login
         if (toastId) {
           toast.update(toastId, Failed("غير مصرح"));
         }
@@ -49,13 +43,13 @@ export default function AuthProvider({ children }) {
         setIsLoggedIn(false);
         setUser({});
       } else {
-        // Authenticated user handling
         if (toastId) {
           toast.update(
             toastId,
             Success("مصرح. جاري تحميل البيانات الرجاء الانتظار...")
           );
         }
+
         setIsLoggedIn(result.auth);
         setUser(result.user);
       }
@@ -111,6 +105,9 @@ export default function AuthProvider({ children }) {
         }
 
         if (area && userPrivileges[area]?.canRead) {
+          if (window.location.pathname !== "/login") {
+            window.localStorage.setItem("redirect", window.location.pathname);
+          }
           return true;
         } else {
           router.push("/not-allowed");
@@ -127,7 +124,6 @@ export default function AuthProvider({ children }) {
 
   const renderContent = () => {
     if (!isLoggedIn) {
-      // Update to include login and other public routes in public accessible routes
       if (
         pathName === "/reset-password" ||
         pathName === "/forgot-password" ||

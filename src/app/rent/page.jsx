@@ -20,7 +20,7 @@ import {
   Typography,
 } from "@mui/material";
 import Link from "next/link";
-import { PaymentType, StatusType } from "@/config/Enums";
+import { StatusType } from "@/config/Enums";
 import MenuItem from "@mui/material/MenuItem";
 import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 import dayjs from "dayjs";
@@ -36,17 +36,6 @@ import {
   CancelledContracts,
   Home,
 } from "@/components/ui/icons";
-
-async function getRentCollectionType() {
-  const data = [
-    { id: "TWO_MONTHS", name: "شهرين" },
-    { id: "THREE_MONTHS", name: "ثلاثة أشهر" },
-    { id: "FOUR_MONTHS", name: "أربعة أشهر" },
-    { id: "SIX_MONTHS", name: "ستة أشهر" },
-    { id: "ONE_YEAR", name: "سنة واحدة" },
-  ];
-  return { data };
-}
 
 export default function RentPage({ searchParams }) {
   const propertyId = searchParams?.propertyId;
@@ -106,15 +95,12 @@ const RentWrapper = ({ propperty, statusFilter, rentedFilter }) => {
   const { id } = useTableForm();
   const [propertyId, setPropertyId] = useState(null);
   const [properties, setProperties] = useState([]);
-  const [loadingProperty, setLoadingProperty] = useState(true);
   const { user } = useAuth();
   const router = useRouter();
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [rerender, setRerender] = useState(false);
   const pathName = usePathname();
-  const [installmentsDialogOpen, setInstallmentsDialogOpen] = useState(false);
-  const [selectedRentAgreement, setSelectedRentAgreement] = useState(null);
 
   // Determine which tables to show based on URL parameters
   const showOnlyExpired =
@@ -140,11 +126,9 @@ const RentWrapper = ({ propperty, statusFilter, rentedFilter }) => {
 
   useEffect(() => {
     async function getD() {
-      setLoadingProperty(true);
       const properties = await getProperties();
 
       setProperties(properties.data);
-      setLoadingProperty(false);
     }
 
     getD();
@@ -224,12 +208,6 @@ const RentWrapper = ({ propperty, statusFilter, rentedFilter }) => {
 
   const dataInputs = rentAgreementInputs.map((input) => {
     switch (input.data.id) {
-      case "rentCollectionType":
-        return {
-          ...input,
-          extraId: false,
-          getData: getRentCollectionType,
-        };
       case "renterId":
         return {
           ...input,
@@ -271,20 +249,6 @@ const RentWrapper = ({ propperty, statusFilter, rentedFilter }) => {
   const handleCloseCancelModal = () => {
     setCancelModalOpen(false);
     setCancelData(null);
-  };
-
-  const handleOpenInstallmentsDialog = (rentData) => {
-    setSelectedRentAgreement(rentData);
-    setInstallmentsDialogOpen(true);
-  };
-
-  const handleCloseInstallmentsDialog = () => {
-    setInstallmentsDialogOpen(false);
-    setSelectedRentAgreement(null);
-  };
-
-  const handleSaveInstallments = (updatedInstallments) => {
-    setRerender(!rerender);
   };
 
   const handleCancelConfirm = async () => {

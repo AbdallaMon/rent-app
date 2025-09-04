@@ -85,9 +85,9 @@ export async function handleTextMessage(phone, text, incomingMessage) {
     }
 
     case "completed":
-      return sendMain(phone, language);
+      return sendMain(phone, language, incomingMessage);
 
     default:
-      return sendMain(phone, language);
+      return sendMain(phone, language, incomingMessage);
   }
 }

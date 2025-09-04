@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import { createJournalEntry, getGlAccountById } from "./main";
+import { createJournalEntry, getGlAccountById, getGLIdByCode } from "./main";
 import { Prisma } from "@prisma/client";
 export async function handleGlAccountTransaction(data) {
   if (data.kind === "TRANSFER") {
@@ -34,7 +34,10 @@ export async function handleGlAccountTransaction(data) {
     });
   }
   if (data.kind === "OUTFLOW") {
-    const fromGlAccount = await getGlAccountById(data.glAccountId);
+    const fromGlAccount = data.isPettyCash
+      ? await getGLIdByCode("1130", true)
+      : await getGlAccountById(data.glAccountId);
+
     await createJournalEntry({
       description: data.memo,
       entryDate: new Date(data.entryDate),
@@ -44,7 +47,7 @@ export async function handleGlAccountTransaction(data) {
         {
           side: "CREDIT",
           amount: data.amount,
-          glAccountId: data.glAccountId,
+          glAccountId: fromGlAccount.id,
           memo: `سحب رصيد من ${fromGlAccount.name}`,
           createdAt: new Date(data.entryDate),
         },
@@ -58,7 +61,9 @@ export async function handleGlAccountTransaction(data) {
     });
   }
   if (data.kind === "INFLOW") {
-    const toGlAccount = await getGlAccountById(data.glAccountId);
+    const toGlAccount = data.isPettyCash
+      ? await getGLIdByCode("1130", true)
+      : await getGlAccountById(data.glAccountId);
     await createJournalEntry({
       description: data.memo,
       entryDate: new Date(data.entryDate),
@@ -74,7 +79,7 @@ export async function handleGlAccountTransaction(data) {
         {
           side: "DEBIT",
           amount: data.amount,
-          glAccountId: data.glAccountId,
+          glAccountId: toGlAccount.id,
           memo: `إيداع رصيد في ${toGlAccount.name}`,
           createdAt: new Date(data.entryDate),
         },

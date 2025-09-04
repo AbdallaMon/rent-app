@@ -216,7 +216,8 @@ model RentAgreement {
   unitId              Int
   totalPrice          Float
   totalContractPrice  Float?
-  rentCollectionType  RentCollectionType
+  rentCollectionType  RentCollectionType               @default(NUMBER) 
+  rentCollectionNumber Int?                            // optional key for NUMBER
   status              RentAgreementStatus              @default(ACTIVE)
   customDescription   Json?
   createdAt           DateTime                         @default(now())
@@ -776,6 +777,7 @@ enum RentAgreementStatus {
 }
 
 enum RentCollectionType {
+  NUMBER       
   TWO_MONTHS
   THREE_MONTHS
   FOUR_MONTHS

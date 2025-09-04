@@ -29,7 +29,6 @@ export function getLanguage(phone) {
   return getSession(phone)?.language || DEFAULT_LANG;
 }
 
-// prune old sessions (in-memory)
 setInterval(
   () => {
     const cutoff = Date.now() - SESSION_TTL_MS;

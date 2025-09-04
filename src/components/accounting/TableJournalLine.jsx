@@ -10,6 +10,14 @@ export function getJournalLineDisplay(line) {
   }
 
   if (line.glAccount) {
+    if (line.partyClient) {
+      // render both gl account and party client
+      return {
+        label: `حساب GL: ${line.glAccount.code} - ${line.glAccount.name} | طرف: ${
+          line.partyType === "OWNER" ? "مالك" : "مستأجر"
+        } - ${line.partyClient.name}`,
+      };
+    }
     return {
       label: `حساب GL: ${line.glAccount.code} - ${line.glAccount.name}`,
     };

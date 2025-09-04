@@ -24,7 +24,6 @@ import { depositsInputs } from "./inputs";
 import DeleteModal from "@/components/ui/Modals/DeleteModal";
 dayjs.locale("ar");
 
-// enum للواجهة
 const DateFilterMode = {
   RECEIVED: "receivedAt", // بوقت الاستلام
   REFUNDED: "refundedAt", // بوقت الارجاع
@@ -54,7 +53,6 @@ function DepositsPageWrapper({ searchParams }) {
     setRender,
   } = useDataFetcher(`main/security-deposits`, null, searchParams);
 
-  // حالة التواريخ + نوع الفلترة
   const [dateMode, setDateMode] = useState(DateFilterMode.RECEIVED);
   const [startDate, setStartDate] = useState(dayjs().startOf("month"));
   const [endDate, setEndDate] = useState(dayjs().endOf("month"));
@@ -62,6 +60,16 @@ function DepositsPageWrapper({ searchParams }) {
   const [disabled, setDisabled] = useState({
     rentAgreementId: true,
   });
+  const [refunded, setRefunded] = useState("false");
+
+  const handleRefundedStatusChange = (e, newValue) => {
+    if (newValue === null) return;
+    setRefunded(newValue);
+    setFilters((prev) => ({
+      ...prev,
+      refunded: newValue,
+    }));
+  };
 
   const [reFetch, setRefetch] = useState({
     rentAgreementId: false,
@@ -386,6 +394,21 @@ function DepositsPageWrapper({ searchParams }) {
             slotProps={{ textField: { size: "small" } }}
           />
         </LocalizationProvider>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Typography variant="subtitle2" color="text.secondary">
+            نوع الوديعة
+          </Typography>
+          <ToggleButtonGroup
+            exclusive
+            value={refunded}
+            onChange={handleRefundedStatusChange}
+            size="small"
+            color="primary"
+          >
+            <ToggleButton value="true">الودائع المسترجعة</ToggleButton>
+            <ToggleButton value="false">الودائع المحتجزة</ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
 
         <Button variant="contained" onClick={handleFilter}>
           تطبيق الفلاتر

@@ -66,10 +66,10 @@ export async function createJournalEntry({
   });
 }
 
-export async function getGLIdByCode(code) {
+export async function getGLIdByCode(code, returnAccount = false) {
   const gl = await prisma.gLAccount.findUnique({ where: { code } });
   if (!gl) throw new Error(`GL account with code ${code} not found`);
-  return gl.id;
+  return returnAccount ? gl : gl.id;
 }
 
 // by company bank account type or name

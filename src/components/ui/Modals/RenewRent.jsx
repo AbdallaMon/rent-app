@@ -8,7 +8,7 @@ import { rentAgreementInputs } from "@/app/rent/rentInputs";
 import { Box, Modal, Typography } from "@mui/material";
 import { Form } from "@/components/ui/FormComponents/Forms/Form";
 import { InstallmentComponent } from "@/components/InstallmentComponent";
-
+import dayjs from "dayjs";
 export function RenewRent({ data, setData }) {
   const [renewModalOpen, setRenewModalOpen] = useState(false);
   const [renewData, setRenewData] = useState(null);
@@ -72,21 +72,8 @@ export function RenewRent({ data, setData }) {
     return { data: dataWithLabel, id: propertyId };
   }
 
-  async function getRentCollectionType() {
-    const data = [
-      { id: "TWO_MONTHS", name: "شهرين" },
-      { id: "THREE_MONTHS", name: "ثلاثة أشهر" },
-      { id: "FOUR_MONTHS", name: "أربعة أشهر" },
-      { id: "SIX_MONTHS", name: "ستة أشهر" },
-      { id: "ONE_YEAR", name: "سنة واحدة" },
-    ];
-    return { data };
-  }
-
   const dataInputs = rentAgreementInputs.map((input) => {
     switch (input.data.id) {
-      case "rentCollectionType":
-        return { ...input, extraId: false, getData: getRentCollectionType };
       case "renterId":
         return { ...input, extraId: false, getData: getRenters };
       case "typeId":
@@ -162,6 +149,9 @@ export function RenewRent({ data, setData }) {
       <Button
         variant="contained"
         color="primary"
+        sx={{
+          borderRadius: 5,
+        }}
         onClick={() => handleOpenRenewModal(data)}
       >
         تجديد العقد
@@ -222,9 +212,8 @@ export function RenewRentModal({
 
   useEffect(() => {
     function createInputs() {
-      // clone to avoid mutating original
       const base = inputs.map((x) => ({ ...x, data: { ...x.data } }));
-
+      console.log(base, "base");
       base[0] = {
         data: {
           id: "propertyId",
@@ -265,13 +254,24 @@ export function RenewRentModal({
           display: "none",
         },
       };
-
+      console.log(base, "base");
       const hydrated =
         initialData &&
-        base.map((input) => {
+        base.map((input, index) => {
           if (["propertyId", "unitNumber"].includes(input.data.id))
             return input;
-          return { ...input, value: initialData[input.data.id] };
+          return {
+            ...input,
+            value:
+              input.data.id === "startDate"
+                ? dayjs().format("YYYY-MM-DD")
+                : input.data.id === "endDate"
+                  ? dayjs()
+                      .add(1, "year")
+                      .subtract(1, "day")
+                      .format("YYYY-MM-DD")
+                  : initialData[input.data.id],
+          };
         });
 
       setModalInputs(hydrated || base);

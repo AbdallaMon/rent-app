@@ -13,6 +13,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableFooter,
   Toolbar,
   Tooltip,
   Typography,
@@ -34,6 +35,7 @@ export default function CustomTable({
   total,
   setTotal,
   disablePagination = false,
+  footerRow, // [{ label, value, colSpan }, ...]
 }) {
   const componentRef = useRef(null);
   const [printMode, setPrintMode] = useState(false);
@@ -53,7 +55,6 @@ export default function CustomTable({
   useEffect(() => {
     setSelectedColumns((prev) => {
       const base = buildInitialVisibility(columns);
-      // preserve previous choices where fields still exist
       for (const k of Object.keys(base)) {
         if (k in prev) base[k] = prev[k];
       }
@@ -97,14 +98,45 @@ export default function CustomTable({
 
   const columnsToRender = useMemo(() => {
     if (printMode) return printableColumns;
-    // include actions at the end if present
     return actionsCol ? [...printableColumns, actionsCol] : printableColumns;
   }, [printMode, printableColumns, actionsCol]);
 
   const hasRows = rows && rows.length > 0;
   const isActions = (field) => field === "actions";
+  const totalCols = columnsToRender.length;
+
+  // Normalize footer items to fit the table width
+  const normalizedFooterItems = useMemo(() => {
+    if (!footerRow || !Array.isArray(footerRow) || !totalCols) return null;
+
+    const items = footerRow.map((it) => ({
+      label: it?.label ?? "",
+      value: it?.value ?? "",
+      colSpan: Math.max(1, parseInt(it?.colSpan ?? 1, 10) || 1),
+    }));
+
+    const sum = items.reduce((s, it) => s + it.colSpan, 0);
+
+    // If sum less than total columns, add a filler to consume the rest
+    if (sum < totalCols) {
+      items.unshift({ label: "", value: "", colSpan: totalCols - sum });
+    }
+    // If sum greater than total columns, clamp the last item
+    if (items.reduce((s, it) => s + it.colSpan, 0) > totalCols) {
+      let acc = 0;
+      for (let i = 0; i < items.length; i++) {
+        if (i === items.length - 1) {
+          items[i].colSpan = Math.max(1, totalCols - acc);
+        } else {
+          acc += items[i].colSpan;
+        }
+      }
+    }
+    return items;
+  }, [footerRow, totalCols]);
 
   const cellPaddingX = 1.5;
+
   return (
     <Paper
       elevation={3}
@@ -203,7 +235,7 @@ export default function CustomTable({
         <Table stickyHeader aria-label="data table" sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow>
-              {columnsToRender.map((column, idx) => (
+              {columnsToRender.map((column) => (
                 <TableCell
                   key={column.field}
                   sx={(theme) => ({
@@ -227,6 +259,7 @@ export default function CustomTable({
                     px: cellPaddingX,
                     py: 1.25,
                   })}
+                  title={column.headerName}
                 >
                   <Typography
                     variant="subtitle2"
@@ -235,7 +268,6 @@ export default function CustomTable({
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                     }}
-                    title={column.headerName}
                   >
                     {column.headerName}
                   </Typography>
@@ -285,6 +317,45 @@ export default function CustomTable({
               ))
             )}
           </TableBody>
+
+          {normalizedFooterItems && (
+            <TableFooter>
+              <TableRow>
+                {normalizedFooterItems.map((item, idx) => (
+                  <TableCell
+                    key={`footer-${idx}`}
+                    colSpan={item.colSpan}
+                    sx={(t) => ({
+                      borderTop: `2px solid ${t.palette.divider}`,
+                      backgroundColor:
+                        t.palette.mode === "light"
+                          ? t.palette.grey[50]
+                          : t.palette.background.paper,
+                      fontWeight: 600,
+                      py: 1.25,
+                    })}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: 2,
+                        minHeight: 32,
+                      }}
+                    >
+                      <Typography variant="body2" color="text.secondary">
+                        {item.label}
+                      </Typography>
+                      <Typography variant="body1" color="text.primary">
+                        {item.value}
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableFooter>
+          )}
         </Table>
       </TableContainer>
 

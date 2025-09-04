@@ -46,6 +46,7 @@ export default function ViewComponent({
   rerender,
   noPagination,
   noCreate,
+  footerRow,
 }) {
   const [view, setView] = useState("table");
   const [showForm, setShowForm] = useState(directEdit);
@@ -156,7 +157,6 @@ export default function ViewComponent({
       <Typography variant="h5" fontWeight={700} sx={{ mb: -1, mt: 1 }}>
         {title}
       </Typography>
-
       {view === "table" && (
         <CustomTable
           columns={columns}
@@ -169,6 +169,7 @@ export default function ViewComponent({
           total={total}
           setTotal={setTotal}
           disablePagination={noPagination}
+          footerRow={footerRow}
         />
       )}
 

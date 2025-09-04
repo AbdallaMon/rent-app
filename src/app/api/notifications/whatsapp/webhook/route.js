@@ -7,6 +7,11 @@ import {
   handleButtonReply,
   handleListReply,
 } from "@/services/server/whatsapp/handlers/interactive";
+import {
+  getOrCreateOpenConversation,
+  touchConversation,
+} from "@/services/server/whatsapp/conversations";
+
 import { handleTextMessage } from "@/services/server/whatsapp/handlers/text";
 import { getSession, setSession } from "@/services/server/whatsapp/session";
 import { findClientWithPropertyProduction } from "@/services/server/whatsapp/services/clients";
@@ -45,6 +50,7 @@ export async function POST(request) {
     for (const entry of entries) {
       for (const change of entry?.changes || []) {
         const messages = change?.value?.messages || [];
+
         for (const msg of messages) {
           const msgId = msg?.id;
           if (!msgId) continue;
@@ -53,55 +59,105 @@ export async function POST(request) {
 
           const from = msg?.from;
           if (!from) continue;
+
           let incomingMessage;
+          let conversation; // <-- link
+
           try {
+            // 1) Session (memory) gate for greeting
             const sess = getSession(from);
             if (!sess || !sess.step || sess.step === "greeting") {
-              setSession(from, { step: "awaiting_language_selection" });
+              const next = setSession(from, {
+                step: "awaiting_language_selection",
+              });
+              // Create/open DB conversation and store a snapshot of session
+              conversation = await getOrCreateOpenConversation({
+                phoneNumber: from,
+                clientId: null, // will set after client lookup (below)
+                snapshot: { step: next.step, language: next.language },
+              });
               await sendLanguage(from);
+              // Touch the conversation for this inbound message (count +1)
+              await touchConversation(conversation.id, {
+                metadata: {
+                  ...conversation.metadata,
+                  lastInboundType:
+                    msg?.type || (msg?.interactive?.type ?? "text"),
+                },
+              });
               continue;
             }
 
+            // 2) Identify client (your existing logic)
             const { e164, core } = normalizePhone(from);
             const e164Req = await findClientWithPropertyProduction(e164);
             const coreReq = await findClientWithPropertyProduction(core);
             let client;
-            if (e164Req.success) {
-              client = e164Req.client;
-            }
-            if (coreReq.success) {
-              client = coreReq.client;
-            }
+            if (e164Req.success) client = e164Req.client;
+            if (coreReq.success) client = coreReq.client;
+
+            // 3) Ensure conversation exists (and update snapshot)
+            const snapshot = { step: sess.step, language: sess.language };
+            conversation = await getOrCreateOpenConversation({
+              phoneNumber: from,
+              clientId: client?.id ?? null,
+              snapshot,
+            });
+
+            // 4) Persist incoming message (link it if your model supports relation)
             if (client) {
               incomingMessage = await createAWhatsAppIncomingMessage({
                 msg,
                 client,
+                // If your Incoming model supports relationKey/Id, pass it here:
+                relationKey: "conversation",
+                relationId: conversation.id,
               });
             }
 
+            // 5) Route by interactive first, then text
             if (msg?.interactive?.type === "button_reply") {
               await handleButtonReply(
                 from,
                 msg.interactive.button_reply?.id,
-                incomingMessage
+                incomingMessage,
+                conversation
               );
+              await touchConversation(conversation.id, {
+                metadata: {
+                  ...conversation.metadata,
+                  lastInboundType: "button_reply",
+                },
+              });
               continue;
             }
+
             if (msg?.interactive?.type === "list_reply") {
               await handleListReply(
                 from,
                 msg.interactive.list_reply?.id,
-                incomingMessage
+                incomingMessage,
+                conversation
               );
+              await touchConversation(conversation.id, {
+                metadata: {
+                  ...conversation.metadata,
+                  lastInboundType: "list_reply",
+                },
+              });
               continue;
             }
 
-            const text = msg?.text?.body;
-            await handleTextMessage(
-              from,
-              typeof text === "string" ? text : "",
-              incomingMessage
-            );
+            const text = msg?.text?.body || "";
+            await handleTextMessage(from, text, incomingMessage, conversation);
+
+            // 6) Count + update lastMessageAt for any inbound
+            await touchConversation(conversation.id, {
+              metadata: {
+                ...conversation.metadata,
+                lastInboundType: text ? "text" : "unknown",
+              },
+            });
           } catch (err) {
             console.error("Per-message error:", err);
             if (incomingMessage) {
@@ -121,10 +177,12 @@ export async function POST(request) {
         }
       }
     }
-    return NextResponse.json({ success: true });
+
+    return Response.json({ success: true });
   } catch (e) {
     console.error("Webhook POST error:", e);
-    return NextResponse.json(
+    // keep 200 for Meta; include error in body to inspect
+    return Response.json(
       { success: false, error: e?.message || "error" },
       { status: 200 }
     );

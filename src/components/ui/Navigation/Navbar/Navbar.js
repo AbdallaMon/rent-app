@@ -38,6 +38,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthProvider/AuthProvider";
 import { handleRequestSubmit } from "@/helpers/functions/handleRequestSubmit";
 import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
+import { BalanceOutlined } from "@mui/icons-material";
 
 const drawerWidth = 240;
 
@@ -67,22 +68,11 @@ const navItems = [
     text: "لوحة تحكم الواتساب",
     area: "WHATSAPP",
   },
-  {
-    href: "/whatsapp/reminders",
-    Icon: NotificationsIcon,
-    text: "إدارة التذكيرات",
-    area: "WHATSAPP",
-  },
+
   {
     href: "/whatsapp/settings",
     Icon: SettingsIcon,
     text: "إعدادات الواتساب",
-    area: "WHATSAPP",
-  },
-  {
-    href: "/whatsapp/analytics",
-    Icon: BarChartIcon,
-    text: "تحليلات الواتساب",
     area: "WHATSAPP",
   },
 
@@ -93,18 +83,18 @@ const navItems = [
     area: "MAINTENANCE",
   },
   { href: "/reports", Icon: ReceiptIcon, text: "التقارير", area: "REPORT" },
-  {
-    href: "/reports/expiring-contracts",
-    Icon: BarChartIcon,
-    text: "العقود المنتهية",
-    area: "REPORT",
-  },
   { href: "/owners", Icon: PeopleIcon, text: "اصحاب الاملاك", area: "OWNER" },
   { href: "/renters", Icon: GroupIcon, text: "المستأجرين", area: "RENTER" },
   {
     href: "/accounting",
     Icon: AccountBalanceIcon,
     text: "المحاسبة",
+    area: "ACCOUNTING",
+  },
+  {
+    href: "/accounting/petty-cash",
+    Icon: BalanceOutlined,
+    text: "الصندوق الصغير",
     area: "ACCOUNTING",
   },
   {

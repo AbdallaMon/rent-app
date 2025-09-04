@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { getGlAccountById, getGLIdByCode } from "./main";
 
 export async function getJournalsEntries(page, limit, searchParams) {
   const offset = (page - 1) * limit;
@@ -99,10 +100,15 @@ export async function getJournalsEntries(page, limit, searchParams) {
         include: {
           glAccount: true,
           partyClient: true,
+          settlementLines: true,
         },
       },
     },
   });
+
+  let totalAmount = 0;
+  let totalSettled = 0;
+  let totalLeft = 0;
   journals.map((journal) => {
     const debit = journal.lines.find((line) => line.side === "DEBIT");
     const credit = journal.lines.find((line) => line.side === "CREDIT");
@@ -110,11 +116,100 @@ export async function getJournalsEntries(page, limit, searchParams) {
     journal.creditAmount = credit ? credit.amount : 0;
     journal.debit = debit ? debit : null;
     journal.credit = credit ? credit : null;
+    totalAmount += journal.debitAmount;
+    const settled = (debit?.settlementLines ?? []).reduce((sum, s) => {
+      const v = Number(s?.amountMatched ?? 0);
+      return sum + (isNaN(v) ? 0 : v);
+    }, 0);
+    totalSettled += settled;
+    totalLeft += journal.debitAmount - settled;
     return journal;
   });
   const total = await prisma.journalEntry.count({ where });
 
-  return { data: journals, page, total };
+  return {
+    data: journals,
+    page,
+    total,
+    otherData: { totalAmount, totalSettled, totalLeft },
+  };
+}
+
+export async function getPettyCashJournalEntries(page, limit, searchParams) {
+  const offset = (page - 1) * limit;
+
+  const filters = searchParams.get("filters")
+    ? JSON.parse(searchParams.get("filters"))
+    : {};
+  const where = {};
+  const type = searchParams.get("type");
+  let { startDate, endDate, glAccount, ownerId, renterId, propertyId, unitId } =
+    filters;
+  if (startDate && endDate) {
+    where.entryDate = {
+      gte: new Date(startDate),
+      lte: new Date(endDate),
+    };
+  } else if (startDate) {
+    where.entryDate = {
+      gte: new Date(startDate),
+    };
+  } else if (endDate) {
+    where.entryDate = {
+      lte: new Date(endDate),
+    };
+  }
+
+  const pettyCashAccountId = await getGLIdByCode("1130");
+  where.lines = {
+    some: {
+      ...where.lines?.some,
+      glAccountId: Number(pettyCashAccountId),
+    },
+  };
+  const journals = await prisma.journalEntry.findMany({
+    skip: offset,
+    take: limit,
+    where,
+    orderBy: [{ entryDate: "desc" }, { id: "desc" }],
+    include: {
+      lines: {
+        include: {
+          glAccount: true,
+          partyClient: true,
+          settlementLines: true,
+        },
+      },
+    },
+  });
+
+  let totalAmount = 0;
+  let totalSettled = 0;
+  let totalLeft = 0;
+  journals.map((journal) => {
+    const debit = journal.lines.find((line) => line.side === "DEBIT");
+    const credit = journal.lines.find((line) => line.side === "CREDIT");
+    journal.debitAmount = debit ? debit.amount : 0;
+    journal.creditAmount = credit ? credit.amount : 0;
+    journal.debit = debit ? debit : null;
+    journal.credit = credit ? credit : null;
+    totalAmount += journal.debitAmount;
+    const settled = (debit?.settlementLines ?? []).reduce((sum, s) => {
+      const v = Number(s?.amountMatched ?? 0);
+      return sum + (isNaN(v) ? 0 : v);
+    }, 0);
+    totalSettled += settled;
+    totalLeft += journal.debitAmount - settled;
+    return journal;
+  });
+  const total = await prisma.journalEntry.count({ where });
+
+  return {
+    data: journals,
+    page,
+    total,
+    otherData: { totalAmount, totalSettled, totalLeft },
+  };
 }
 
 export async function getJournals(page, limit, searchParams) {
@@ -207,18 +302,40 @@ export async function getJournals(page, limit, searchParams) {
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   });
+  let totalDebit = 0;
+  let totalCredit = 0;
+  let totalAmount = 0;
+  let totalSettled = 0;
+  let totalLeft = 0;
   journals.map((journal) => {
     const debit = { ...journal };
     const credit = journal.entry.lines.find((line) => line.side === "CREDIT");
     journal.debitAmount = debit ? debit.amount : 0;
+    totalDebit += journal.debitAmount;
     journal.creditAmount = credit ? credit.amount : 0;
+    totalCredit += journal.creditAmount;
+    totalAmount += journal.amount;
     journal.debit = debit ? debit : null;
     journal.credit = credit ? credit : null;
     journal.lines = journal.entry.lines;
+    const settled = (journal?.settlementLines ?? []).reduce((sum, s) => {
+      const v = Number(s?.amountMatched ?? 0);
+      return sum + (isNaN(v) ? 0 : v);
+    }, 0);
+    totalSettled += settled;
+    totalLeft += journal.amount - settled;
     return journal;
   });
+
+  const otherData = {
+    totalDebit,
+    totalCredit,
+    totalAmount,
+    totalSettled,
+    totalLeft,
+  };
   const total = await prisma.journalLine.count({ where });
-  return { data: journals, page, total };
+  return { data: journals, page, total, otherData };
 }
 
 export async function getJournalLineById(page, limit, searchParams, params) {

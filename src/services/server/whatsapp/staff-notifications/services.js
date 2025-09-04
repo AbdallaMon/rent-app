@@ -180,6 +180,82 @@ export async function sendMaintainceRequestToTech({
     console.log("error sending notifcation to technician", e.message);
   }
 }
+export async function sendMaintainceRequestToCS({
+  requestId,
+  propertyName,
+  unitNumber,
+  clientPhone,
+  requestDate,
+  type,
+  maintenanceType,
+  description,
+  priority,
+  clientName,
+}) {
+  const teamSettings = await getTeamSettings();
+  const customerServicePhone = teamSettings?.customerServicePhone;
+  const recipient = normalizePhone(customerServicePhone);
+  const templateName = "maintenance_request_tc_v3";
+  const language = "ar_AE";
+  const relationKey = messageTypes.MAINTAINCE_REQUEST_TO_TECH;
+  const logData = {
+    relationId: String(requestId),
+    relationKey,
+    recipient,
+    language,
+    status: messageStatus.SCHEDULED,
+    messageType: relationKey,
+    templateName,
+  };
+  const log = await logWhatsApp({
+    ...logData,
+  });
+  try {
+    const textForSession = buildArabicMessageByType(type);
+    const bodyParams = [
+      str(requestId),
+      str(clientName),
+      str(priority),
+      str(maintenanceType),
+      str(description),
+      str(clientPhone),
+      str(propertyName),
+      str(unitNumber),
+      formatDate(requestDate),
+    ];
+    const result = await sendSmart({
+      to: recipient,
+      text: textForSession,
+      spec: {
+        templateName,
+        language,
+        bodyParams,
+      },
+    });
+    await updateWhatsAppLog({
+      logId: log.id,
+      status: messageStatus.DELIVERED,
+      other: {
+        language: result.language,
+        metadata: result.meta,
+      },
+    });
+    console.log(
+      "sent maintenance request to cs phone:",
+      teamSettings.customerServicePhone
+    );
+    return result;
+  } catch (e) {
+    console.error("WA template failed:", e?.response?.data || e);
+
+    await updateWhatsAppLog({
+      logId: log.id,
+      status: messageStatus.FAILED,
+      other: { metadata: e?.response || { error: e?.message } },
+    });
+    console.log("error sending notifcation to technician", e.message);
+  }
+}
 export async function sendComplaintRequestToCs({
   requestId,
   propertyName,
