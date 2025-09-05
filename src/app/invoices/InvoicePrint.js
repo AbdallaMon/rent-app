@@ -1,10 +1,25 @@
+"use client";
 import React, { forwardRef } from "react";
-import { PaymentType } from "@/config/Enums";
-import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 import dayjs from "dayjs";
 import "dayjs/locale/ar";
+import { useTheme, alpha } from "@mui/material";
+import { PaymentType } from "@/config/Enums";
+import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 
 const InvoicePrint = forwardRef(({ invoice }, ref) => {
+  const theme = useTheme();
+  const c = {
+    primary: theme.palette.primary.main,
+    primaryContrast: theme.palette.primary.contrastText,
+    text: theme.palette.text.primary,
+    muted: theme.palette.text.secondary,
+    paper: theme.palette.background.paper,
+    defaultBg: theme.palette.background.default,
+    divider: theme.palette.divider,
+    softPrimaryBg: alpha(theme.palette.primary.main, 0.08),
+    veryLightBg: theme.palette.grey[50],
+  };
+
   return (
     <div
       ref={ref}
@@ -14,70 +29,56 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
         maxWidth: "210mm",
         margin: "auto",
         direction: "rtl",
-        backgroundColor: "#fff",
+        backgroundColor: c.paper,
         fontFamily: "inherit",
         fontSize: "14px",
         lineHeight: 1.6,
-        color: "#333",
+        color: c.text,
         minHeight: "100vh",
       }}
     >
-      {/* رأس الفاتورة */}
+      {/* header */}
       <div
         style={{
           textAlign: "center",
           marginBottom: "30px",
-          borderBottom: "2px solid #1976d2",
+          borderBottom: `2px solid ${c.primary}`,
           paddingBottom: "15px",
         }}
       >
         <h1
           style={{
             fontWeight: "bold",
-            color: "#1976d2",
+            color: c.primary,
             margin: "0 0 10px 0",
             fontSize: "28px",
           }}
         >
           سند قبض
         </h1>
-        <div
-          style={{
-            color: "#666",
-            fontSize: "18px",
-            marginBottom: "5px",
-          }}
-        >
+        <div style={{ color: c.muted, fontSize: "18px", marginBottom: "5px" }}>
           شركة تار العقارية
         </div>
-        <div
-          style={{
-            color: "#666",
-            fontSize: "14px",
-          }}
-        >
+        <div style={{ color: c.muted, fontSize: "14px" }}>
           تاريخ الطباعة: {dayjs().format("DD/MM/YYYY")}
         </div>
       </div>
 
-      {/* معلومات الفاتورة الأساسية */}
+      {/* basic info */}
       <div
         style={{
           marginBottom: "25px",
           padding: "15px",
-          backgroundColor: "#f5f5f5",
+          backgroundColor: c.defaultBg,
           borderRadius: "5px",
         }}
       >
         <h3
-          style={{
-            margin: "0 0 15px 0",
-            color: "#1976d2",
-            fontSize: "16px",
-          }}
+          style={{ margin: "0 0 15px 0", color: c.primary, fontSize: "16px" }}
         >
           معلومات السند
         </h3>
+
         <div
           style={{
             display: "grid",
@@ -86,24 +87,24 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
             marginBottom: "15px",
           }}
         >
-          {/* رقم السند على السطر الكامل */}
+          {/* full-width receipt number */}
           <div
             style={{
-              backgroundColor: "#f8f9fa",
+              backgroundColor: c.veryLightBg,
               padding: "12px",
-              border: "2px solid #007bff",
+              border: `2px solid ${c.primary}`,
               borderRadius: "8px",
               textAlign: "center",
               fontSize: "18px",
               fontWeight: "bold",
-              color: "#007bff",
+              color: c.primary,
             }}
           >
             <strong>رقم السند:</strong> {invoice.displayId || `#${invoice.id}`}
           </div>
         </div>
 
-        {/* باقي المعلومات في شبكة */}
+        {/* grid details */}
         <div
           style={{
             display: "grid",
@@ -132,35 +133,29 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
         </div>
       </div>
 
-      {/* تفاصيل الدفعة */}
+      {/* payment details table */}
       <table
         style={{
           width: "100%",
           borderCollapse: "collapse",
           marginBottom: "25px",
-          border: "1px solid #ddd",
+          border: `1px solid ${c.divider}`,
         }}
       >
         <thead>
-          <tr style={{ backgroundColor: "#1976d2", color: "white" }}>
-            <th
-              style={{
-                padding: "12px",
-                textAlign: "center",
-                border: "1px solid #ddd",
-              }}
-            >
-              البيان
-            </th>
-            <th
-              style={{
-                padding: "12px",
-                textAlign: "center",
-                border: "1px solid #ddd",
-              }}
-            >
-              التفاصيل
-            </th>
+          <tr style={{ backgroundColor: c.primary, color: c.primaryContrast }}>
+            {["البيان", "التفاصيل"].map((h) => (
+              <th
+                key={h}
+                style={{
+                  padding: "12px",
+                  textAlign: "center",
+                  border: `1px solid ${c.divider}`,
+                }}
+              >
+                {h}
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
@@ -168,30 +163,35 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
             <td
               style={{
                 padding: "10px",
-                border: "1px solid #ddd",
+                border: `1px solid ${c.divider}`,
                 fontWeight: "bold",
-                backgroundColor: "#f9f9f9",
+                backgroundColor: c.veryLightBg,
               }}
             >
               مستلم من
             </td>
-            <td style={{ padding: "10px", border: "1px solid #ddd" }}>
+            <td style={{ padding: "10px", border: `1px solid ${c.divider}` }}>
               {invoice.invoiceType === "MAINTENANCE" ||
               invoice.invoiceType === "MANAGEMENT_COMMISSION"
                 ? invoice.rentAgreement?.unit?.property?.owner?.name ||
                   invoice.property?.owner?.name ||
                   invoice.unit?.property?.owner?.name ||
                   "غير محدد"
-                : `الوحدة رقم: ${invoice.rentAgreement?.unit?.number || invoice.unit?.number || "غير محدد"}`}
+                : `الوحدة رقم: ${
+                    invoice.rentAgreement?.unit?.number ||
+                    invoice.unit?.number ||
+                    "غير محدد"
+                  }`}
             </td>
           </tr>
+
           <tr>
             <td
               style={{
                 padding: "10px",
-                border: "1px solid #ddd",
+                border: `1px solid ${c.divider}`,
                 fontWeight: "bold",
-                backgroundColor: "#f9f9f9",
+                backgroundColor: c.veryLightBg,
               }}
             >
               المبلغ
@@ -199,80 +199,79 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
             <td
               style={{
                 padding: "10px",
-                border: "1px solid #ddd",
+                border: `1px solid ${c.divider}`,
                 fontWeight: "bold",
-                color: "#1976d2",
+                color: c.primary,
                 fontSize: "16px",
               }}
             >
               {invoice.amount ? formatCurrencyAED(invoice.amount) : "غير محدد"}
             </td>
           </tr>
+
           <tr>
             <td
               style={{
                 padding: "10px",
-                border: "1px solid #ddd",
+                border: `1px solid ${c.divider}`,
                 fontWeight: "bold",
-                backgroundColor: "#f9f9f9",
+                backgroundColor: c.veryLightBg,
               }}
             >
               العقار
             </td>
-            <td style={{ padding: "10px", border: "1px solid #ddd" }}>
+            <td style={{ padding: "10px", border: `1px solid ${c.divider}` }}>
               {invoice.property?.name || "غير محدد"}
             </td>
           </tr>
+
           <tr>
             <td
               style={{
                 padding: "10px",
-                border: "1px solid #ddd",
+                border: `1px solid ${c.divider}`,
                 fontWeight: "bold",
-                backgroundColor: "#f9f9f9",
+                backgroundColor: c.veryLightBg,
               }}
             >
               تاريخ الاستحقاق
             </td>
-            <td style={{ padding: "10px", border: "1px solid #ddd" }}>
+            <td style={{ padding: "10px", border: `1px solid ${c.divider}` }}>
               {invoice.payment?.dueDate
                 ? dayjs(invoice.payment.dueDate).format("DD/MM/YYYY")
                 : "غير محدد"}
             </td>
           </tr>
+
           <tr>
             <td
               style={{
                 padding: "10px",
-                border: "1px solid #ddd",
+                border: `1px solid ${c.divider}`,
                 fontWeight: "bold",
-                backgroundColor: "#f9f9f9",
+                backgroundColor: c.veryLightBg,
               }}
             >
               المحصل
             </td>
-            <td style={{ padding: "10px", border: "1px solid #ddd" }}>
+            <td style={{ padding: "10px", border: `1px solid ${c.divider}` }}>
               {invoice.property?.collector?.name || "غير محدد"}
             </td>
           </tr>
         </tbody>
       </table>
 
-      {/* تفاصيل العملية */}
+      {/* description */}
       <div
         style={{
-          marginBottom: "25px",
+          marginBottom: "12px",
           padding: "15px",
-          backgroundColor: "#f5f5f5",
+          backgroundColor: c.defaultBg,
           borderRadius: "5px",
         }}
       >
         <h3
-          style={{
-            margin: "0 0 15px 0",
-            color: "#1976d2",
-            fontSize: "16px",
-          }}
+          style={{ margin: "0 0 15px 0", color: c.primary, fontSize: "16px" }}
         >
           تفاصيل العملية
         </h3>
@@ -316,13 +315,13 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
         </div>
       </div>
 
-      {/* قسم التوقيع */}
+      {/* signatures */}
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: "40px",
-          marginTop: "40px",
+          marginTop: "20px",
           paddingTop: "20px",
         }}
       >
@@ -338,11 +337,11 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
           </div>
           <div
             style={{
-              borderBottom: "2px solid #333",
+              borderBottom: `2px solid ${theme.palette.text.primary}`,
               width: "150px",
               margin: "0 auto",
             }}
-          ></div>
+          />
         </div>
 
         <div style={{ textAlign: "center" }}>
@@ -357,26 +356,26 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
           </div>
           <div
             style={{
-              borderBottom: "2px solid #333",
+              borderBottom: `2px solid ${theme.palette.text.primary}`,
               width: "150px",
               margin: "0 auto",
             }}
-          ></div>
+          />
         </div>
       </div>
 
-      {/* الفوتر */}
+      {/* footer */}
       <div
         style={{
           marginTop: "40px",
           textAlign: "center",
-          padding: "15px",
-          borderTop: "2px solid #1976d2",
+          padding: "8px",
+          borderTop: `2px solid ${c.primary}`,
           fontSize: "12px",
-          color: "#666",
+          color: c.muted,
         }}
       >
-        <div style={{ marginBottom: "5px", fontWeight: "bold" }}>
+        <div style={{ marginBottom: "5px", fontWeight: "bold", color: c.text }}>
           شركة تار العقارية - إدارة وتطوير العقارات
         </div>
         <div>
@@ -389,5 +388,4 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
 });
 
 InvoicePrint.displayName = "InvoicePrint";
-
 export default InvoicePrint;

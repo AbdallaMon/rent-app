@@ -173,6 +173,15 @@ async function getOwners() {
   }
 }
 
+async function getClients() {
+  try {
+    const owners = await prisma.client.findMany({});
+    return owners;
+  } catch (error) {
+    console.error("Error fetching owners:", error);
+    throw error;
+  }
+}
 async function getOwnersByProperty() {
   try {
     let where = { role: "OWNER" };
@@ -612,8 +621,13 @@ async function getExpenseTypes() {
   const expenseTypes = await prisma.propertyExpenseType.findMany();
   return expenseTypes;
 }
-async function getGlAccounts() {
-  const glAccounts = await prisma.GLAccount.findMany();
+async function getGlAccounts(searchParams) {
+  const type = searchParams.get("type");
+  const where = {};
+  if (type) {
+    where.type = type;
+  }
+  const glAccounts = await prisma.GLAccount.findMany({ where });
   return glAccounts;
 }
 async function getCompanyBankAccounts() {
@@ -655,4 +669,5 @@ export {
   getContractPayments,
   getGlAccounts,
   getFastRentAgreements,
+  getClients,
 };

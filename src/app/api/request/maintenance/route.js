@@ -1,33 +1,11 @@
-// /app/api/request/maintenance/route.js
+import { createHandler } from "@/app/api/handler";
+import { getMaintenanceRequests } from "@/services/server/requests/get-data";
+import { createMaintenanceReqeust } from "@/services/server/requests/actions";
 
-import { getMaintenanceRequests } from "@/services/server/maintenanceRequestHandlers";
+const handler = createHandler({
+  getService: getMaintenanceRequests,
+  postService: createMaintenanceReqeust,
+});
 
-export const dynamic = 'force-dynamic';
-const handlerObject = {
-  maintenanceRequest: {
-    GET: getMaintenanceRequests,
-  }
-};
-
-export async function GET(request) {
-  try {
-    const { searchParams } = request.nextUrl;
-    const id = searchParams.get("id");
-    
-    if (!handlerObject[id] || !handlerObject[id].GET) {
-      return Response.json({
-        status: "error",
-        message: "Invalid handler ID",
-      }, { status: 400 });
-    }
-    
-    const data = await handlerObject[id].GET(searchParams);
-    return Response.json(data);
-  } catch (error) {
-    console.error(error);
-    return Response.json({
-      status: "error",
-      message: "An error occurred while processing your request.",
-    }, { status: 500 });
-  }
-}
+export const GET = handler.GET;
+export const POST = handler.POST;

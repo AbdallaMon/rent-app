@@ -10,10 +10,7 @@ import {
   sendMaintainceRequestToCS,
   sendMaintainceRequestToTech,
 } from "../staff-notifications/services";
-async function generateMaintenanceDisplayId(prisma) {
-  const seq = await prisma.maintenanceRequest.count();
-  return "MR-" + String(seq + 1).padStart(6, "0");
-}
+import { generateRequestDisplayId } from "../../requests/actions";
 
 export async function createMaintenanceRequestProduction(
   phoneNumber,
@@ -32,8 +29,10 @@ export async function createMaintenanceRequestProduction(
     }
 
     const { client, property, unit } = clientData;
-    const displayId = await generateMaintenanceDisplayId(prisma);
-
+    const displayId = await generateRequestDisplayId({
+      model: "maintenanceRequest",
+      date: new Date(),
+    });
     const inputType = (session?.data?.maintenanceType || "other").toLowerCase();
     const mappedType = TYPE_MAP_MAINT[inputType] || "OTHER";
 
@@ -67,6 +66,8 @@ export async function createMaintenanceRequestProduction(
         requestId: maintenanceRequest.id,
         clientName: client.name,
         clientPhone: phoneNumber,
+        displayId: maintenanceRequest.displayId,
+
         propertyName: property?.name || "غير محدد",
         maintenanceType: MaintenanceTypeLabels[maintenanceRequest.type].ar,
         priority: PriorityLabels[maintenanceRequest.priority].ar,
@@ -83,6 +84,7 @@ export async function createMaintenanceRequestProduction(
         clientName: client.name,
         clientPhone: phoneNumber,
         propertyName: property?.name || "غير محدد",
+        displayId: maintenanceRequest.displayId,
         maintenanceType: MaintenanceTypeLabels[maintenanceRequest.type].ar,
         priority: PriorityLabels[maintenanceRequest.priority].ar,
         description,

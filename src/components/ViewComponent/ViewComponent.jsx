@@ -7,6 +7,8 @@ import { EditTableModal } from "@/components/ui/Modals/EditTableModal";
 import { useTableForm } from "@/app/context/TableFormProvider/TableFormProvider";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { CreateFormModal } from "@/components/ui/Modals/CreateFormModal";
+import { EditFormModal } from "@/components/ui/Modals/EditFormModal";
+
 import { useAuth } from "@/app/context/AuthProvider/AuthProvider";
 import { usePathname } from "next/navigation";
 import { getCurrentPrivilege } from "@/helpers/functions/getUserPrivilege";
@@ -47,11 +49,25 @@ export default function ViewComponent({
   noPagination,
   noCreate,
   footerRow,
+  withEdit,
+  editInputs,
+  onEdit,
+  parseNewData,
 }) {
   const [view, setView] = useState("table");
   const [showForm, setShowForm] = useState(directEdit);
   const { openModal, submitData } = useTableForm();
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [currentId, setCurrentId] = useState(null);
+  function openEditModal(data) {
+    setCurrentId(data.id);
+    setEditModalOpen(true);
+  }
+  function closeEditModal(data) {
+    setCurrentId(null);
+    setEditModalOpen(false);
+  }
   const { user } = useAuth();
   const pathName = usePathname();
 
@@ -75,11 +91,15 @@ export default function ViewComponent({
     const newData = submitFunction
       ? await submitFunction(data)
       : await submitData(data, null, null, "POST", null, "json", url);
-
-    if (rows.length < limit && newData) {
-      setData((old) => [...old, newData]);
-    } else {
-      setTotal((old) => old + 1);
+    console.log(newData, "newData");
+    console.log(parseNewData, "parseNewData");
+    if (newData.status === 500) return;
+    if (newData) {
+      if ((rows.length < limit && newData) || parseNewData) {
+        setData((old) => [newData, ...old]);
+      } else {
+        setTotal((old) => old + 1);
+      }
     }
     return newData;
   }
@@ -170,6 +190,8 @@ export default function ViewComponent({
           setTotal={setTotal}
           disablePagination={noPagination}
           footerRow={footerRow}
+          edit={canEdit && withEdit}
+          openEditModal={openEditModal}
         />
       )}
 
@@ -203,6 +225,24 @@ export default function ViewComponent({
         >
           {children}
         </CreateFormModal>
+      )}
+      {withEdit && canEdit && currentId && (
+        <EditFormModal
+          open={editModalOpen}
+          inputs={editInputs}
+          formTitle={formTitle}
+          onSubmit={onEdit}
+          extraComponent={extraComponent}
+          disabled={disabled}
+          setData={setData}
+          reFetch={reFetch}
+          rows={rows}
+          currentId={currentId}
+          closeEditModal={closeEditModal}
+          url={url}
+        >
+          {children}
+        </EditFormModal>
       )}
     </Box>
   );

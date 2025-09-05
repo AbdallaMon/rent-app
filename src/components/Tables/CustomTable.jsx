@@ -17,6 +17,7 @@ import {
   Toolbar,
   Tooltip,
   Typography,
+  Button,
 } from "@mui/material";
 import { useReactToPrint } from "react-to-print";
 import PrintIcon from "@mui/icons-material/Print";
@@ -35,11 +36,60 @@ export default function CustomTable({
   total,
   setTotal,
   disablePagination = false,
-  footerRow, // [{ label, value, colSpan }, ...]
+  footerRow,
+  edit,
+  openEditModal,
 }) {
   const componentRef = useRef(null);
   const [printMode, setPrintMode] = useState(false);
-
+  if (edit) {
+    const lastCol = columns[columns.length - 1];
+    if (lastCol.field === "actions") {
+      const oldRenderCell = lastCol.renderCell;
+      columns[columns.length - 1] = {
+        ...columns[columns.length - 1],
+        renderCell: (params) => {
+          return (
+            <>
+              {oldRenderCell()}
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={() => {
+                  openEditModal(params.row);
+                }}
+              >
+                تحديث
+              </Button>
+            </>
+          );
+        },
+      };
+    } else {
+      columns.push({
+        field: "actions",
+        headerName: "تحديث",
+        width: 200,
+        printable: true,
+        cardWidth: 48,
+        renderCell: (params) => {
+          return (
+            <>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={() => {
+                  openEditModal(params.row);
+                }}
+              >
+                تحديث
+              </Button>
+            </>
+          );
+        },
+      });
+    }
+  }
   // Build initial column visibility (default printable unless printable === false)
   const buildInitialVisibility = (cols) =>
     cols.reduce((acc, c) => {

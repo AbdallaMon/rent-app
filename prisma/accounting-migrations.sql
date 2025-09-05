@@ -216,6 +216,24 @@ ADD COLUMN `status` VARCHAR(191) NULL;
 
 ALTER TABLE RentAgreement ADD COLUMN rentCollectionNumber INT NULL;
 ALTER TABLE RentAgreement MODIFY COLUMN rentCollectionType ENUM('NUMBER','TWO_MONTHS','THREE_MONTHS','FOUR_MONTHS','SIX_MONTHS','ONE_YEAR') DEFAULT 'NUMBER';
+-- 1) نضيف الـ ENUM الجديد
+ALTER TABLE `Maintenance`
+  ADD COLUMN `payer` ENUM('COMPANY','OWNER') NOT NULL DEFAULT 'OWNER' AFTER `payEvery`;
+-- 2.1 Allow NULLs on the FKs
+ALTER TABLE `Expense`
+  MODIFY `clientId` INT NULL,
+  MODIFY `propertyId` INT NULL;
+
+-- 2.2 Recreate FKs with ON DELETE SET NULL (drop then add)
+ALTER TABLE `Expense` DROP FOREIGN KEY `Expense_clientId_fkey`;
+ALTER TABLE `Expense` ADD CONSTRAINT `Expense_clientId_fkey`
+  FOREIGN KEY (`clientId`) REFERENCES `Client`(`id`)
+  ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE `Expense` DROP FOREIGN KEY `Expense_propertyId_fkey`;
+ALTER TABLE `Expense` ADD CONSTRAINT `Expense_propertyId_fkey`
+  FOREIGN KEY (`propertyId`) REFERENCES `Property`(`id`)
+  ON DELETE SET NULL ON UPDATE CASCADE;
 
 
 RENAME TABLE state TO State;

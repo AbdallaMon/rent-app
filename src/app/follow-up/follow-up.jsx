@@ -100,8 +100,8 @@ const HomePage = () => {
         <PaymentSection
           payments={sortedPayments(filterPaymentsByDate(maintenance))}
           title="Maintenance Payments"
-          description="فاتورة الصيانة"
-          heading="الصيانة"
+          description="فاتورة المصروفات"
+          heading="المصروفات"
           maintenance={true}
           loading={maintenanceLoading}
           loadingMessage="جاري تحميل دفعات الصيانة"

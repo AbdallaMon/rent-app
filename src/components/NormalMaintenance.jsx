@@ -17,7 +17,7 @@ import {
   TextField,
 } from "@mui/material";
 import Link from "next/link";
-import { PaymentStatus } from "@/config/Enums";
+import { MaintaincePayer, PaymentStatus } from "@/config/Enums";
 import { usePathname, useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -39,6 +39,14 @@ async function getPaymentMethodTypes() {
     { id: "BANK", name: "تحويل بنكي" },
   ];
   return { data: methodTypes };
+}
+async function getPayerTypes() {
+  return {
+    data: Object.keys(MaintaincePayer).map((key) => ({
+      id: key,
+      name: MaintaincePayer[key],
+    })),
+  };
 }
 
 export const maintenanceInputs = [
@@ -77,7 +85,7 @@ export const maintenanceInputs = [
     rerender: true,
     pattern: {
       required: {
-        value: false, // جعل الوحدة اختيارية
+        value: false,
         message: "يرجى إدخال الوحدة",
       },
     },
@@ -114,13 +122,13 @@ export const maintenanceInputs = [
     data: {
       id: "date",
       type: "date",
-      label: "تاريخ الصيانة",
+      label: "تاريخ الصرف",
       name: "date",
     },
     pattern: {
       required: {
         value: true,
-        message: "يرجى إدخال تاريخ الصيانة",
+        message: "يرجى إدخال تاريخ الصرف",
       },
     },
     sx: {
@@ -134,14 +142,14 @@ export const maintenanceInputs = [
     data: {
       id: "typeId",
       type: "select",
-      label: "نوع الصياتة",
+      label: "نوع المصروف",
       name: "typeId",
     },
     autocomplete: true,
     pattern: {
       required: {
         value: true,
-        message: "يرجى إدخال نوع الصيانة",
+        message: "يرجى إدخال نوع المصروف",
       },
     },
     sx: {
@@ -174,6 +182,53 @@ export const maintenanceInputs = [
       },
     },
   },
+  {
+    data: {
+      id: "payer",
+      type: "select",
+      label: "الدافع",
+      name: "payer",
+    },
+    getData: getPayerTypes,
+    sx: {
+      width: {
+        xs: "100%",
+        md: "48%",
+      },
+    },
+    pattern: {
+      required: {
+        value: true,
+        message: "يرجى إدخال الدفع",
+      },
+    },
+  },
+  {
+    id: "glAccountId",
+    data: {
+      id: "glAccountId",
+      type: "select",
+      label: "حساب المدين",
+      name: "glAccountId",
+    },
+    autocomplete: true,
+    extraId: true,
+    rerender: true,
+    sx: {
+      width: {
+        xs: "100%",
+        sm: "48%",
+        md: "47%",
+        lg: "48%",
+      },
+    },
+    pattern: {
+      required: {
+        value: true,
+        message: "يرجى إدخال حساب المدين",
+      },
+    },
+  },
 ];
 export default function NormalMaintenance() {
   return (
@@ -200,15 +255,20 @@ const MaintenanceWrapper = () => {
   } = useDataFetcher("main/maintenance");
   const { id, submitData } = useTableForm();
   const [propertyId, setPropertyId] = useState(null);
+  const [payerType, setPayerType] = useState(null);
   const [propertiesData, setPropertiesData] = useState(null);
   const [selectProperties, setSelectProperties] = useState([]);
-  const [unitData, setUnitData] = useState(null);
   const [startDate, setStartDate] = useState(dayjs().startOf("month"));
   const [endDate, setEndDate] = useState(dayjs().endOf("month"));
   const [typesData, setTypesData] = useState(null);
   const [selectProperty, setSelectProperty] = useState(null);
-  const [disabled, setDisabled] = useState({ unitId: false }); // الوحدة متاحة دائماً لأنها اختيارية
-  const [reFetch, setRefetch] = useState({ unitId: false });
+  const [glAccount, setGlAccount] = useState(null);
+  const [glAccounts, setGlAccounts] = useState([]);
+  const [disabled, setDisabled] = useState({
+    unitId: true,
+    glAccountId: true,
+  });
+  const [reFetch, setRefetch] = useState({ unitId: false, glAccountId: false });
   const router = useRouter();
   const [extraData, setExtraData] = useState({});
   const { user } = useAuth();
@@ -267,25 +327,43 @@ const MaintenanceWrapper = () => {
     setPropertiesData(data);
     return { data };
   }
+  function handlePayerTypeChange(value) {
+    setPayerType(value);
 
-  function handlePropertyChange(value) {
-    setPropertyId(value);
-    router.push("/maintenance?propertyId=" + value);
-    setDisabled({ ...disabled, unitId: false });
-    setRefetch({ ...reFetch, unitId: true });
+    setDisabled((old) => ({ ...old, glAccountId: false }));
+    setRefetch((old) => ({ ...old, glAccountId: true }));
   }
 
+  async function getGlAccounts() {
+    const res = await fetch(
+      "/api/fast-handler?id=glAccounts&type=" +
+        `${payerType === "OWNER" ? "ASSET" : "EXPENSE"}`
+    );
+    const data = await res.json();
+    setGlAccounts(data);
+    const returnedData = data.filter((account) => {
+      return payerType === "OWNER"
+        ? account.code === "1210"
+        : account.code !== "1210";
+    });
+    return { data: returnedData, id: payerType };
+  }
+  function handleGlAccountChange(value) {
+    const currentAccount = glAccounts.find((account) => account.id === value);
+    setGlAccount(currentAccount);
+  }
+  function handlePropertyChange(value) {
+    setPropertyId(value);
+    setDisabled((old) => ({ ...old, unitId: false }));
+    setRefetch((old) => ({ ...old, unitId: true }));
+  }
   async function getUnits() {
-    const searchParams = new URLSearchParams(window.location.search);
-    const propertyId = searchParams.get("propertyId");
-    if (!propertyId) return { data: [] };
     const res = await fetch(
       "/api/fast-handler?id=unit&propertyId=" + propertyId
     );
-    const data = await res.json();
-    setUnitData(data);
 
-    // إضافة خيار "عام - العقار كله" كأول خيار
+    const data = await res.json();
+
     const dataWithLabel = [
       { id: null, name: "عام - العقار كله", number: "عام - العقار كله" },
       ...data.map((item) => ({ ...item, name: item.number })),
@@ -301,35 +379,6 @@ const MaintenanceWrapper = () => {
     return { data };
   }
 
-  const otherInputs = [
-    {
-      data: {
-        id: "startDate",
-        type: "date",
-        label: "تاريخ بداية الأقساط",
-        name: "installmentStartDate",
-      },
-      pattern: {
-        required: { value: true, message: "يرجى إدخال تاريخ بداية الأقساط" },
-      },
-      sx: { width: { xs: "100%", md: "48%" }, mr: "auto" },
-    },
-    {
-      data: {
-        id: "endDate",
-        type: "date",
-        label: "تاريخ نهاية الأقساط",
-        name: "installmentEndDate",
-      },
-      pattern: {
-        required: { value: true, message: "يرجى إدخال تاريخ نهاية الأقساط" },
-      },
-      sx: { width: { xs: "100%", md: "48%" } },
-    },
-  ];
-
-  const [dataInputs, setDataInputs] = useState([]);
-  const [loadingInput, setInputLoading] = useState(true);
   const defInputs = maintenanceInputs.map((input) => {
     switch (input.data.id) {
       case "propertyId":
@@ -347,37 +396,22 @@ const MaintenanceWrapper = () => {
           ...input,
           value: new Date().toISOString().split("T")[0], // تاريخ اليوم كقيمة افتراضية
         };
-      case "payEvery":
+      case "payer":
         return {
           ...input,
-          onChange: (value) => {
-            if (value === "ONCE") {
-              setDataInputs((old) =>
-                old.filter(
-                  (input) =>
-                    input.data.id !== "startDate" && input.data.id !== "endDate"
-                )
-              );
-            } else {
-              setDataInputs((old) => {
-                const withoutOtherInputs = old.filter(
-                  (input) =>
-                    input.data.id !== "startDate" && input.data.id !== "endDate"
-                );
-                return [...withoutOtherInputs, ...otherInputs];
-              });
-            }
-          },
+          onChange: handlePayerTypeChange,
         };
+      case "glAccountId":
+        return {
+          ...input,
+          getData: getGlAccounts,
+          onChange: handleGlAccountChange,
+        };
+
       default:
         return input;
     }
   });
-
-  useEffect(() => {
-    setDataInputs(defInputs);
-    setInputLoading(false);
-  }, []);
 
   async function handleDelete(id) {
     const filterData = data.filter((item) => +item.id !== +id);
@@ -439,11 +473,19 @@ const MaintenanceWrapper = () => {
     },
     {
       field: "type",
-      headerName: "نوع   الصيانة",
+      headerName: "نوع المصروف",
       width: 200,
       printable: true,
       cardWidth: 48,
       renderCell: (params) => <>{params.row.type?.name}</>,
+    },
+    {
+      field: "payer",
+      headerName: "الدافع",
+      width: 200,
+      printable: true,
+      cardWidth: 48,
+      renderCell: (params) => <>{MaintaincePayer[params.row.payer]}</>,
     },
     {
       field: "status",
@@ -491,8 +533,10 @@ const MaintenanceWrapper = () => {
               maintenance={params.row}
               onUpdate={handleUpdate}
               types={typesData}
+              type="EXPENSE"
             />
           )}
+
           <DeleteModal
             href={`main/maintenance`}
             item={params.row}
@@ -508,12 +552,9 @@ const MaintenanceWrapper = () => {
     const description = `${currentType.name}`;
     return await submitMaintenance(
       { ...data, description, extraData },
-      setSubmitLoading
+      setSubmitLoading,
+      glAccount
     );
-  }
-
-  if (loadingInput) {
-    return null;
   }
 
   return (
@@ -553,9 +594,9 @@ const MaintenanceWrapper = () => {
         </Button>
       </Box>
       <ViewComponent
-        inputs={dataInputs}
-        formTitle={" صيانة"}
-        title={"الصيانات"}
+        inputs={defInputs}
+        formTitle={"مصروف"}
+        title={"المصروفات"}
         totalPages={totalPages}
         rows={data}
         columns={columns}
@@ -575,7 +616,6 @@ const MaintenanceWrapper = () => {
         url={"main/maintenance"}
         onModalOpen={() => {
           router.push("/maintenance");
-          setDataInputs(defInputs);
         }}
       />
     </>

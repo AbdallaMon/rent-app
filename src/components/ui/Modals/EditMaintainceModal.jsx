@@ -33,7 +33,11 @@ const modalBoxSx = {
   p: 3,
 };
 
-export default function EditMaintenanceModal({ maintenance, onUpdate }) {
+export default function EditMaintenanceModal({
+  maintenance,
+  onUpdate,
+  type = "MAINTENANCE",
+}) {
   const [open, setOpen] = useState(false);
   const [typeId, setTypeId] = useState(maintenance.type.id);
   const [types, setTypes] = useState([]);
@@ -87,8 +91,11 @@ export default function EditMaintenanceModal({ maintenance, onUpdate }) {
       <Button
         variant="contained"
         color="primary"
-        borderRadius={2}
         onClick={handleOpen}
+        sx={{
+          borderRadius: 5,
+          mr: 1,
+        }}
       >
         تعديل
       </Button>
@@ -96,14 +103,16 @@ export default function EditMaintenanceModal({ maintenance, onUpdate }) {
       <Modal open={open} onClose={handleClose}>
         <Box sx={modalBoxSx}>
           <Typography variant="h6" gutterBottom>
-            تعديل الصيانة
+            تعديل {type === "MAINTENANCE" ? "الصيانة" : "المصروف"}
           </Typography>
 
           <FormControl fullWidth margin="normal">
-            <InputLabel>نوع الصيانة</InputLabel>
+            <InputLabel>
+              نوع {type === "MAINTENANCE" ? "الصيانة" : "المصروف"}
+            </InputLabel>
             <Select
               value={typeId}
-              label="نوع الصيانة"
+              label={`نوع ${type === "MAINTENANCE" ? "الصيانة" : "المصروف"}`}
               onChange={(e) => setTypeId(e.target.value)}
             >
               {loadingTypes && (
@@ -121,7 +130,7 @@ export default function EditMaintenanceModal({ maintenance, onUpdate }) {
 
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DatePicker
-              label="تاريخ تسجيل الصيانة"
+              label={`تاريخ تسجيل ${type === "MAINTENANCE" ? "الصيانة" : "المصروف"}`}
               value={date}
               onChange={(newDate) => setDate(newDate)}
               renderInput={(params) => (

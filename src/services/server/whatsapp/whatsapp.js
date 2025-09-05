@@ -99,7 +99,7 @@ export async function sendWhatsAppTemplate(
     type: "template",
     template: {
       name: templateName,
-      language: { code: lang }, // e.g. "ar_AE" or "en"
+      language: { code: lang },
     },
   };
 
@@ -116,7 +116,6 @@ export async function sendWhatsAppTemplate(
       },
     ];
   }
-
   const res = await fetch(url, {
     method: "POST",
     headers: {
@@ -129,12 +128,13 @@ export async function sendWhatsAppTemplate(
   if (!res.ok) {
     const err = new Error(`WA template failed: ${res.status}`);
     err.response = data;
+    console.log(data.error.error_data, "data error in whatsapp");
     throw err;
   }
   return data;
 }
 
-export async function sendSmart({ to, text, spec, withMessageLog, extraData }) {
+export async function sendSmart({ to, text, spec }) {
   const e164 = to;
   const resTpl = await sendWhatsAppTemplate(
     e164,

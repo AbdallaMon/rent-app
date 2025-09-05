@@ -11,7 +11,7 @@ const PayEveryMonths = {
   ONE_YEAR: 12,
 };
 
-export async function submitMaintenance(data, setLoading) {
+export async function submitMaintenance(data, setLoading, glAccount) {
   const startDate = new Date(data.startDate);
   const endDate = new Date(data.endDate);
   data.payEvery = "ONCE";
@@ -20,7 +20,15 @@ export async function submitMaintenance(data, setLoading) {
     (endDate.getFullYear() - startDate.getFullYear()) * 12 +
     (endDate.getMonth() - startDate.getMonth());
   const id = toast.loading("يتم مراجعة البيانات...");
-
+  if (data.payEvery === "ONCE") {
+    if (data.payer === "OWNER" && glAccount.code !== "1210") {
+      toast.update(id, Failed("رجاء اختيار مدين مناسب لمصروف علي المالك"));
+      return null;
+    } else if (data.payer === "COMPANY" && glAccount.code === "1210") {
+      toast.update(id, Failed("لا يمكن اختيار مدين علي المالك كمصروف للشركة"));
+      return null;
+    }
+  }
   if (
     data.payEvery !== "ONCE" &&
     (monthDifference % PayEveryMonths[data.payEvery] !== 0 ||
@@ -28,7 +36,7 @@ export async function submitMaintenance(data, setLoading) {
   ) {
     toast.update(
       id,
-      Failed("الرجاء التأكد من تاريخ البداية والنهاية والتكرار المختار "),
+      Failed("الرجاء التأكد من تاريخ البداية والنهاية والتكرار المختار ")
     );
     return null;
   } else {
@@ -40,7 +48,7 @@ export async function submitMaintenance(data, setLoading) {
       setLoading,
       "main/maintenance",
       false,
-      "جاري إنشاء الصيانة...",
+      "جاري إنشاء الصيانة..."
     );
     const installmentsData = {
       maintenanceId: response.data.id,
@@ -52,13 +60,15 @@ export async function submitMaintenance(data, setLoading) {
       payEvery: data.payEvery,
       startDate: data.startDate,
       endDate: data.endDate,
+      glAccountId: data.glAccountId,
+      payer: data.payer,
     };
     const req = await handleRequestSubmit(
       installmentsData,
       setLoading,
       "main/maintenance/" + response.data.id + "/installments",
       false,
-      "جاري إنشاء الدفعات...",
+      "جاري إنشاء الدفعات..."
     );
     const { installments, payments } = req.data;
 
@@ -82,13 +92,14 @@ export async function submitMaintenanceContract(data, setLoading) {
   nextDay.setDate(endDate.getDate() + 1);
   const nextMonth = endDate.getMonth() === 11 ? 0 : endDate.getMonth() + 1;
 
-  const isEndDateLastDay = nextDay.getDate() === 1 && nextDay.getMonth() === nextMonth;
-  if (isStartDateFirstDay&&isEndDateLastDay) {
+  const isEndDateLastDay =
+    nextDay.getDate() === 1 && nextDay.getMonth() === nextMonth;
+  if (isStartDateFirstDay && isEndDateLastDay) {
     endDate = nextDay;
   }
   const monthDifference =
-        (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-        (endDate.getMonth() - startDate.getMonth());
+    (endDate.getFullYear() - startDate.getFullYear()) * 12 +
+    (endDate.getMonth() - startDate.getMonth());
   const id = toast.loading("يتم مراجعة البيانات...");
 
   if (
@@ -98,7 +109,7 @@ export async function submitMaintenanceContract(data, setLoading) {
   ) {
     toast.update(
       id,
-      Failed("الرجاء التأكد من تاريخ البداية والنهاية والتكرار المختار "),
+      Failed("الرجاء التأكد من تاريخ البداية والنهاية والتكرار المختار ")
     );
     return null;
   } else {
@@ -111,7 +122,7 @@ export async function submitMaintenanceContract(data, setLoading) {
       setLoading,
       "main/maintenance",
       false,
-      "جاري إنشاء عقد الصيانة...",
+      "جاري إنشاء عقد الصيانة..."
     );
     const installmentsData = {
       maintenanceId: response.data.id,
@@ -129,7 +140,7 @@ export async function submitMaintenanceContract(data, setLoading) {
       setLoading,
       "main/maintenance/" + response.data.id + "/installments",
       false,
-      "جاري إنشاء الدفعات...",
+      "جاري إنشاء الدفعات..."
     );
     const { installments, payments } = req.data;
     response.data.installments = installments;

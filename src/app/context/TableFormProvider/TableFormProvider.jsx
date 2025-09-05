@@ -22,7 +22,7 @@ export default function TableFormProvider({ children, url }) {
     method = "PUT",
     extra,
     bodyType = "json",
-    otherUrl,
+    otherUrl
   ) {
     url = otherUrl ? otherUrl : url;
     const { extraId, id: handlerId } = extra || {};
@@ -42,7 +42,7 @@ export default function TableFormProvider({ children, url }) {
       }
       setId(null);
     } else {
-      setMessage("حدث خطأ ما");
+      setMessage(res.message || "حدث خطأ ما");
       setSeverity("error");
     }
     return res.data ? res.data : res;

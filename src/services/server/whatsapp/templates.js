@@ -48,79 +48,10 @@ function assertEnv() {
 }
 
 // list of template names you want
-const TARGET_NAMES = [
-  "contact_form_submission",
-  "contact_form_reply",
-  "contact_form_reply_en",
-  "maintenance_status_update",
-  "maintenance_request",
-  "maintenance_status_update_en",
-];
-// async function createComplaintTemplate() {
-//   const url = `https://graph.facebook.com/v19.0/${process.env.WABA_ID}/message_templates`;
+const TARGET_NAMES = ["case_update_tc_v1_ar", "case_update_tc_v1_en"];
 
-//   const payload = {
-//     name: "complaint_request_cs",
-//     language: "ar_AE",
-//     category: "UTILITY",
-//     components: [
-//       // Optional header (static text). Remove this whole block if you don't want a header.
-//       {
-//         type: "HEADER",
-//         format: "TEXT",
-//         text: "طلب شكوى جديد",
-//       },
-//       {
-//         type: "BODY",
-//         text:
-//           "تم استلام شكوى جديدة من العميل:\n" +
-//           "رقم الطلب: {{1}}\n" +
-//           "المعرف الداخلي: {{2}}\n" +
-//           "اسم العميل: {{3}}\n" +
-//           "الأولوية: {{4}}\n" +
-//           "نوع الشكوى: {{5}}\n" +
-//           "رقم العميل: {{6}}\n" +
-//           "العقار: {{7}}\n" +
-//           "الوحدة: {{8}}\n" +
-//           "تاريخ الطلب: {{9}}\n\n" +
-//           "يرجى المراجعة والمتابعة من قبل خدمة العملاء.",
-//         example: {
-//           body_text: [
-//             [
-//               "CMP-00219", // {{1}} displayId
-//               "clmpt_9x1a2b3c", // {{2}} requestId
-//               "أحمد علي", // {{3}} clientName
-//               "عاجلة", // {{4}} priority (label)
-//               "مشكلة صيانة", // {{5}} complaintType (label)
-//               "+971500000000", // {{6}} clientPhone
-//               "برج الريان", // {{7}} propertyName
-//               "A-1203", // {{8}} unitNumber
-//               "15/03/2025", // {{9}} requestDate (date-only)
-//             ],
-//           ],
-//         },
-//       },
-//     ],
-//   };
-
-//   const res = await fetch(url, {
-//     method: "POST",
-//     headers: {
-//       Authorization: `Bearer ${process.env.WHATSAPP_BUSINESS_API_TOKEN}`,
-//       "Content-Type": "application/json",
-//     },
-//     body: JSON.stringify(payload),
-//   });
-
-//   const data = await res.json();
-//   if (!res.ok) {
-//     console.error("Create template failed:", JSON.stringify(data, null, 2));
-//     throw new Error("Template submission failed");
-//   }
-//   console.log("Template submitted:", JSON.stringify(data, null, 2));
-// }
 async function deleteTemplate() {
-  const url = `${GRAPH}/${WABA_ID}/message_templates?name=maintenance_request_tc_v2`;
+  const url = `${GRAPH}/${WABA_ID}/message_templates?name=case_update_tc_v1`;
 
   const res = await fetch(url, {
     method: "DELETE",
@@ -140,48 +71,40 @@ async function deleteTemplate() {
 
 async function createTemplate() {
   const url = `${GRAPH}/${WABA_ID}/message_templates`;
-
+  // case_update_tc_v1
+  // case_update_en_tc_v2;
   const payload = {
-    name: "maintenance_request_tc_v3",
+    name: "case_update_tc_v1_ar",
     language: "ar_AE",
     category: "UTILITY",
     components: [
-      { type: "HEADER", format: "TEXT", text: "طلب صيانة جديد" },
+      // Static header (no placeholders)
+      { type: "HEADER", format: "TEXT", text: "تحديث الحالة" },
+
       {
         type: "BODY",
         text:
-          "تم تسجيل طلب صيانة.\n" +
-          "رقم الطلب: {{1}}\n" +
-          "اسم العميل: {{2}}\n" +
-          "الأولوية: {{3}}\n" +
-          "نوع الصيانة: {{4}}\n" +
-          "تفاصيل: {{5}}\n" +
-          "هاتف العميل: {{6}}\n" +
-          "العقار: {{7}}\n" +
-          "الوحدة: {{8}}\n" +
-          "تاريخ الطلب: {{9}}\n\n" +
-          "يرجى المتابعة من فريق خدمة العملاء/الفني.",
+          "مرحباً،\n" +
+          "نود إبلاغك بتحديث على {{1}} الخاص بك.\n\n" + // caseKind (طلب صيانة / شكوى)
+          "رقم المتابعة: {{2}}\n" + // reference
+          "الحالة: {{3}}\n" + // status
+          "النوع: {{4}}\n" + // type
+          "الموقع: {{5}}\n\n" + // location (العقار – الوحدة)
+          "الملخص: {{6}}\n\n" + // summary
+          "للمزيد من المساعدة، يرجى الرد على هذه الرسالة.",
         example: {
           body_text: [
             [
-              "MR-00190", // {{1}} requestId
-              "أحمد علي", // {{2}} clientName
-              "عاجلة", // {{3}} priority
-              "سباكة", // {{4}} maintenanceType
-              "تسريب مياه بالحمام", // {{5}} issueDetails
-              "+971500000000", // {{6}} clientPhone
-              "برج الريان", // {{7}} propertyName
-              "A-1203", // {{8}} unitNumber
-              "15/03/2025", // {{9}} requestDate
+              "طلب صيانة", // {{1}} caseKind
+              "MR-0190", // {{2}} reference
+              "قيد المعالجة", // {{3}} status
+              "سباكة", // {{4}} type
+              "برج الريان – A-1203", // {{5}} location
+              "تسريب مياه في الحمام", // {{6}} summary
             ],
           ],
         },
       },
-      // Optional quick reply button (safe for Utility):
-      // {
-      //   type: "BUTTONS",
-      //   buttons: [{ type: "QUICK_REPLY", text: "تم" }]
-      // }
     ],
   };
 
@@ -258,14 +181,14 @@ async function getAllWhatsAppTemplates(limit = 100) {
   // await deleteTemplate();
   const templates = await getAllWhatsAppTemplates();
   for (const t of templates) {
-    // if (TARGET_NAMES.includes(t.name)) {
-    console.log("==== TEMPLATE ====");
-    console.log("Name:", t.name);
-    console.log("Lang:", t.language);
-    console.log("Status:", t.status);
-    console.log("Category:", t.category);
-    console.log("Components:", JSON.stringify(t.components, null, 2));
-    console.log("\n");
-    // }
+    if (TARGET_NAMES.includes(t.name)) {
+      console.log("==== TEMPLATE ====");
+      console.log("Name:", t.name);
+      console.log("Lang:", t.language);
+      console.log("Status:", t.status);
+      console.log("Category:", t.category);
+      console.log("Components:", JSON.stringify(t.components, null, 2));
+      console.log("\n");
+    }
   }
 })();

@@ -311,6 +311,7 @@ model Maintenance {
   ownerId       Int?
   unitId        Int?
   typeId        Int
+  payer         MaintenancePayer @default(OWNER)
   totalPrice    Float
   currentStatus Float                    @default(0)
   isPaid        Boolean
@@ -483,25 +484,30 @@ model Income {
   @@index([invoiceId], map: "Income_invoiceId_fkey")
   @@index([propertyId], map: "Income_propertyId_fkey")
 }
-
 model Expense {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   amount      Float
   date        DateTime
   description String
-  propertyId  Int
-  clientId    Int
-  invoiceId   Int
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
-  @@index([clientId], map: "Expense_clientId_fkey")
+  // made optional ↓↓↓
+  propertyId  Int?
+  clientId    Int?
+
+  invoiceId   Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // make relations optional + SET NULL on delete
+  client      Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  invoice     Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  property    Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@index([clientId],  map: "Expense_clientId_fkey")
   @@index([invoiceId], map: "Expense_invoiceId_fkey")
   @@index([propertyId], map: "Expense_propertyId_fkey")
 }
+
 
 model Collector {
   id         Int        @id @default(autoincrement())
@@ -884,6 +890,11 @@ enum ComplaintCategory {
   PAYMENT_ISSUE
   SERVICE_QUALITY
   OTHER
+}
+
+enum MaintenancePayer {
+  COMPANY   
+  OWNER     
 }
 
 enum MaintenanceType {

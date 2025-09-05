@@ -7,11 +7,7 @@ import {
 } from "./constants";
 import { findClientWithPropertyProduction } from "./clients";
 import { sendComplaintRequestToCs } from "../staff-notifications/services";
-
-async function generateComplaintDisplayId(prisma) {
-  const seq = await prisma.complaint.count();
-  return "CP-" + String(seq + 1).padStart(6, "0");
-}
+import { generateRequestDisplayId } from "../../requests/actions";
 
 export async function createComplaintProduction(
   phoneNumber,
@@ -30,7 +26,10 @@ export async function createComplaintProduction(
     }
 
     const { client, property, unit } = clientData;
-    const displayId = await generateComplaintDisplayId(prisma);
+    const displayId = await generateRequestDisplayId({
+      model: "complaint",
+      date: new Date(),
+    });
 
     const inputCategory = (session?.data?.category || "other").toLowerCase();
     const mappedCategory = TYPE_MAP_COMPLAINT[inputCategory] || "OTHER";
@@ -70,6 +69,7 @@ export async function createComplaintProduction(
         description: description,
         clientPhone: phoneNumber,
         propertyName: property?.name || "غير محدد",
+        displayId: complaint.displayId,
         unitNumber:
           unit?.number ||
           unit?.unitId ||

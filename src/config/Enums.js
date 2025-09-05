@@ -24,17 +24,13 @@ const PaymentType = {
   TAX: "ضرائب",
   INSURANCE: "تأمين",
   REGISTRATION: "تسجيل",
-  MAINTENANCE: "صيانة",
+  MAINTENANCE: "مصروف",
   CONTRACT_EXPENSE: "مصاريف عقد",
   OTHER_EXPENSE: "مصاريف أخرى",
   MANAGEMENT_COMMISSION: "عمولة إدارة",
   OTHER: "أخرى",
 };
 
-// LIABILITY
-// EQUITY
-// REVENUE
-// EXPENSE
 const accountType = {
   ASSET: "أصل",
   LIABILITY: "التزام",
@@ -49,12 +45,55 @@ const SecurityDepositStatus = {
   FORFEITED: "مصادرة",
 };
 
+const MaintaincePayer = {
+  COMPANY: "الشركة",
+  OWNER: "المالك",
+};
+const PriorityTypes = {
+  LOW: "منخفضة",
+  MEDIUM: "متوسطة",
+  HIGH: "مرتفعة",
+  URGENT: "عاجلة",
+};
+const MaintenanceType = {
+  ELECTRICAL: "كهرباء",
+  PLUMBING: "سباكة",
+  AC_HEATING: "تكييف/تدفئة",
+  APPLIANCES: "أجهزة",
+  STRUCTURAL: "إنشائي",
+  CLEANING: "تنظيف",
+  PAINTING: "دهان",
+  CARPENTRY: "نجارة",
+  PEST_CONTROL: "مكافحة آفات",
+  OTHER: "أخرى",
+};
+
+const ComplaintCategory = {
+  PROPERTY_ISSUE: "مشكلة العقار",
+  RENT_ISSUE: "مشكلة إيجار",
+  NEIGHBOR_ISSUE: "مشاكل الجيران",
+  MAINTENANCE_ISSUE: "مشكلة صيانة",
+  NOISE_ISSUE: "ضوضاء",
+  SECURITY_ISSUE: "أمن",
+  PAYMENT_ISSUE: "مدفوعات",
+  SERVICE_QUALITY: "جودة خدمة",
+  OTHER: "أخرى",
+};
+
+const RequestStatusTypes = {
+  PENDING: "قيد المراجعة",
+  IN_PROGRESS: "قيد التنفيذ",
+  COMPLETED: "مكتمل",
+  REJECTED: "مرفوض",
+};
+
 const translateInvoiceType = (type) => {
   return PaymentType[type] || type;
 };
 const translateRentType = (type) => {
   return StatusType[type] || type;
 };
+
 module.exports = {
   RentCollectionType,
   StatusType,
@@ -63,4 +102,10 @@ module.exports = {
   translateInvoiceType,
   translateRentType,
   accountType,
+  MaintaincePayer,
+  SecurityDepositStatus,
+  PriorityTypes,
+  MaintenanceType,
+  ComplaintCategory,
+  RequestStatusTypes,
 };

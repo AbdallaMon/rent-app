@@ -8,6 +8,7 @@ export const getCurrentPrivilege = (user, pathName) => {
     "/rent": "RENT",
     "/invoices": "INVOICE",
     "/maintenance": "MAINTENANCE",
+    "/request": "REQUEST",
     "/reports": "REPORT",
     "/owners": "OWNER",
     "/renters": "RENTER",

@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import { convertToISO } from "@/helpers/functions/convertDateToIso";
 import { updateWhereClauseWithUserProperties } from "@/app/api/utlis/userProperties";
 import { createJournalEntry, getGLIdByCode } from "./accounting/main";
-
+import { createInvoice } from "./invioces";
 const PayEvery = {
   ONCE: 1,
   ONE_MONTH: 1,
@@ -16,40 +16,46 @@ export const baseUrl =
   process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 export async function createMaintenance(data) {
   const extraData = data.extraData;
-  const ownerId = extraData.ownerId;
+  const ownerId = data.payer === "OWNER" ? extraData.ownerId : null;
   const description = data.description;
-  try {
-    const newMaintenance = await prisma.maintenance.create({
-      data: {
-        description: description,
-        cost: +data.cost,
-        date: convertToISO(data.date),
-        isPaid: false,
-        property: {
+  const submitData = {
+    description: description,
+    cost: +data.cost,
+    date: convertToISO(data.date),
+    isPaid: data.payer !== "OWNER",
+    payer: data.payer,
+    property: data.propertyId
+      ? {
           connect: {
             id: +data.propertyId,
           },
-        },
-        client: {
+        }
+      : undefined,
+    client: ownerId
+      ? {
           connect: {
             id: +ownerId,
           },
-        },
-        unit: data.unitId
-          ? {
-              connect: {
-                id: +data.unitId,
-              },
-            }
-          : undefined,
-        type: {
+        }
+      : undefined,
+    unit: data.unitId
+      ? {
           connect: {
-            id: +data.typeId,
+            id: +data.unitId,
           },
-        },
-        totalPrice: +data.cost,
-        payEvery: data.payEvery,
+        }
+      : undefined,
+    type: {
+      connect: {
+        id: +data.typeId,
       },
+    },
+    totalPrice: +data.cost,
+    payEvery: data.payEvery,
+  };
+  try {
+    const newMaintenance = await prisma.maintenance.create({
+      data: submitData,
       include: {
         payments: true,
         installments: true,
@@ -93,10 +99,11 @@ export async function createMaintenance(data) {
 }
 
 export async function createMaintenenceInstallmentsAndPayments(data) {
-  const { maintenance, payEvery } = data;
+  const { maintenance, payEvery, glAccountId } = data;
+  const payer = maintenance.payer;
   let installmentsArr = [];
   let paymentsArr = [];
-
+  console.log(data, "data");
   const maintenanceType = await prisma.maintenance.findUnique({
     where: {
       id: Number(maintenance.id),
@@ -126,21 +133,26 @@ export async function createMaintenenceInstallmentsAndPayments(data) {
       const payment = await prisma.payment.create({
         data: {
           amount: maintenance.totalPrice,
+          paidAmount: payer === "OWNER" ? 0 : maintenance.totalPrice,
           dueDate: convertToISO(new Date(maintenance.date)),
-          status: "PENDING",
+          status: payer === "OWNER" ? "PENDING" : "PAID",
           paymentTypeMethod: data.paymentMethodType
             ? data.paymentMethodType
             : "CASH",
-          client: {
-            connect: {
-              id: maintenance.ownerId,
-            },
-          },
-          property: {
-            connect: {
-              id: maintenance.propertyId,
-            },
-          },
+          client: maintenance.ownerId
+            ? {
+                connect: {
+                  id: maintenance.ownerId,
+                },
+              }
+            : undefined,
+          property: maintenance.propertyId
+            ? {
+                connect: {
+                  id: maintenance.propertyId,
+                },
+              }
+            : undefined,
 
           unit: maintenance.unitId
             ? {
@@ -165,6 +177,17 @@ export async function createMaintenenceInstallmentsAndPayments(data) {
           id: true,
           amount: true,
           maintenanceId: true,
+          status: true,
+          propertyId: true,
+          dueDate: true,
+          paidAmount: true,
+          unit: {
+            select: {
+              id: true,
+              unitId: true,
+            },
+          },
+
           property: {
             select: {
               id: true,
@@ -174,10 +197,24 @@ export async function createMaintenenceInstallmentsAndPayments(data) {
           },
         },
       });
+      if (payment.status === "PAID") {
+        const invoiceData = {
+          invoiceType: "MAINTENANCE",
+          paymentId: payment.id,
+          maintenanceId: payment.maintenanceId,
+          paidAmount: payment.paidAmount,
+          description: `فاتورة مصروف ${maintenanceType.type.name}`,
+          timeOfPayment: payment.dueDate,
+          title: `فاتورة مصروف ${maintenanceType.type.name}`,
+        };
+        await createInvoice(invoiceData);
+      }
       await handleMaintenanceAccounting({
         payment,
         maintenanceType,
         maintenanceDate: convertToISO(new Date(maintenance.date)),
+        payer: payer,
+        glAccountId,
       });
 
       installmentsArr.push(createdInstallment);
@@ -282,7 +319,12 @@ export async function createMaintenenceInstallmentsAndPayments(data) {
           amount: true,
           maintenanceId: true,
           dueDate: true,
-
+          unit: {
+            select: {
+              id: true,
+              unitId: true,
+            },
+          },
           property: {
             select: {
               id: true,
@@ -311,30 +353,50 @@ async function handleMaintenanceAccounting({
   payment,
   maintenanceType,
   maintenanceDate,
+  payer,
+  glAccountId,
 }) {
-  console.log(payment, "payment");
-
   const bankType = "CHECKING";
   const amount = Number(payment.amount);
 
-  const propertyId = payment.property.id;
+  const propertyId = payment.property?.id;
+  const propertyName = payment.property?.name;
+
   const ownerId = payment.property?.clientId;
   const maintenanceId = payment.maintenanceId ?? null; // لو موجود
   const type = maintenanceType.type.name;
   const ownersGlId = await getGLIdByCode("1210");
   const checkingGlId = await getGLIdByCode("1110");
+  const unitId = payment.unit?.unitId ?? null;
   // قيّد القيد
+
+  const description =
+    payer === "OWNER"
+      ? `دفع ${type} نيابة عن المالك`
+      : `مصروف علي الشركة - ${type}`;
+
+  const debitMemo =
+    payer === "OWNER"
+      ? `استحقاق ${type} على المالك`
+      : `${type} مستحق على الشركة`;
+  if (propertyName) {
+    description.concat(` - العقار اسم ${propertyName}`);
+  }
+  if (unitId) {
+    description.concat(` - معرف الوحدة ${unitId}`);
+  }
+
   const { debitLine, creditLine, entry } = await createJournalEntry({
-    description: `دفع ${type} نيابة عن المالك - Property#${propertyId}`,
+    description: description,
     entryDate: maintenanceDate || payment.dueDate || new Date(),
     lines: [
       {
         side: "DEBIT",
         amount,
-        glAccountId: ownersGlId,
-        partyType: "OWNER",
-        partyClientId: ownerId,
-        memo: `استحقاق ${type} على المالك`,
+        glAccountId: payer === "OWNER" ? ownersGlId : glAccountId,
+        partyType: payer === "OWNER" ? "OWNER" : null,
+        partyClientId: payer === "OWNER" ? ownerId : null,
+        memo: debitMemo,
         propertyId,
         maintenanceId,
         paymentId: payment.id,

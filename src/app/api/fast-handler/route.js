@@ -33,6 +33,7 @@ import {
   getGlAccounts,
   getCompanyBankAccounts,
   getFastRentAgreements,
+  getClients,
 } from "@/services/server/fastHandlers";
 import { createNewBankAccount } from "@/services/server/payments";
 
@@ -71,6 +72,9 @@ const handlerObject = {
   owner: {
     POST: createOwner,
     GET: getOwners,
+  },
+  clients: {
+    GET: getClients,
   },
   owners: {
     GET: getOwners,

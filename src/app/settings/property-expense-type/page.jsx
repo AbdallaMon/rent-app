@@ -60,7 +60,7 @@ const PropertyExpenseTypeWrapper = () => {
     },
     {
       field: "name",
-      headerName: "اسم نوع الصيانة",
+      headerName: "اسم نوع المصروف",
       width: 200,
       printable: true,
       cardWidth: 48,
@@ -89,7 +89,7 @@ const PropertyExpenseTypeWrapper = () => {
     <>
       <ViewComponent
         inputs={propertyExpenseTypeInputs}
-        formTitle={"نوع مصاريف الصيانة"}
+        formTitle={"نوع المصروف"}
         totalPages={totalPages}
         rows={data}
         columns={columns}

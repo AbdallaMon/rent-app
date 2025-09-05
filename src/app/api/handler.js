@@ -1,3 +1,10 @@
+function pareseId(id) {
+  let parsedId = Number(id);
+  if (Number.isNaN(parsedId)) {
+    parsedId = id;
+  }
+  return parsedId;
+}
 export function createHandler({
   getService,
   postService,
@@ -49,7 +56,7 @@ export function createHandler({
       const searchParams = request.nextUrl.searchParams;
       const { id } = params;
       try {
-        const req = await putService(+id, data, params, searchParams);
+        const req = await putService(pareseId(id), data, params, searchParams);
         return Response.json({
           data: req,
           message: "تم التعديل بنجاح",
@@ -67,7 +74,7 @@ export function createHandler({
     async DELETE(request, { params }) {
       const { id } = params;
       try {
-        const req = await deleteService(+id, params);
+        const req = await deleteService(pareseId(id), params);
         return Response.json({
           data: req,
           message: "تم الحذف بنجاح",

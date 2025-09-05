@@ -1,9 +1,9 @@
+import { normalizePhone } from "@/lib/phone";
 import {
   formatDate,
   logWhatsApp,
   messageStatus,
   messageTypes,
-  normalizePhone,
   updateWhatsAppLog,
 } from "../utility";
 import { sendSmart } from "../whatsapp";
@@ -49,7 +49,7 @@ export async function sendContactFormSubmissionToCS({
 
   const teamSettings = await getTeamSettings();
   const customerServicePhone = teamSettings?.customerServicePhone;
-  const recipient = normalizePhone(customerServicePhone);
+  const recipient = normalizePhone(customerServicePhone).e164;
   const templateName = "contact_form_submission";
   const language = "ar_AE";
   const relationKey =
@@ -118,10 +118,11 @@ export async function sendMaintainceRequestToTech({
   description,
   priority,
   clientName,
+  displayId,
 }) {
   const teamSettings = await getTeamSettings();
   const technicianPhone = teamSettings?.technicianPhone;
-  const recipient = normalizePhone(technicianPhone);
+  const recipient = normalizePhone(technicianPhone).e164;
   const templateName = "maintenance_request_tc_v3";
   const language = "ar_AE";
   const relationKey = messageTypes.MAINTAINCE_REQUEST_TO_TECH;
@@ -140,7 +141,7 @@ export async function sendMaintainceRequestToTech({
   try {
     const textForSession = buildArabicMessageByType(type);
     const bodyParams = [
-      str(requestId),
+      str(displayId || requestId),
       str(clientName),
       str(priority),
       str(maintenanceType),
@@ -191,10 +192,11 @@ export async function sendMaintainceRequestToCS({
   description,
   priority,
   clientName,
+  displayId,
 }) {
   const teamSettings = await getTeamSettings();
   const customerServicePhone = teamSettings?.customerServicePhone;
-  const recipient = normalizePhone(customerServicePhone);
+  const recipient = normalizePhone(customerServicePhone).e164;
   const templateName = "maintenance_request_tc_v3";
   const language = "ar_AE";
   const relationKey = messageTypes.MAINTAINCE_REQUEST_TO_TECH;
@@ -213,7 +215,7 @@ export async function sendMaintainceRequestToCS({
   try {
     const textForSession = buildArabicMessageByType(type);
     const bodyParams = [
-      str(requestId),
+      str(displayId || requestId),
       str(clientName),
       str(priority),
       str(maintenanceType),
@@ -273,7 +275,7 @@ export async function sendComplaintRequestToCs({
 
   const teamSettings = await getTeamSettings();
   const customerServicePhone = teamSettings?.customerServicePhone;
-  const recipient = normalizePhone(customerServicePhone);
+  const recipient = normalizePhone(customerServicePhone).e164;
   const templateName = "complaint_request_cs_v2";
   const language = "ar_AE";
   const relationKey = messageTypes.COMPLAINT_REQUEST_TO_CS;

@@ -58,7 +58,7 @@ const tabLinks = [
   { label: "إعدادات البنك", href: "/settings/bank" },
   { label: "إعدادات الامارات", href: "/settings/state" },
   { label: "اعدادات مصروفات العقود", href: "/settings/contract-expense-type" },
-  { label: "إعدادات انواع الصيانة ", href: "/settings/property-expense-type" },
+  { label: "إعدادات انواع المصروفات", href: "/settings/property-expense-type" },
   { label: "المحصلون", href: "/settings/collectors" },
 ];
 
