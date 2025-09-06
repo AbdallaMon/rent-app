@@ -14,9 +14,8 @@ import "dayjs/locale/en-gb";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 
 import FilterSelect from "@/components/utility/FilterSelect";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { LocalizationProvider } from "@mui/x-date-pickers";
 import { PriorityTypes, RequestStatusTypes } from "@/config/Enums";
+import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
 
 export default function MaintainceReqeusts({ searchParams }) {
   return (
@@ -251,18 +250,7 @@ const MaintainceReqeustWrapper = () => {
 
   return (
     <>
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          flexDirection: {
-            xs: "column",
-            sm: "row",
-          },
-          alignItems: "flex-start",
-          mb: 3,
-        }}
-      >
+      <FilterPaperContainer handleFilter={handleFilter}>
         <FilterSelect
           label="العقار"
           param={"propertyId"}
@@ -287,26 +275,21 @@ const MaintainceReqeustWrapper = () => {
             name: PriorityTypes[key],
           }))}
         />
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DatePicker
-            label="تاريخ البدء"
-            value={startDate}
-            onChange={(date) => handleDateChange("start", date)}
-            renderInput={(params) => <TextField {...params} />}
-            format="DD/MM/YYYY"
-          />
-          <DatePicker
-            label="تاريخ الانتهاء"
-            value={endDate}
-            onChange={(date) => handleDateChange("end", date)}
-            renderInput={(params) => <TextField {...params} />}
-            format="DD/MM/YYYY"
-          />
-        </LocalizationProvider>
-        <Button variant="contained" onClick={handleFilter}>
-          تطبيق الفلاتر
-        </Button>
-      </Box>
+        <DatePicker
+          label="تاريخ البدء"
+          value={startDate}
+          onChange={(date) => handleDateChange("start", date)}
+          renderInput={(params) => <TextField {...params} />}
+          format="DD/MM/YYYY"
+        />
+        <DatePicker
+          label="تاريخ الانتهاء"
+          value={endDate}
+          onChange={(date) => handleDateChange("end", date)}
+          renderInput={(params) => <TextField {...params} />}
+          format="DD/MM/YYYY"
+        />
+      </FilterPaperContainer>
 
       <ViewComponent
         inputs={dataInputs}

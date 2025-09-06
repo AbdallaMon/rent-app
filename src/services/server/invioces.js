@@ -109,13 +109,6 @@ export async function getInvioces(page, limit, searchParams) {
           lte: end,
         },
       },
-      // استثناء فواتير الإيجار والضرائب من النتائج
-      // تم تعطيل هذا مؤقتاً لعرض جميع الفواتير
-      // {
-      //     invoiceType: {
-      //         notIn: ["RENT", "TAX"]
-      //     }
-      // }
     ];
 
     // إضافة فلتر نوع الفاتورة

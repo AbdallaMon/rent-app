@@ -30,7 +30,7 @@ import {
   AiOutlineSwap,
 } from "react-icons/ai";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { LocalizationProvider } from "@mui/x-date-pickers";
 import { MobileDatePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import { Typography } from "antd";

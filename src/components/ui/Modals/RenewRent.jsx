@@ -254,7 +254,6 @@ export function RenewRentModal({
           display: "none",
         },
       };
-      console.log(base, "base");
       const hydrated =
         initialData &&
         base.map((input, index) => {

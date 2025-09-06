@@ -16,7 +16,13 @@ import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 export const DataCard = ({ data }) => {
   const componentRef = useRef();
   const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
+    contentRef: componentRef,
+
+    documentTitle: "rent-card",
+
+    pageStyle: `
+      @page { size: auto; margin: 10mm; }
+    `,
   });
   return (
     <Card sx={{ padding: 2 }} ref={componentRef}>
@@ -152,7 +158,7 @@ export const DataCard = ({ data }) => {
                 (data.tax * data.totalPrice) / 100 +
                 data.insuranceFees +
                 data.registrationFees +
-                contractExpensesTotalPrice(data.contractExpenses),
+                contractExpensesTotalPrice(data.contractExpenses)
             )}
           />
         </Box>

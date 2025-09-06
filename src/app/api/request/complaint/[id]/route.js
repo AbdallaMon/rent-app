@@ -3,6 +3,7 @@ import {
   updateComplaint,
   deleteComplaint,
 } from "../../../../../services/server/requests/actions";
+import { getComplaintById } from "@/services/server/requests/get-data";
 
 const handler = createHandler({
   getService: getComplaintById,

@@ -16,8 +16,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
+
 import dayjs from "dayjs";
 import { useFetchPayments } from "@/helpers/hooks/useFetchPayments";
 import TableFormProvider, {

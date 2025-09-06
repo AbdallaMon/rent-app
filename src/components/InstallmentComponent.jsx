@@ -301,7 +301,7 @@ export function InstallmentComponent({
             الدفعه {index + 1}
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl
                 fullWidth
                 error={!!errors[`installments[${index}].dueDate`]}
@@ -342,7 +342,7 @@ export function InstallmentComponent({
                 />
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 id={`installments[${index}].amount`}
@@ -370,7 +370,7 @@ export function InstallmentComponent({
             </Grid>
 
             {/* Payment method selection */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
                 <InputLabel id={`payment-method-label-${index}`}>
                   طريقة الدفع
@@ -400,7 +400,7 @@ export function InstallmentComponent({
             </Grid>
 
             {/* Cheque number field - only visible when payment method is CHEQUE */}
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name={`installments[${index}].chequeNumber`}
                 control={control}
@@ -437,7 +437,7 @@ export function InstallmentComponent({
 
             {/* Edit button for payment method - only show for existing payments with IDs */}
             {installment.id && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Button
                   variant="outlined"
                   color="primary"

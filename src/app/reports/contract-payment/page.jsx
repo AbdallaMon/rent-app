@@ -52,20 +52,20 @@ const ContractPaymentsPage = () => {
     async function fetchData() {
       setLoading(true);
       setError(null);
-      
+
       try {
         // Use absolute path to ensure compatibility in both dev and prod
         const response = await fetch("/api/fast-handler?id=properties", {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
         });
-        
+
         if (!response.ok) {
           throw new Error(`Error fetching properties: ${response.status}`);
         }
-        
+
         const dataProperties = await response.json();
         setProperties(dataProperties);
       } catch (error) {
@@ -84,10 +84,10 @@ const ContractPaymentsPage = () => {
       setError("Please select at least one property");
       return;
     }
-    
+
     setSubmitLoading(true);
     setError(null);
-    
+
     const filters = {
       propertyIds: selectedProperties,
       startDate: startDate.toISOString(),
@@ -96,21 +96,18 @@ const ContractPaymentsPage = () => {
     };
 
     try {
-      const res = await fetch(
-        `/api/main/reports/contract-payments`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ filters }),
-        }
-      );
-      
+      const res = await fetch(`/api/main/reports/contract-payments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ filters }),
+      });
+
       if (!res.ok) {
         throw new Error(`Error generating report: ${res.status}`);
       }
-      
+
       const data = await res.json();
       setReportData(data.data);
       setSnackbarOpen(true);
@@ -123,7 +120,7 @@ const ContractPaymentsPage = () => {
   };
 
   const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
+    contentRef: componentRef,
     documentTitle: "تقرير دفعات العقود",
   });
 
@@ -142,7 +139,7 @@ const ContractPaymentsPage = () => {
         </TableRow>
       );
     }
-    
+
     let totalContractAmount = 0;
     let totalTaxAmount = 0;
     let totalRegistrationFees = 0;
@@ -159,7 +156,8 @@ const ContractPaymentsPage = () => {
           const tax = row.tax || 0;
           const registrationFees = row.registrationFees || 0;
           const insuranceFees = row.insuranceFees || 0;
-          const amountBeforeFees = totalAmount - (tax + registrationFees + insuranceFees);
+          const amountBeforeFees =
+            totalAmount - (tax + registrationFees + insuranceFees);
           const paidAmount = row.paidAmount || 0;
           const remainingAmount = row.remainingAmount || 0;
           const managementCommission = row.managementCommission || 0;
@@ -177,9 +175,9 @@ const ContractPaymentsPage = () => {
             <TableRow key={index}>
               {columns.map((col, colIndex) => {
                 let cellValue = row[col.english];
-                
+
                 // Handle nested properties
-                if (col.english.includes('.')) {
+                if (col.english.includes(".")) {
                   cellValue = col.english
                     .split(".")
                     .reduce((acc, part) => acc && acc[part], row);
@@ -189,7 +187,9 @@ const ContractPaymentsPage = () => {
                   col.english.includes("date") ||
                   col.english.includes("Date")
                 ) {
-                  cellValue = cellValue ? dayjs(cellValue).format("DD/MM/YYYY") : '';
+                  cellValue = cellValue
+                    ? dayjs(cellValue).format("DD/MM/YYYY")
+                    : "";
                 } else if (
                   col.english.includes("price") ||
                   col.english.includes("amount") ||
@@ -213,7 +213,7 @@ const ContractPaymentsPage = () => {
                     key={colIndex}
                     sx={{ backgroundColor: "#ffffff", padding: "8px" }}
                   >
-                    {cellValue || ''}
+                    {cellValue || ""}
                   </TableCell>
                 );
               })}
@@ -316,15 +316,20 @@ const ContractPaymentsPage = () => {
     const csvRows = [];
 
     // Add headers and data for each property
-    reportData.forEach(property => {
+    reportData.forEach((property) => {
       // Add property owner details
-      csvRows.push(['تفاصيل المالك']);
-      csvRows.push(['اسم المالك', 'هوية المالك', 'ايميل المالك', 'رقمة هاتف المالك']);
+      csvRows.push(["تفاصيل المالك"]);
       csvRows.push([
-        property.client?.name || '',
-        property.client?.nationalId || '',
-        property.client?.email || '',
-        property.client?.phone || ''
+        "اسم المالك",
+        "هوية المالك",
+        "ايميل المالك",
+        "رقمة هاتف المالك",
+      ]);
+      csvRows.push([
+        property.client?.name || "",
+        property.client?.nationalId || "",
+        property.client?.email || "",
+        property.client?.phone || "",
       ]);
       csvRows.push([]); // Empty row for spacing
 
@@ -333,71 +338,83 @@ const ContractPaymentsPage = () => {
       csvRows.push([]); // Empty row for spacing
 
       // Add contract payments
-      csvRows.push(['تفاصيل دفعات العقود']);
-      csvRows.push(columnsContractPayments.map(col => col.arabic));
+      csvRows.push(["تفاصيل دفعات العقود"]);
+      csvRows.push(columnsContractPayments.map((col) => col.arabic));
 
       // Add data rows
       if (property.rentAgreements && property.rentAgreements.length > 0) {
-        property.rentAgreements.forEach(agreement => {
-          const amountBeforeFees = agreement.totalAmount - 
-            ((agreement.tax || 0) + (agreement.registrationFees || 0) + (agreement.insuranceFees || 0));
+        property.rentAgreements.forEach((agreement) => {
+          const amountBeforeFees =
+            agreement.totalAmount -
+            ((agreement.tax || 0) +
+              (agreement.registrationFees || 0) +
+              (agreement.insuranceFees || 0));
 
-          const row = columnsContractPayments.map(col => {
+          const row = columnsContractPayments.map((col) => {
             if (col.english === "amountBeforeFees") {
               return formatCurrencyAED(amountBeforeFees);
             }
 
             let value = agreement[col.english];
-            
+
             // Handle nested properties
-            if (col.english.includes('.')) {
-              value = col.english.split('.').reduce((acc, part) => acc && acc[part], agreement);
+            if (col.english.includes(".")) {
+              value = col.english
+                .split(".")
+                .reduce((acc, part) => acc && acc[part], agreement);
             }
 
             // Format dates
-            if (col.english.includes('date') || col.english.includes('Date')) {
-              value = value ? dayjs(value).format('DD/MM/YYYY') : '';
+            if (col.english.includes("date") || col.english.includes("Date")) {
+              value = value ? dayjs(value).format("DD/MM/YYYY") : "";
             }
             // Format currency values
             else if (
-              col.english.includes('amount') ||
-              col.english.includes('tax') ||
-              col.english.includes('fees') ||
-              col.english.includes('managementCommission')
+              col.english.includes("amount") ||
+              col.english.includes("tax") ||
+              col.english.includes("fees") ||
+              col.english.includes("managementCommission")
             ) {
               value = formatCurrencyAED(value || 0);
             }
 
-            return value || '';
+            return value || "";
           });
           csvRows.push(row);
         });
 
         // Add totals
-        const totals = property.rentAgreements.reduce((acc, agreement) => {
-          acc.totalAmount += agreement.totalAmount || 0;
-          acc.tax += agreement.tax || 0;
-          acc.registrationFees += agreement.registrationFees || 0;
-          acc.insuranceFees += agreement.insuranceFees || 0;
-          acc.paidAmount += agreement.paidAmount || 0;
-          acc.remainingAmount += agreement.remainingAmount || 0;
-          acc.managementCommission += agreement.managementCommission || 0;
-          acc.amountBeforeFees += agreement.totalAmount - 
-            ((agreement.tax || 0) + (agreement.registrationFees || 0) + (agreement.insuranceFees || 0));
-          return acc;
-        }, { 
-          totalAmount: 0, 
-          tax: 0, 
-          registrationFees: 0, 
-          insuranceFees: 0, 
-          amountBeforeFees: 0,
-          paidAmount: 0, 
-          remainingAmount: 0, 
-          managementCommission: 0 
-        });
+        const totals = property.rentAgreements.reduce(
+          (acc, agreement) => {
+            acc.totalAmount += agreement.totalAmount || 0;
+            acc.tax += agreement.tax || 0;
+            acc.registrationFees += agreement.registrationFees || 0;
+            acc.insuranceFees += agreement.insuranceFees || 0;
+            acc.paidAmount += agreement.paidAmount || 0;
+            acc.remainingAmount += agreement.remainingAmount || 0;
+            acc.managementCommission += agreement.managementCommission || 0;
+            acc.amountBeforeFees +=
+              agreement.totalAmount -
+              ((agreement.tax || 0) +
+                (agreement.registrationFees || 0) +
+                (agreement.insuranceFees || 0));
+            return acc;
+          },
+          {
+            totalAmount: 0,
+            tax: 0,
+            registrationFees: 0,
+            insuranceFees: 0,
+            amountBeforeFees: 0,
+            paidAmount: 0,
+            remainingAmount: 0,
+            managementCommission: 0,
+          }
+        );
 
         const totalRow = [
-          'الإجمالي', '',
+          "الإجمالي",
+          "",
           formatCurrencyAED(totals.totalAmount),
           formatCurrencyAED(totals.tax),
           formatCurrencyAED(totals.registrationFees),
@@ -405,46 +422,61 @@ const ContractPaymentsPage = () => {
           formatCurrencyAED(totals.amountBeforeFees),
           formatCurrencyAED(totals.paidAmount),
           formatCurrencyAED(totals.remainingAmount),
-          formatCurrencyAED(totals.managementCommission)
+          formatCurrencyAED(totals.managementCommission),
         ];
-        
+
         csvRows.push(totalRow);
       } else {
-        csvRows.push(['لا توجد بيانات']);
+        csvRows.push(["لا توجد بيانات"]);
       }
-      
+
       csvRows.push([]); // Empty row between properties
       csvRows.push([]); // Additional spacing between properties
     });
 
     // Convert to CSV string
-    const csvContent = csvRows.map(row => 
-      row.map(cell => 
-        // Handle cells containing commas by wrapping in quotes
-        typeof cell === 'string' && cell.includes(',') ? 
-          `"${cell}"` : 
-          cell
-      ).join(',')
-    ).join('\n');
+    const csvContent = csvRows
+      .map((row) =>
+        row
+          .map((cell) =>
+            // Handle cells containing commas by wrapping in quotes
+            typeof cell === "string" && cell.includes(",") ? `"${cell}"` : cell
+          )
+          .join(",")
+      )
+      .join("\n");
 
     // Create blob and download
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
+    const blob = new Blob(["\ufeff" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `تقرير_دفعات_العقود_${dayjs().format('YYYY-MM-DD')}.csv`);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `تقرير_دفعات_العقود_${dayjs().format("YYYY-MM-DD")}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  if (loading) return (
-    <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-      <CircularProgress />
-    </Container>
-  );
-  
+  if (loading)
+    return (
+      <Container
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "200px",
+        }}
+      >
+        <CircularProgress />
+      </Container>
+    );
+
   return (
     <Container
       sx={{
@@ -464,7 +496,7 @@ const ContractPaymentsPage = () => {
             {error}
           </Alert>
         )}
-        
+
         <FormControl fullWidth margin="normal">
           <InputLabel>العقارات</InputLabel>
           <Select
@@ -483,15 +515,9 @@ const ContractPaymentsPage = () => {
         <FormControl fullWidth margin="normal">
           <InputLabel>حالة العقد</InputLabel>
           <Select value={selectedRent} onChange={handleRentStatusChange}>
-            <MenuItem value={"all"}>
-              الجميع
-            </MenuItem>
-            <MenuItem value={"ACTIVE"}>
-              نشط
-            </MenuItem>
-            <MenuItem value={"EXPIRED"}>
-              منتهي
-            </MenuItem>
+            <MenuItem value={"all"}>الجميع</MenuItem>
+            <MenuItem value={"ACTIVE"}>نشط</MenuItem>
+            <MenuItem value={"EXPIRED"}>منتهي</MenuItem>
           </Select>
         </FormControl>
         <Button
@@ -527,25 +553,27 @@ const ContractPaymentsPage = () => {
                     sx={{
                       display: "grid",
                       gridTemplateColumns: {
-                        xs: "1fr", 
-                        sm: "repeat(2, 1fr)"
+                        xs: "1fr",
+                        sm: "repeat(2, 1fr)",
                       },
                       gap: "10px",
                     }}
                   >
                     <div>
-                      <strong>اسم المالك:</strong> {property.client?.name || 'غير متوفر'}
+                      <strong>اسم المالك:</strong>{" "}
+                      {property.client?.name || "غير متوفر"}
                     </div>
                     <div>
                       <strong> هوية المالك:</strong>{" "}
-                      {property.client?.nationalId || 'غير متوفر'}
+                      {property.client?.nationalId || "غير متوفر"}
                     </div>
                     <div>
-                      <strong> ايميل المالك:</strong> {property.client?.email || 'غير متوفر'}
+                      <strong> ايميل المالك:</strong>{" "}
+                      {property.client?.email || "غير متوفر"}
                     </div>
                     <div>
                       <strong> رقمة هاتف المالك:</strong>{" "}
-                      {property.client?.phone || 'غير متوفر'}
+                      {property.client?.phone || "غير متوفر"}
                     </div>
                   </Typography>
                 </Box>
@@ -572,7 +600,11 @@ const ContractPaymentsPage = () => {
             <Button variant="contained" color="secondary" onClick={handlePrint}>
               طباعة التقرير
             </Button>
-            <Button variant="contained" color="primary" onClick={handleDownloadCSV}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleDownloadCSV}
+            >
               تحميل CSV
             </Button>
           </Stack>

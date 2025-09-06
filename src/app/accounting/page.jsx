@@ -118,7 +118,6 @@ function AccountingWrapper() {
         noPagination
         inputs={accountInputs}
         setData={setData}
-        title={`إضافة حساب جديد`}
         formTitle={`حساب جديد`}
         url={"main/accounting/accounts/gl"}
         setTotal={setTotal}

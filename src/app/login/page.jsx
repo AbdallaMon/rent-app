@@ -32,8 +32,7 @@ export default function LoginPage() {
   useEffect(() => {
     function handleRedirect() {
       const redirect = window.localStorage.getItem("redirect");
-      console.log(isLoggedIn, "isLoggedIn");
-      console.log(redirect, "redirect");
+
       if (isLoggedIn) {
         if (redirect) {
           router.push(redirect);

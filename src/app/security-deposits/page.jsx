@@ -22,6 +22,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { RefundSecurityDepositButton } from "@/components/deposits/RefundSecurityDepositButton";
 import { depositsInputs } from "./inputs";
 import DeleteModal from "@/components/ui/Modals/DeleteModal";
+import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
 dayjs.locale("ar");
 
 const DateFilterMode = {
@@ -339,16 +340,7 @@ function DepositsPageWrapper({ searchParams }) {
   });
   return (
     <>
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          mb: 4,
-          pr: 8,
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
+      <FilterPaperContainer handleFilter={handleFilter}>
         <FilterSelect
           label="المستأجرين"
           param={"renterId"}
@@ -378,22 +370,20 @@ function DepositsPageWrapper({ searchParams }) {
           </ToggleButton>
         </ToggleButtonGroup>
 
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DatePicker
-            label={startLabel}
-            value={startDate}
-            onChange={(d) => handleDateChange("start", d)}
-            format="DD/MM/YYYY"
-            slotProps={{ textField: { size: "small" } }}
-          />
-          <DatePicker
-            label={endLabel}
-            value={endDate}
-            onChange={(d) => handleDateChange("end", d)}
-            format="DD/MM/YYYY"
-            slotProps={{ textField: { size: "small" } }}
-          />
-        </LocalizationProvider>
+        <DatePicker
+          label={startLabel}
+          value={startDate}
+          onChange={(d) => handleDateChange("start", d)}
+          format="DD/MM/YYYY"
+          slotProps={{ textField: { size: "small" } }}
+        />
+        <DatePicker
+          label={endLabel}
+          value={endDate}
+          onChange={(d) => handleDateChange("end", d)}
+          format="DD/MM/YYYY"
+          slotProps={{ textField: { size: "small" } }}
+        />
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Typography variant="subtitle2" color="text.secondary">
             نوع الوديعة
@@ -409,11 +399,7 @@ function DepositsPageWrapper({ searchParams }) {
             <ToggleButton value="false">الودائع المحتجزة</ToggleButton>
           </ToggleButtonGroup>
         </Box>
-
-        <Button variant="contained" onClick={handleFilter}>
-          تطبيق الفلاتر
-        </Button>
-      </Box>
+      </FilterPaperContainer>
 
       <ViewComponent
         rows={data}

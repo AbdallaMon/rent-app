@@ -6,7 +6,6 @@ export const handleSearchParamsChange = (
   onChange
 ) => {
   if (onChange) return onChange(event);
-  console.log(event.target, "event.target");
   const value = event.target.value;
   const params = new URLSearchParams(searchParams);
   if (value) {

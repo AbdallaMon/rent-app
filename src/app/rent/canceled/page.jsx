@@ -15,6 +15,7 @@ import {
   Box,
   Button,
   FormControl,
+  InputLabel,
   Select,
   Snackbar,
   Typography,
@@ -27,6 +28,7 @@ import DeleteBtn from "@/components/ui/Buttons/DeleteBtn";
 import dayjs from "dayjs"; // Import the CancelRentModal
 import "dayjs/locale/en-gb";
 import { InstallmentComponent } from "@/components/InstallmentComponent";
+import FilterPaperContainer from "../../../components/utility/FilterPaperContainer";
 
 export default function CanceledRents({ searchParams }) {
   const propertyId = searchParams?.propertyId;
@@ -396,19 +398,9 @@ const RentWrapper = ({ propperty }) => {
 
   return (
     <>
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          flexDirection: {
-            xs: "column",
-            sm: "row",
-          },
-          alignItems: "center",
-        }}
-      >
+      <FilterPaperContainer>
         <FormControl sx={{ mb: 2, maxWidth: 300 }}>
-          <Typography variant="h6">عقود الايجار لعقار معين</Typography>
+          <InputLabel variant="h6">عقود الايجار لعقار معين</InputLabel>
           <Select
             value={nonRentedOthers.split("=")[1] || "all"}
             onChange={handlePropertyFilterChange}
@@ -425,11 +417,16 @@ const RentWrapper = ({ propperty }) => {
           </Select>
         </FormControl>
         <Link href="/rent/">
-          <Button variant="text" color="secondary">
+          <Button
+            variant="outlined"
+            color="secondary"
+            size="large"
+            sx={{ height: "56px" }}
+          >
             عقود الايجار النشطة
           </Button>
         </Link>
-      </Box>
+      </FilterPaperContainer>
 
       <ViewComponent
         inputs={dataInputs}

@@ -18,6 +18,8 @@ import {
   Tooltip,
   Typography,
   Button,
+  useTheme,
+  alpha,
 } from "@mui/material";
 import { useReactToPrint } from "react-to-print";
 import PrintIcon from "@mui/icons-material/Print";
@@ -41,6 +43,7 @@ export default function CustomTable({
   openEditModal,
 }) {
   const componentRef = useRef(null);
+  const theme = useTheme();
   const [printMode, setPrintMode] = useState(false);
   if (edit) {
     const lastCol = columns[columns.length - 1];
@@ -113,20 +116,37 @@ export default function CustomTable({
   }, [columns]);
 
   const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
+    // v3: use contentRef instead of the old content: () => node
+    contentRef: componentRef,
+
+    documentTitle: "table",
+
+    // keep MUI styles in the iframe
+    copyShadowRoots: true,
+    ignoreGlobalStyles: false,
+
     pageStyle: `
-      @media print {
-        .MuiTablePagination-root { display: none; }
-        @page { size: auto; margin: 10mm; }
-        body { -webkit-print-color-adjust: exact; }
-        .MuiTableContainer-root { max-height: none !important; }
-      }
+      @page { size: auto; margin: 10mm; }
+      html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .MuiTableContainer-root { max-height: none !important; overflow: visible !important; }
+      .MuiTableCell-stickyHeader { position: static !important; top: auto !important; box-shadow: none !important; }
     `,
-    onBeforeGetContent: () => {
+
+    // swap to print layout before snapshot
+    onBeforePrint: async () => {
       setPrintMode(true);
-      return Promise.resolve();
+      // let React/MUI commit & flush styles
+      await new Promise((r) =>
+        setTimeout(
+          () => requestAnimationFrame(() => requestAnimationFrame(r)),
+          0
+        )
+      );
     },
     onAfterPrint: () => setPrintMode(false),
+    onPrintError: (where, err) => {
+      console.error(`[print] error in ${where}`, err);
+    },
   });
 
   const handleColumnToggle = (field) => {
@@ -189,14 +209,15 @@ export default function CustomTable({
 
   return (
     <Paper
-      elevation={3}
+      elevation={2}
       sx={{
         maxWidth: 1600,
         mx: "auto",
         my: 4,
         p: { xs: 1.5, sm: 3 },
-        boxShadow: "0px 3px 6px rgba(0,0,0,0.1)",
         borderRadius: 2,
+        backgroundColor: alpha(theme.palette.primary.main, 0.02),
+        border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
       }}
     >
       {loading && <FullScreenLoader />}
@@ -261,7 +282,7 @@ export default function CustomTable({
         </Paper>
 
         <Box>
-          <Tooltip title="Print">
+          <Tooltip title="طباعة">
             <IconButton
               onClick={handlePrint}
               color="primary"
@@ -277,138 +298,139 @@ export default function CustomTable({
           </Tooltip>
         </Box>
       </Toolbar>
-
-      <TableContainer
-        ref={componentRef}
-        sx={{ maxHeight: 800, overflowY: "auto" }}
-      >
-        <Table stickyHeader aria-label="data table" sx={{ minWidth: 650 }}>
-          <TableHead>
-            <TableRow>
-              {columnsToRender.map((column) => (
-                <TableCell
-                  key={column.field}
-                  sx={(theme) => ({
-                    background: `linear-gradient(180deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-                    color: theme.palette.primary.contrastText,
-                    fontWeight: 700,
-                    letterSpacing: 0.3,
-                    borderBottom: 0,
-                    position: "sticky",
-                    top: 0,
-                    zIndex: isActions(column.field) ? 3 : 1,
-                    ...(isActions(column.field)
-                      ? {
-                          right: 0,
-                          position: "sticky",
-                          boxShadow: `-8px 0 12px -8px rgba(0,0,0,0.15)`,
-                        }
-                      : {}),
-                    "&:first-of-type": { borderTopLeftRadius: 8 },
-                    "&:last-of-type": { borderTopRightRadius: 8 },
-                    px: cellPaddingX,
-                    py: 1.25,
-                  })}
-                  title={column.headerName}
-                >
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {column.headerName}
-                  </Typography>
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-
-          <TableBody>
-            {!hasRows ? (
+      <div ref={componentRef} className="print-root">
+        <TableContainer sx={{ maxHeight: 800, overflowY: "auto" }}>
+          <Table stickyHeader aria-label="data table" sx={{ minWidth: 650 }}>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={columnsToRender.length}>
-                  <Typography
-                    variant="body2"
-                    sx={{ py: 3, textAlign: "center", color: "text.secondary" }}
-                  >
-                    No data to display.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((row) => (
-                <TableRow
-                  key={row.id ?? JSON.stringify(row)}
-                  sx={{
-                    "&:nth-of-type(odd)": { backgroundColor: "action.hover" },
-                  }}
-                >
-                  {columnsToRender.map((column) => (
-                    <TableCell
-                      key={column.field}
-                      sx={{
-                        borderBottom: "1px solid #e0e0e0",
-                        fontSize: "1rem",
-                        fontWeight: 400,
-                        color: "text.primary",
-                      }}
-                    >
-                      {typeof column.renderCell === "function"
-                        ? column.renderCell({ row })
-                        : column.type === "size"
-                          ? (row[column.field] ?? []).length
-                          : row[column.field]}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-
-          {normalizedFooterItems && (
-            <TableFooter>
-              <TableRow>
-                {normalizedFooterItems.map((item, idx) => (
+                {columnsToRender.map((column) => (
                   <TableCell
-                    key={`footer-${idx}`}
-                    colSpan={item.colSpan}
-                    sx={(t) => ({
-                      borderTop: `2px solid ${t.palette.divider}`,
-                      backgroundColor:
-                        t.palette.mode === "light"
-                          ? t.palette.grey[50]
-                          : t.palette.background.paper,
-                      fontWeight: 600,
+                    key={column.field}
+                    sx={(theme) => ({
+                      background: `linear-gradient(180deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                      color: theme.palette.primary.contrastText,
+                      fontWeight: 700,
+                      letterSpacing: 0.3,
+                      borderBottom: 0,
+                      position: "sticky",
+                      top: 0,
+                      zIndex: isActions(column.field) ? 3 : 1,
+                      ...(isActions(column.field)
+                        ? {
+                            right: 0,
+                            position: "sticky",
+                            boxShadow: `-8px 0 12px -8px rgba(0,0,0,0.15)`,
+                          }
+                        : {}),
+                      "&:first-of-type": { borderTopLeftRadius: 8 },
+                      "&:last-of-type": { borderTopRightRadius: 8 },
+                      px: cellPaddingX,
                       py: 1.25,
                     })}
+                    title={column.headerName}
                   >
-                    <Box
+                    <Typography
+                      variant="subtitle2"
                       sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 2,
-                        minHeight: 32,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
                       }}
                     >
-                      <Typography variant="body2" color="text.secondary">
-                        {item.label}
-                      </Typography>
-                      <Typography variant="body1" color="text.primary">
-                        {item.value}
-                      </Typography>
-                    </Box>
+                      {column.headerName}
+                    </Typography>
                   </TableCell>
                 ))}
               </TableRow>
-            </TableFooter>
-          )}
-        </Table>
-      </TableContainer>
+            </TableHead>
 
+            <TableBody>
+              {!hasRows ? (
+                <TableRow>
+                  <TableCell colSpan={columnsToRender.length}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        py: 3,
+                        textAlign: "center",
+                        color: "text.secondary",
+                      }}
+                    >
+                      No data to display.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                rows.map((row) => (
+                  <TableRow
+                    key={row.id ?? JSON.stringify(row)}
+                    sx={{
+                      "&:nth-of-type(odd)": { backgroundColor: "action.hover" },
+                    }}
+                  >
+                    {columnsToRender.map((column) => (
+                      <TableCell
+                        key={column.field}
+                        sx={{
+                          borderBottom: "1px solid #e0e0e0",
+                          fontSize: "1rem",
+                          fontWeight: 400,
+                          color: "text.primary",
+                        }}
+                      >
+                        {typeof column.renderCell === "function"
+                          ? column.renderCell({ row })
+                          : column.type === "size"
+                            ? (row[column.field] ?? []).length
+                            : row[column.field]}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+
+            {normalizedFooterItems && (
+              <TableFooter>
+                <TableRow>
+                  {normalizedFooterItems.map((item, idx) => (
+                    <TableCell
+                      key={`footer-${idx}`}
+                      colSpan={item.colSpan}
+                      sx={(t) => ({
+                        borderTop: `2px solid ${t.palette.divider}`,
+                        backgroundColor:
+                          t.palette.mode === "light"
+                            ? t.palette.grey[50]
+                            : t.palette.background.paper,
+                        fontWeight: 600,
+                        py: 1.25,
+                      })}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 2,
+                          minHeight: 32,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          {item.label}
+                        </Typography>
+                        <Typography variant="body1" color="text.primary">
+                          {item.value}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              </TableFooter>
+            )}
+          </Table>
+        </TableContainer>
+      </div>
       {!disablePagination && (
         <CustomPagination
           setLimit={setLimit}

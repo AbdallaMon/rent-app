@@ -19,7 +19,19 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
     softPrimaryBg: alpha(theme.palette.primary.main, 0.08),
     veryLightBg: theme.palette.grey[50],
   };
+  const getFromName = () => {
+    switch (invoice.invoiceType) {
+      case "RENT":
+      case "TAX":
+      case "INSURANCE":
+      case "REGISTRATION":
+        return invoice.rentAgreement?.renter?.name;
+      default:
+        return invoice.owner?.name || "غير معروف";
+    }
+  };
 
+  const from = getFromName();
   return (
     <div
       ref={ref}
@@ -171,17 +183,7 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
               مستلم من
             </td>
             <td style={{ padding: "10px", border: `1px solid ${c.divider}` }}>
-              {invoice.invoiceType === "MAINTENANCE" ||
-              invoice.invoiceType === "MANAGEMENT_COMMISSION"
-                ? invoice.rentAgreement?.unit?.property?.owner?.name ||
-                  invoice.property?.owner?.name ||
-                  invoice.unit?.property?.owner?.name ||
-                  "غير محدد"
-                : `الوحدة رقم: ${
-                    invoice.rentAgreement?.unit?.number ||
-                    invoice.unit?.number ||
-                    "غير محدد"
-                  }`}
+              {from}
             </td>
           </tr>
 

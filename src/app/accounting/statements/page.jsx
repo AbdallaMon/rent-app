@@ -11,15 +11,14 @@ import {
   ToggleButtonGroup,
   ToggleButton,
 } from "@mui/material";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useState } from "react";
 import dayjs from "dayjs";
-import { ownerInputs } from "@/app/owners/ownerInputs";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import FilterSelect from "@/components/utility/FilterSelect.jsx";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import TableJournalLine from "@/components/accounting/TableJournalLine";
 import TableJournalEntry from "@/components/accounting/TableJournalEntry";
+import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
+import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
 dayjs.locale("ar");
 
 export default function StatementPage({ searchParams }) {
@@ -45,9 +44,6 @@ function getSettlementTotals(row) {
   return { total, settled, left, pct };
 }
 
-export function fmt(n) {
-  return Number(n || 0).toLocaleString("ar-AE", { maximumFractionDigits: 2 });
-}
 function StatementWrapper({ searchParams }) {
   const {
     data,
@@ -144,7 +140,7 @@ function StatementWrapper({ searchParams }) {
               <Typography variant="body2" noWrap>
                 المسدد:{" "}
                 <Box component="span" sx={{ fontWeight: 600 }}>
-                  {fmt(settled)}
+                  {formatCurrencyAED(settled)}
                 </Box>
               </Typography>
               <Typography
@@ -154,7 +150,7 @@ function StatementWrapper({ searchParams }) {
               >
                 المتبقي:{" "}
                 <Box component="span" sx={{ fontWeight: 600 }}>
-                  {fmt(left)}
+                  {formatCurrencyAED(left)}
                 </Box>
               </Typography>
             </Box>
@@ -164,7 +160,7 @@ function StatementWrapper({ searchParams }) {
         const { left } = getSettlementTotals(params.row);
         return (
           <Typography variant="body2" color="text.secondary" noWrap>
-            غير مُسدد — المتبقي {fmt(left)}
+            غير مُسدد — المتبقي {formatCurrencyAED(left)}
           </Typography>
         );
       },
@@ -220,32 +216,22 @@ function StatementWrapper({ searchParams }) {
       },
       {
         label: "اجمالي المبلغ",
-        value: fmt(otherData.totalAmount),
+        value: formatCurrencyAED(otherData.totalAmount),
       },
       {
         label: "اجمالي المسدد",
-        value: fmt(otherData.totalSettled),
+        value: formatCurrencyAED(otherData.totalSettled),
       },
       {
         label: "اجمالي المتبقي",
-        value: fmt(otherData.totalLeft),
+        value: formatCurrencyAED(otherData.totalLeft),
       },
     ];
   }
   return (
     <>
       {/* Top Controls */}
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          mb: 4,
-          pr: 8,
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-      >
-        {/* Mode Toggle */}
+      <FilterPaperContainer handleFilter={applyFilters}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Typography variant="subtitle2" color="text.secondary">
             طريقة التصفية
@@ -319,28 +305,21 @@ function StatementWrapper({ searchParams }) {
           />
         )}
 
-        {/* Dates + Apply */}
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DatePicker
-            label="تاريخ البدء"
-            value={startDate}
-            onChange={(d) => handleDateChange("start", d)}
-            renderInput={(params) => <TextField {...params} />}
-            format="DD/MM/YYYY"
-          />
-          <DatePicker
-            label="تاريخ الانتهاء"
-            value={endDate}
-            onChange={(d) => handleDateChange("end", d)}
-            renderInput={(params) => <TextField {...params} />}
-            format="DD/MM/YYYY"
-          />
-        </LocalizationProvider>
-
-        <Button variant="contained" onClick={applyFilters}>
-          تطبيق الفلاتر
-        </Button>
-      </Box>
+        <DatePicker
+          label="تاريخ البدء"
+          value={startDate}
+          onChange={(d) => handleDateChange("start", d)}
+          renderInput={(params) => <TextField {...params} />}
+          format="DD/MM/YYYY"
+        />
+        <DatePicker
+          label="تاريخ الانتهاء"
+          value={endDate}
+          onChange={(d) => handleDateChange("end", d)}
+          renderInput={(params) => <TextField {...params} />}
+          format="DD/MM/YYYY"
+        />
+      </FilterPaperContainer>
 
       {/* Table */}
       <ViewComponent

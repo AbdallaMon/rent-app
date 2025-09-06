@@ -7,13 +7,12 @@ import { propertyInputs } from "@/app/properties/propertyInputs";
 import { ExtraForm } from "@/components/ui/FormComponents/Forms/ExtraForms/ExtraForm";
 import useEditState from "@/helpers/hooks/useEditState";
 import Link from "next/link";
-import { submitRentAgreement } from "@/services/client/createRentAgreement";
 import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
 import { submitProperty } from "@/services/client/properties";
-import DeleteBtn from "@/components/ui/Buttons/DeleteBtn";
 import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 import { ownerInputs } from "@/app/owners/ownerInputs";
 import DeleteModal from "../ui/Modals/DeleteModal";
+import EditProperty from "@/app/properties/EditPropertyDialog";
 
 const PropertyComponent = ({ clientId, noTabs }) => {
   const {
@@ -344,17 +343,12 @@ const PropertyComponent = ({ clientId, noTabs }) => {
       printable: false,
       renderCell: (params) => (
         <>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => {
-              // فتح نموذج التعديل - يمكن إضافة logic هنا
-              console.log("تعديل العقار:", params.row.id);
+          <EditProperty
+            id={params.row.id}
+            onUpdate={() => {
+              setRender((old) => !old);
             }}
-            sx={{ mr: 1 }}
-          >
-            تعديل
-          </Button>
+          />
           <DeleteModal
             href={`main/properties`}
             item={params.row}

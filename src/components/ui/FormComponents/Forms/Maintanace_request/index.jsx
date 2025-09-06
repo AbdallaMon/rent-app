@@ -15,7 +15,7 @@ import {
   Select,
   MenuItem,
   InputLabel,
-  Grid
+  Grid,
 } from "@mui/material";
 
 // Status translations
@@ -23,7 +23,7 @@ const statusTranslation = {
   PENDING: "قيد الانتظار",
   IN_PROGRESS: "قيد التنفيذ",
   COMPLETED: "مكتمل",
-  REJECTED: "مرفوض"
+  REJECTED: "مرفوض",
 };
 
 // Priority translations
@@ -31,10 +31,15 @@ const priorityTranslation = {
   LOW: "منخفضة",
   MEDIUM: "متوسطة",
   HIGH: "عالية",
-  URGENT: "عاجلة"
+  URGENT: "عاجلة",
 };
 
-export default function MaintenanceRequestStatusForm({ open, onClose, request, onStatusUpdated }) {
+export default function MaintenanceRequestStatusForm({
+  open,
+  onClose,
+  request,
+  onStatusUpdated,
+}) {
   const [status, setStatus] = useState(request?.status || "PENDING");
   const [priority, setPriority] = useState(request?.priority || "MEDIUM");
   const [loading, setLoading] = useState(false);
@@ -44,24 +49,27 @@ export default function MaintenanceRequestStatusForm({ open, onClose, request, o
   // Updated to remove phoneNumber parameter
   const sendWhatsAppNotification = async (requestId, newStatus) => {
     try {
-      const response = await fetch('/api/notifications/whatsapp/request/status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          requestId,
-          newStatus
-        }),
-      });
+      const response = await fetch(
+        "/api/notifications/whatsapp/request/status",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            requestId,
+            newStatus,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('WhatsApp notification failed:', errorData);
+        console.error("WhatsApp notification failed:", errorData);
         // Optional: You might want to handle notification failure differently
       }
     } catch (err) {
-      console.error('Error sending WhatsApp notification:', err);
+      console.error("Error sending WhatsApp notification:", err);
     }
   };
 
@@ -81,33 +89,33 @@ export default function MaintenanceRequestStatusForm({ open, onClose, request, o
 
     try {
       const response = await fetch(`/api/request/maintenance/${request.id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           status: status,
-          priority: priority
+          priority: priority,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'فشل تحديث الطلب');
+        throw new Error(errorData.message || "فشل تحديث الطلب");
       }
 
       const updatedRequest = await response.json();
-      
+
       // Send WhatsApp notification (only for status changes)
       await sendWhatsAppNotification(request.id, status);
 
       setSuccess(true);
-     
+
       // Notify parent component about the status update
       if (onStatusUpdated) {
         onStatusUpdated(updatedRequest);
       }
-     
+
       // Close the dialog after a short delay
       setTimeout(() => {
         onClose();
@@ -120,16 +128,8 @@ export default function MaintenanceRequestStatusForm({ open, onClose, request, o
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      dir="rtl"
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle>
-        تحديث طلب الصيانة
-      </DialogTitle>
+    <Dialog open={open} onClose={onClose} dir="rtl" maxWidth="sm" fullWidth>
+      <DialogTitle>تحديث طلب الصيانة</DialogTitle>
       <DialogContent>
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle1" fontWeight="bold">
@@ -154,7 +154,7 @@ export default function MaintenanceRequestStatusForm({ open, onClose, request, o
         )}
         <form onSubmit={handleSubmit}>
           <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth sx={{ mt: 2 }}>
                 <InputLabel id="status-label">حالة الطلب</InputLabel>
                 <Select
@@ -164,14 +164,22 @@ export default function MaintenanceRequestStatusForm({ open, onClose, request, o
                   label="حالة الطلب"
                   onChange={handleStatusChange}
                 >
-                  <MenuItem value="PENDING">{statusTranslation.PENDING}</MenuItem>
-                  <MenuItem value="IN_PROGRESS">{statusTranslation.IN_PROGRESS}</MenuItem>
-                  <MenuItem value="COMPLETED">{statusTranslation.COMPLETED}</MenuItem>
-                  <MenuItem value="REJECTED">{statusTranslation.REJECTED}</MenuItem>
+                  <MenuItem value="PENDING">
+                    {statusTranslation.PENDING}
+                  </MenuItem>
+                  <MenuItem value="IN_PROGRESS">
+                    {statusTranslation.IN_PROGRESS}
+                  </MenuItem>
+                  <MenuItem value="COMPLETED">
+                    {statusTranslation.COMPLETED}
+                  </MenuItem>
+                  <MenuItem value="REJECTED">
+                    {statusTranslation.REJECTED}
+                  </MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth sx={{ mt: 2 }}>
                 <InputLabel id="priority-label">الأولوية</InputLabel>
                 <Select
@@ -182,16 +190,20 @@ export default function MaintenanceRequestStatusForm({ open, onClose, request, o
                   onChange={handlePriorityChange}
                 >
                   <MenuItem value="LOW">{priorityTranslation.LOW}</MenuItem>
-                  <MenuItem value="MEDIUM">{priorityTranslation.MEDIUM}</MenuItem>
+                  <MenuItem value="MEDIUM">
+                    {priorityTranslation.MEDIUM}
+                  </MenuItem>
                   <MenuItem value="HIGH">{priorityTranslation.HIGH}</MenuItem>
-                  <MenuItem value="URGENT">{priorityTranslation.URGENT}</MenuItem>
+                  <MenuItem value="URGENT">
+                    {priorityTranslation.URGENT}
+                  </MenuItem>
                 </Select>
               </FormControl>
             </Grid>
           </Grid>
         </form>
       </DialogContent>
-      <DialogActions sx={{ justifyContent: 'flex-start' }}>
+      <DialogActions sx={{ justifyContent: "flex-start" }}>
         <Button onClick={onClose} color="inherit">
           إلغاء
         </Button>
@@ -201,7 +213,7 @@ export default function MaintenanceRequestStatusForm({ open, onClose, request, o
           variant="contained"
           disabled={loading}
         >
-          {loading ? <CircularProgress size={24} /> : 'حفظ'}
+          {loading ? <CircularProgress size={24} /> : "حفظ"}
         </Button>
       </DialogActions>
     </Dialog>

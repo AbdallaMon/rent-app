@@ -16,19 +16,23 @@ import {
   Typography,
   CircularProgress,
   FormHelperText,
-  Autocomplete
+  Autocomplete,
 } from "@mui/material";
 
-export default function CreateMaintenanceRequestForm({ open, onClose, onRequestCreated }) {
+export default function CreateMaintenanceRequestForm({
+  open,
+  onClose,
+  onRequestCreated,
+}) {
   const [formData, setFormData] = useState({
     clientId: "",
     propertyId: "",
     unitId: "",
     description: "",
     priority: "MEDIUM",
-    status: "PENDING"
+    status: "PENDING",
   });
-  
+
   const [clients, setClients] = useState([]);
   const [properties, setProperties] = useState([]);
   const [units, setUnits] = useState([]);
@@ -69,7 +73,9 @@ export default function CreateMaintenanceRequestForm({ open, onClose, onRequestC
 
   const fetchUnits = async (propertyId) => {
     try {
-      const response = await fetch(`/api/request/maintenance/units?propertyId=${propertyId}`);
+      const response = await fetch(
+        `/api/request/maintenance/units?propertyId=${propertyId}`
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch units");
       }
@@ -85,14 +91,14 @@ export default function CreateMaintenanceRequestForm({ open, onClose, onRequestC
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value
+      [name]: value,
     });
 
     // Clear errors for this field
     if (errors[name]) {
       setErrors({
         ...errors,
-        [name]: ""
+        [name]: "",
       });
     }
   };
@@ -100,13 +106,13 @@ export default function CreateMaintenanceRequestForm({ open, onClose, onRequestC
   const handleClientChange = (event, newValue) => {
     setFormData({
       ...formData,
-      clientId: newValue ? newValue.id : ""
+      clientId: newValue ? newValue.id : "",
     });
-    
+
     if (errors.clientId) {
       setErrors({
         ...errors,
-        clientId: ""
+        clientId: "",
       });
     }
   };
@@ -115,13 +121,13 @@ export default function CreateMaintenanceRequestForm({ open, onClose, onRequestC
     setFormData({
       ...formData,
       propertyId: newValue ? newValue.id : "",
-      unitId: "" // Reset unit when property changes
+      unitId: "", // Reset unit when property changes
     });
-    
+
     if (errors.propertyId) {
       setErrors({
         ...errors,
-        propertyId: ""
+        propertyId: "",
       });
     }
   };
@@ -129,79 +135,85 @@ export default function CreateMaintenanceRequestForm({ open, onClose, onRequestC
   const handleUnitChange = (event, newValue) => {
     setFormData({
       ...formData,
-      unitId: newValue ? newValue.id : ""
+      unitId: newValue ? newValue.id : "",
     });
-    
+
     if (errors.unitId) {
       setErrors({
         ...errors,
-        unitId: ""
+        unitId: "",
       });
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.clientId) {
       newErrors.clientId = "يرجى اختيار العميل";
     }
-    
+
     if (!formData.description) {
       newErrors.description = "وصف المشكلة مطلوب";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     try {
       setLoading(true);
-      
+
       // تحويل المعرفات إلى أرقام صحيحة للتأكد من أنها ترسل بالشكل الصحيح
       const requestData = {
         ...formData,
         clientId: parseInt(formData.clientId),
-        lastRequestTime: new Date().toISOString()
+        lastRequestTime: new Date().toISOString(),
       };
-      
+
       // تحويل معرف العقار والوحدة إلى أرقام صحيحة إذا كانت موجودة
       if (formData.propertyId) {
         requestData.propertyId = parseInt(formData.propertyId);
       }
-      
+
       if (formData.unitId) {
         requestData.unitId = parseInt(formData.unitId);
       }
-      
+
       console.log("إرسال بيانات طلب الصيانة:", requestData);
-      
+
       const response = await fetch("/api/request/maintenance/create", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestData)
+        body: JSON.stringify(requestData),
       });
-      
+
       const responseData = await response.json();
-      
+
       if (!response.ok) {
         console.error("خطأ من الخادم:", responseData);
-        alert(`فشل في إنشاء طلب الصيانة: ${responseData.details || responseData.error || "خطأ غير معروف"}`);
-        throw new Error(responseData.details || responseData.error || "Failed to create maintenance request");
+        alert(
+          `فشل في إنشاء طلب الصيانة: ${responseData.details || responseData.error || "خطأ غير معروف"}`
+        );
+        throw new Error(
+          responseData.details ||
+            responseData.error ||
+            "Failed to create maintenance request"
+        );
       }
-      
+
       console.log("تم إنشاء طلب الصيانة بنجاح:", responseData);
       onRequestCreated(responseData);
-      
+
       // Reset form
       setFormData({
         clientId: "",
@@ -209,9 +221,8 @@ export default function CreateMaintenanceRequestForm({ open, onClose, onRequestC
         unitId: "",
         description: "",
         priority: "MEDIUM",
-        status: "PENDING"
+        status: "PENDING",
       });
-      
     } catch (error) {
       console.error("Error creating maintenance request:", error);
       alert(`فشل في إنشاء طلب الصيانة: ${error.message}`);
@@ -227,7 +238,7 @@ export default function CreateMaintenanceRequestForm({ open, onClose, onRequestC
       unitId: "",
       description: "",
       priority: "MEDIUM",
-      status: "PENDING"
+      status: "PENDING",
     });
     setErrors({});
     onClose();
@@ -236,16 +247,16 @@ export default function CreateMaintenanceRequestForm({ open, onClose, onRequestC
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
       <DialogTitle align="right">إنشاء طلب صيانة جديد</DialogTitle>
-      
+
       <DialogContent>
         {dataLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
             <CircularProgress />
           </Box>
         ) : (
           <Box component="form" noValidate sx={{ mt: 2 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Autocomplete
                   options={clients}
                   getOptionLabel={(option) => option.name}
@@ -262,41 +273,33 @@ export default function CreateMaintenanceRequestForm({ open, onClose, onRequestC
                   )}
                 />
               </Grid>
-              
-              <Grid item xs={12} md={6}>
+
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Autocomplete
                   options={properties}
                   getOptionLabel={(option) => option.name}
                   onChange={handlePropertyChange}
                   renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="العقار"
-                      fullWidth
-                    />
+                    <TextField {...params} label="العقار" fullWidth />
                   )}
                 />
               </Grid>
-              
-              <Grid item xs={12} md={6}>
+
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Autocomplete
                   options={units}
-                  getOptionLabel={(option) => 
-                    `${option.number || ''}${option.floor ? ` (طابق ${option.floor})` : ''}`
+                  getOptionLabel={(option) =>
+                    `${option.number || ""}${option.floor ? ` (طابق ${option.floor})` : ""}`
                   }
                   disabled={!formData.propertyId}
                   onChange={handleUnitChange}
                   renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="الوحدة"
-                      fullWidth
-                    />
+                    <TextField {...params} label="الوحدة" fullWidth />
                   )}
                 />
               </Grid>
-              
-              <Grid item xs={12} md={6}>
+
+              <Grid size={{ xs: 12, md: 6 }}>
                 <FormControl fullWidth>
                   <InputLabel id="priority-label">الأولوية</InputLabel>
                   <Select
@@ -313,8 +316,8 @@ export default function CreateMaintenanceRequestForm({ open, onClose, onRequestC
                   </Select>
                 </FormControl>
               </Grid>
-              
-              <Grid item xs={12}>
+
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   name="description"
                   label="وصف المشكلة"
@@ -332,18 +335,18 @@ export default function CreateMaintenanceRequestForm({ open, onClose, onRequestC
           </Box>
         )}
       </DialogContent>
-      
+
       <DialogActions>
         <Button onClick={handleClose} color="inherit">
           إلغاء
         </Button>
-        <Button 
-          onClick={handleSubmit} 
-          color="primary" 
+        <Button
+          onClick={handleSubmit}
+          color="primary"
           variant="contained"
           disabled={loading || dataLoading}
         >
-          {loading ? <CircularProgress size={24} /> : 'إنشاء'}
+          {loading ? <CircularProgress size={24} /> : "إنشاء"}
         </Button>
       </DialogActions>
     </Dialog>

@@ -64,7 +64,7 @@ export default function DataGrid({
       <Box ref={componentRef}>
         <Grid container spacing={2}>
           {rows.map((row) => (
-            <Grid key={row.id} item xs={12} md={6} xl={4}>
+            <Grid key={row.id} size={{ xs: 12, md: 6, xl: 4 }}>
               <DataCard
                 row={row}
                 columns={printMode ? printableColumns : columns}

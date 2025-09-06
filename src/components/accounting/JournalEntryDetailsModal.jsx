@@ -196,7 +196,7 @@ export default function JournalEntryDetailsModal({ open, entryId, onClose }) {
 
             <Grid container spacing={1.5}>
               {p.lines.map((line) => (
-                <Grid item xs={12} sm={6} key={line.id}>
+                <Grid size={{ xs: 12, sm: 6 }} key={line.id}>
                   <LineRelations p={line} />
                 </Grid>
               ))}

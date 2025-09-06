@@ -497,7 +497,7 @@ export default function SettingsPage() {
                   title="أيام التذكيرات"
                 >
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <DaysChipsEditor
                         label="تذكيرات الدفع (أيام قبل الاستحقاق)"
                         value={reminderSettings.paymentReminderDays}
@@ -510,7 +510,7 @@ export default function SettingsPage() {
                         helperText="أضف رقم واضغط Enter — مثال: 7, 3, 1"
                       />
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <DaysChipsEditor
                         label="تذكيرات العقود (أيام قبل انتهاء العقد)"
                         value={reminderSettings.contractReminderDays}
@@ -523,7 +523,7 @@ export default function SettingsPage() {
                         helperText="مثال: 60, 30, 15, 7"
                       />
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid size={{ xs: 12, md: 4 }}>
                       <DaysChipsEditor
                         label="متابعة الصيانة (أيام بعد الطلب)"
                         value={reminderSettings.maintenanceFollowupDays}
@@ -590,7 +590,7 @@ export default function SettingsPage() {
                   title="إعدادات الإرسال"
                 >
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         type="number"
@@ -606,7 +606,7 @@ export default function SettingsPage() {
                         helperText="عدد المحاولات عند فشل إرسال الرسالة"
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         type="number"
@@ -632,7 +632,7 @@ export default function SettingsPage() {
                   title="ساعات العمل"
                 >
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         type="time"
@@ -647,7 +647,7 @@ export default function SettingsPage() {
                         InputLabelProps={{ shrink: true }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         type="time"
@@ -679,7 +679,7 @@ export default function SettingsPage() {
                       { key: "Friday", label: "الجمعة" },
                       { key: "Saturday", label: "السبت" },
                     ].map((day) => (
-                      <Grid item xs={6} md={3} key={day.key}>
+                      <Grid size={{ xs: 6, md: 3 }} key={day.key}>
                         <FormControlLabel
                           control={
                             <Checkbox
@@ -708,7 +708,7 @@ export default function SettingsPage() {
                   title="إعدادات الفني"
                 >
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="رقم هاتف الفني"
@@ -734,7 +734,7 @@ export default function SettingsPage() {
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="اسم الفني"
@@ -748,7 +748,7 @@ export default function SettingsPage() {
                         placeholder="أدخل اسم الفني"
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="ساعات عمل الفني"
@@ -763,9 +763,7 @@ export default function SettingsPage() {
                       />
                     </Grid>
                     <Grid
-                      item
-                      xs={12}
-                      md={6}
+                      size={{ xs: 12, md: 6 }}
                       display="flex"
                       alignItems="center"
                     >
@@ -800,7 +798,7 @@ export default function SettingsPage() {
                   title="إعدادات خدمة العملاء"
                 >
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="رقم هاتف خدمة العملاء"
@@ -826,7 +824,7 @@ export default function SettingsPage() {
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="اسم خدمة العملاء"
@@ -840,7 +838,7 @@ export default function SettingsPage() {
                         placeholder="أدخل اسم خدمة العملاء"
                       />
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         label="ساعات عمل خدمة العملاء"
@@ -855,7 +853,7 @@ export default function SettingsPage() {
                       />
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <FormGroup>
                         <FormControlLabel
                           control={
@@ -901,7 +899,7 @@ export default function SettingsPage() {
                   title="إعدادات التنبيهات"
                 >
                   <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         type="number"
@@ -920,7 +918,7 @@ export default function SettingsPage() {
                       />
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <TextField
                         fullWidth
                         type="number"
@@ -939,7 +937,7 @@ export default function SettingsPage() {
                       />
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <FormControlLabel
                         control={
                           <Switch
@@ -956,7 +954,7 @@ export default function SettingsPage() {
                       />
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid size={{ xs: 12, md: 6 }}>
                       <FormControlLabel
                         control={
                           <Switch

@@ -7,6 +7,7 @@ import {
   Box,
   Button,
   FormControl,
+  InputLabel,
   Modal,
   Select,
   Snackbar,
@@ -27,16 +28,18 @@ import { simpleModalStyle } from "@/config/constants";
 import { Form } from "@/components/ui/FormComponents/Forms/Form";
 import { InstallmentComponent } from "@/components/InstallmentComponent";
 import DeleteModal from "@/components/ui/Modals/DeleteModal";
+import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
+import UnitModal from "./UnitPageModal";
 
-export default function PropertyPage() {
+export default function UnitsPage() {
   return (
     <TableFormProvider url={"fast-handler"}>
-      <PropertyWrapper />
+      <UnitsWrapper />
     </TableFormProvider>
   );
 }
 
-const PropertyWrapper = () => {
+const UnitsWrapper = () => {
   const { id, submitData } = useTableForm();
   const [disabled, setDisabled] = useState(false);
   const [properties, setProperties] = useState([]);
@@ -185,6 +188,9 @@ const PropertyWrapper = () => {
     }
   }
 
+  function onEdit(data) {
+    setRender((old) => !old);
+  }
   const columns = [
     {
       field: "id",
@@ -255,17 +261,8 @@ const PropertyWrapper = () => {
       printable: false,
       renderCell: (params) => (
         <div className={"flex items-center gap-2"}>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => {
-              // فتح نموذج التعديل - يمكن إضافة logic هنا
-              console.log("تعديل الوحدة:", params.row.id);
-            }}
-            sx={{ mr: 1 }}
-          >
-            تعديل
-          </Button>
+          <UnitModal unitId={params.row.id} onSubmit={onEdit} />
+
           {rentStatusParam === "notRented" && (
             <Button
               variant="contained"
@@ -339,29 +336,19 @@ const PropertyWrapper = () => {
 
   return (
     <>
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          flexDirection: {
-            xs: "column",
-            sm: "row",
-          },
-          alignItems: "center",
-        }}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
       >
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={6000}
-          onClose={handleSnackbarClose}
-        >
-          <Alert onClose={handleSnackbarClose} severity="error">
-            المجموع الكلي للأقساط لا يتطابق مع السعر الكلي. يرجى التحقق من
-            المدخلات.
-          </Alert>
-        </Snackbar>
+        <Alert onClose={handleSnackbarClose} severity="error">
+          المجموع الكلي للأقساط لا يتطابق مع السعر الكلي. يرجى التحقق من
+          المدخلات.
+        </Alert>
+      </Snackbar>
+      <FilterPaperContainer>
         <FormControl sx={{ mb: 2, maxWidth: 300 }}>
-          <Typography variant="h6">العقار </Typography>
+          <InputLabel>العقار</InputLabel>
           <Select
             value={others.split("=")[1] || "all"}
             onChange={handlePropertyFilterChange}
@@ -382,7 +369,7 @@ const PropertyWrapper = () => {
           </Select>
         </FormControl>
         <FormControl sx={{ mb: 2, maxWidth: 300 }}>
-          <Typography variant="h6">حالة الوحدة </Typography>
+          <InputLabel>حالة الوحدة</InputLabel>
           <Select
             value={rentStatus}
             onChange={handleRentStatus}
@@ -395,7 +382,7 @@ const PropertyWrapper = () => {
             <MenuItem value="notRented">شاغرة</MenuItem>
           </Select>
         </FormControl>
-      </Box>
+      </FilterPaperContainer>
       {unit && (
         <RentModal
           openModal={openRentModal}

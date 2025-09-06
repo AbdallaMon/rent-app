@@ -14,20 +14,19 @@ import {
   alpha,
   useTheme,
 } from "@mui/material";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useState } from "react";
 import dayjs from "dayjs";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import TableJournalLine from "@/components/accounting/TableJournalLine";
 import TableJournalEntry from "@/components/accounting/TableJournalEntry";
 import DeleteModal from "@/components/ui/Modals/DeleteModal";
-import { fmt } from "../statements/page";
 import PettyCashActions from "@/components/accounting/PettyCashActions";
 import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
 import { Card } from "antd";
 import { FaCoins, FaMoneyCheckAlt, FaWallet } from "react-icons/fa";
 import { handleRequestSubmit } from "@/helpers/functions/handleRequestSubmit";
+import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
+import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 dayjs.locale("ar");
 
 export default function PettyCashPage({ searchParams }) {
@@ -253,15 +252,15 @@ function PettyCashWrapper({ searchParams }) {
       },
       {
         label: "اجمالي المبلغ",
-        value: fmt(otherData.totalAmount),
+        value: formatCurrencyAED(otherData.totalAmount),
       },
       {
         label: "اجمالي المسدد",
-        value: fmt(otherData.totalSettled),
+        value: formatCurrencyAED(otherData.totalSettled),
       },
       {
         label: "اجمالي المتبقي",
-        value: fmt(otherData.totalLeft),
+        value: formatCurrencyAED(otherData.totalLeft),
       },
     ];
   }
@@ -284,8 +283,7 @@ function PettyCashWrapper({ searchParams }) {
       : 0;
   return (
     <>
-      <Box sx={{ p: 3 }}>
-        {/* Header Section with Summary Cards */}
+      <Box sx={{ p: 1.5 }}>
         <Box sx={{ mb: 4 }}>
           <Typography
             variant="h4"
@@ -302,28 +300,28 @@ function PettyCashWrapper({ searchParams }) {
           </Typography>
 
           <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <SummaryCard
                 title="إجمالي المبلغ"
-                value={fmt(otherData?.totalAmount || 0)}
+                value={formatCurrencyAED(otherData?.totalAmount || 0)}
                 icon={FaWallet}
                 color="primary"
                 subtitle="الرصيد الكلي للصندوق"
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <SummaryCard
                 title="إجمالي المسدد"
-                value={fmt(otherData?.totalSettled || 0)}
+                value={formatCurrencyAED(otherData?.totalSettled || 0)}
                 icon={FaMoneyCheckAlt}
                 color="success"
                 subtitle={`${settledPercentage}% من الإجمالي`}
               />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <SummaryCard
                 title="إجمالي المتبقي"
-                value={fmt(otherData?.totalLeft || 0)}
+                value={formatCurrencyAED(otherData?.totalLeft || 0)}
                 icon={FaCoins}
                 color="warning"
                 subtitle="المبلغ المتاح للصرف"
@@ -332,84 +330,43 @@ function PettyCashWrapper({ searchParams }) {
           </Grid>
         </Box>
 
-        {/* Petty Cash Actions Section */}
         <Box sx={{ mb: 3 }}>
           <PettyCashActions onSubmit={onSubmit} />
         </Box>
 
-        {/* Date Filter Section */}
-        <Paper
-          elevation={0}
-          sx={{
-            p: 3,
-            mb: 3,
-            backgroundColor: alpha(theme.palette.primary.main, 0.02),
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
-            borderRadius: 2,
-          }}
-        >
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            فلترة البيانات
-          </Typography>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <DatePicker
-                label="تاريخ البدء"
-                value={startDate}
-                onChange={(date) => handleDateChange("start", date)}
-                renderInput={(params) => <TextField {...params} />}
-                format="DD/MM/YYYY"
-                sx={{ minWidth: 200 }}
-              />
-              <DatePicker
-                label="تاريخ الانتهاء"
-                value={endDate}
-                onChange={(date) => handleDateChange("end", date)}
-                renderInput={(params) => <TextField {...params} />}
-                format="DD/MM/YYYY"
-                sx={{ minWidth: 200 }}
-              />
-            </LocalizationProvider>
-            <Button
-              variant="contained"
-              onClick={handleFilter}
-              sx={{
-                px: 4,
-                py: 1.5,
-                borderRadius: 2,
-                textTransform: "none",
-                fontWeight: 600,
-              }}
-            >
-              تطبيق الفلاتر
-            </Button>
-          </Box>
-        </Paper>
-
-        {/* Table Section */}
-        <Paper elevation={1} sx={{ borderRadius: 2, overflow: "hidden" }}>
-          <ViewComponent
-            rows={data}
-            columns={columns}
-            loading={loading}
-            noCreate={true}
-            page={page}
-            setPage={setPage}
-            limit={limit}
-            setLimit={setLimit}
-            setData={setData}
-            setTotal={setTotal}
-            total={total}
-            footerRow={[]}
+        <FilterPaperContainer handleFilter={handleFilter}>
+          <DatePicker
+            label="تاريخ البدء"
+            value={startDate}
+            onChange={(date) => handleDateChange("start", date)}
+            renderInput={(params) => <TextField {...params} />}
+            format="DD/MM/YYYY"
+            sx={{ minWidth: 200 }}
           />
-        </Paper>
+          <DatePicker
+            label="تاريخ الانتهاء"
+            value={endDate}
+            onChange={(date) => handleDateChange("end", date)}
+            renderInput={(params) => <TextField {...params} />}
+            format="DD/MM/YYYY"
+            sx={{ minWidth: 200 }}
+          />
+        </FilterPaperContainer>
+
+        <ViewComponent
+          rows={data}
+          columns={columns}
+          loading={loading}
+          noCreate={true}
+          page={page}
+          setPage={setPage}
+          limit={limit}
+          setLimit={setLimit}
+          setData={setData}
+          setTotal={setTotal}
+          total={total}
+          footerRow={[]}
+        />
       </Box>
     </>
   );

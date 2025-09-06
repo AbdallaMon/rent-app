@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma"; // adjust your import
+import prisma from "@/lib/prisma";
 
 // Get the currently "OPEN" conversation for a phone (or null)
 export async function findOpenConversationByPhone(phoneNumber) {

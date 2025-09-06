@@ -20,6 +20,7 @@ const FilterSelect = ({
   reset,
   withAll = true,
   apiPoint,
+  setCurrent,
 }) => {
   const [localOptions, setLocalOptions] = useState(options || []);
   const [localLoading, setLoading] = useState(loading || !options?.length > 0);
@@ -54,6 +55,12 @@ const FilterSelect = ({
   }, [apiPoint]);
   function handleChange(event) {
     handleSearchParamsChange(event, param, searchParams, router, onChange);
+    if (setCurrent) {
+      const current = localOptions?.find(
+        (option) => option.id === event.target.value
+      );
+      setCurrent(current);
+    }
   }
 
   return (

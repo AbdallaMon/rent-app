@@ -1,5 +1,4 @@
 export async function sendNotifications(rentAgreement, options = {}) {
-  return true;
   // Get renter's language from database, fallback to options or default Arabic
   let renterLanguage = "ar"; // default
 

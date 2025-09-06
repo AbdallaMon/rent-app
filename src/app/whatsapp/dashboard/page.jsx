@@ -248,6 +248,7 @@ function ChartPlaceholder({ height = 300, text = "لا توجد بيانات ل�
       justifyContent="center"
       spacing={1}
       sx={{
+        width: "100%",
         height,
         borderRadius: 3,
         border: "1px dashed",
@@ -527,7 +528,7 @@ export default function WhatsappStats() {
 
       <Grid container spacing={3}>
         {/* KPIs */}
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid size={{ xs: 12, md: 6, lg: 3 }}>
           <KpiCard
             icon={<FiMessageSquare />}
             title="الوارد — اليوم"
@@ -538,7 +539,7 @@ export default function WhatsappStats() {
             colors={{ successChip: "success", failChip: "error" }}
           />
         </Grid>
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid size={{ xs: 12, md: 6, lg: 3 }}>
           <KpiCard
             icon={<FiMessageSquare />}
             title="الوارد — طوال الفترة"
@@ -549,7 +550,7 @@ export default function WhatsappStats() {
             colors={{ successChip: "success", failChip: "error" }}
           />
         </Grid>
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid size={{ xs: 12, md: 6, lg: 3 }}>
           <KpiCard
             icon={<FiSend />}
             title="الصادر — اليوم"
@@ -560,7 +561,7 @@ export default function WhatsappStats() {
             colors={{ successChip: "primary", failChip: "error" }}
           />
         </Grid>
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid size={{ xs: 12, md: 6, lg: 3 }}>
           <KpiCard
             icon={<FiSend />}
             title="الصادر — طوال الفترة"
@@ -573,7 +574,7 @@ export default function WhatsappStats() {
         </Grid>
 
         {/* Doughnut: Incoming Today */}
-        <Grid item xs={12} md={6} lg={6}>
+        <Grid size={{ xs: 12, md: 6, lg: 6 }}>
           <Card sx={{ height: "100%", borderRadius: 4 }}>
             <CardContent sx={{ p: 2.75 }}>
               <SectionTitle icon={<FiTrendingUp />} title="تفصيل وارد اليوم" />
@@ -582,6 +583,7 @@ export default function WhatsappStats() {
                   height: chartHeight,
                   display: "flex",
                   alignItems: "center",
+                  width: "100%",
                 }}
               >
                 {doughnutIncomingToday ? (
@@ -633,7 +635,7 @@ export default function WhatsappStats() {
         </Grid>
 
         {/* Doughnut: Outgoing Today */}
-        <Grid item xs={12} md={6} lg={6}>
+        <Grid size={{ xs: 12, md: 6, lg: 6 }}>
           <Card sx={{ height: "100%", borderRadius: 4 }}>
             <CardContent sx={{ p: 2.75 }}>
               <SectionTitle icon={<FiTrendingUp />} title="تفصيل صادر اليوم" />
@@ -693,7 +695,7 @@ export default function WhatsappStats() {
         </Grid>
 
         {/* Intents: Bigger, Horizontal, Grouped Bars + Table */}
-        <Grid item xs={12} lg={12}>
+        <Grid size={{ xs: 12, md: 12 }}>
           <Card sx={{ height: "100%", borderRadius: 4 }}>
             <CardContent sx={{ p: 2.75 }}>
               <SectionTitle
@@ -702,7 +704,7 @@ export default function WhatsappStats() {
                 subtitle="حتى ٦ عناصر — عرض أفقي أوضح"
               />
               <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Box sx={{ height: intentsHeight }}>
                     {intentsBar ? (
                       <Bar
@@ -750,7 +752,7 @@ export default function WhatsappStats() {
                     )}
                   </Box>
                 </Grid>
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   {intentsBar && (
                     <ChartDataTable
                       labels={intentsBar.labels}
@@ -780,7 +782,7 @@ export default function WhatsappStats() {
 
         <Divider sx={{ my: 2, width: "100%" }} />
         {/* Reminders */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ borderRadius: 4, height: "100%" }}>
             <CardContent sx={{ p: 2.75 }}>
               <SectionTitle
@@ -836,7 +838,7 @@ export default function WhatsappStats() {
         </Grid>
 
         {/* Team alerts */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ borderRadius: 4, height: "100%" }}>
             <CardContent sx={{ p: 2.75 }}>
               <SectionTitle
@@ -892,7 +894,7 @@ export default function WhatsappStats() {
         </Grid>
 
         {/* Conversations — KPIs */}
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid size={{ xs: 12, md: 6, lg: 3 }}>
           <KpiCard
             icon={<FiMessageSquare />}
             title="المحادثات — المفتوحة"
@@ -904,7 +906,7 @@ export default function WhatsappStats() {
           />
         </Grid>
 
-        <Grid item xs={12} md={6} lg={3}>
+        <Grid size={{ xs: 12, md: 6, lg: 3 }}>
           <Card sx={{ height: "100%", borderRadius: 4 }}>
             <CardContent sx={{ p: 2.75 }}>
               <SectionTitle icon={<FiTrendingUp />} title="متوسط مدة الإغلاق" />
@@ -946,7 +948,7 @@ export default function WhatsappStats() {
         </Grid>
 
         {/* Top sending clients */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Card sx={{ borderRadius: 4, height: "100%" }}>
             <CardContent sx={{ p: 2.75 }}>
               <SectionTitle

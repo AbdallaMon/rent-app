@@ -7,7 +7,6 @@ import {
   Box,
   Divider,
   Drawer,
-  Hidden,
   IconButton,
   List,
   ListItemButton,
@@ -57,31 +56,16 @@ const navItems = [
   {
     href: "/maintenance",
     Icon: BuildIcon,
-    text: "الصيانه",
+    text: "المصروفات والصيانة",
     area: "MAINTENANCE",
   },
-
-  // واتساب
-  {
-    href: "/whatsapp/dashboard",
-    Icon: DashboardIcon,
-    text: "لوحة تحكم الواتساب",
-    area: "WHATSAPP",
-  },
-
-  {
-    href: "/whatsapp/settings",
-    Icon: SettingsIcon,
-    text: "إعدادات الواتساب",
-    area: "WHATSAPP",
-  },
-
   {
     href: "/request",
     Icon: BuildIcon,
-    text: "طلبات الصيانة",
+    text: "الطلبات والشكاوي",
     area: "MAINTENANCE",
   },
+
   { href: "/reports", Icon: ReceiptIcon, text: "التقارير", area: "REPORT" },
   { href: "/owners", Icon: PeopleIcon, text: "اصحاب الاملاك", area: "OWNER" },
   { href: "/renters", Icon: GroupIcon, text: "المستأجرين", area: "RENTER" },
@@ -102,6 +86,19 @@ const navItems = [
     Icon: AttachMoneyIcon,
     text: "ودائع التامين",
     area: "SECURITY_DEPOSIT",
+  },
+  {
+    href: "/whatsapp/dashboard",
+    Icon: DashboardIcon,
+    text: "لوحة تحكم الواتساب",
+    area: "WHATSAPP",
+  },
+
+  {
+    href: "/whatsapp/settings",
+    Icon: SettingsIcon,
+    text: "إعدادات الواتساب",
+    area: "WHATSAPP",
   },
 
   { href: "/settings", Icon: SettingsIcon, text: "الاعدادات", area: "SETTING" },
@@ -369,7 +366,6 @@ export default function DashboardNav({ children }) {
         </Drawer>
       </Box>
 
-      {/* Main content (unchanged behavior) */}
       <Box
         component="main"
         sx={{

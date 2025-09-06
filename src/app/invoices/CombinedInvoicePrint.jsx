@@ -17,7 +17,7 @@ const invoiceTypeMapping = {
   OTHER: "أخرى",
 };
 
-const CombinedInvoicePrint = forwardRef(({ invoices, filterSummary }, ref) => {
+const CombinedInvoicePrint = forwardRef(({ invoices, summaryFnc }, ref) => {
   const theme = useTheme();
   const c = {
     primary: theme.palette.primary.main,
@@ -30,7 +30,7 @@ const CombinedInvoicePrint = forwardRef(({ invoices, filterSummary }, ref) => {
     softPrimaryBg: alpha(theme.palette.primary.main, 0.08),
     veryLightBg: theme.palette.grey[50],
   };
-
+  const filterSummary = summaryFnc();
   const totalAmount = invoices.reduce(
     (sum, invoice) => sum + (invoice.amount || 0),
     0
@@ -129,22 +129,12 @@ const CombinedInvoicePrint = forwardRef(({ invoices, filterSummary }, ref) => {
           )}
           {filterSummary.owner && (
             <div style={{ marginBottom: "5px" }}>
-              • المالك: {filterSummary.owner}
+              • المالك: {filterSummary.owner.name}
             </div>
           )}
           {filterSummary.property && (
             <div style={{ marginBottom: "5px" }}>
-              • العقار: {filterSummary.property}
-            </div>
-          )}
-          {filterSummary.invoiceType && (
-            <div style={{ marginBottom: "5px" }}>
-              • نوع الفاتورة: {filterSummary.invoiceType}
-            </div>
-          )}
-          {filterSummary.paymentStatus && (
-            <div style={{ marginBottom: "5px" }}>
-              • حالة الدفع: {filterSummary.paymentStatus}
+              • العقار: {filterSummary.property.name}
             </div>
           )}
         </div>

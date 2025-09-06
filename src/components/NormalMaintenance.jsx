@@ -20,9 +20,8 @@ import Link from "next/link";
 import { MaintaincePayer, PaymentStatus } from "@/config/Enums";
 import { usePathname, useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import "dayjs/locale/ar";
 import dayjs from "dayjs";
 import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
@@ -30,6 +29,7 @@ import EditMaintenanceModal from "@/components/ui/Modals/EditMaintainceModal";
 import { useAuth } from "@/app/context/AuthProvider/AuthProvider";
 import { getCurrentPrivilege } from "@/helpers/functions/getUserPrivilege";
 import DeleteModal from "./ui/Modals/DeleteModal";
+import FilterPaperContainer from "./utility/FilterPaperContainer";
 
 dayjs.locale("ar");
 
@@ -559,7 +559,7 @@ const MaintenanceWrapper = () => {
 
   return (
     <>
-      <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
+      <FilterPaperContainer handleFilter={handleFilter}>
         <FormControl sx={{ minWidth: 120 }}>
           <InputLabel>العقارات</InputLabel>
           <Select value={selectProperty} onChange={handlePropertySelectChange}>
@@ -573,26 +573,21 @@ const MaintenanceWrapper = () => {
             ))}
           </Select>
         </FormControl>
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DatePicker
-            label="تاريخ البدء"
-            value={startDate}
-            onChange={(date) => handleDateChange("start", date)}
-            renderInput={(params) => <TextField {...params} />}
-            format="DD/MM/YYYY"
-          />
-          <DatePicker
-            label="تاريخ الانتهاء"
-            value={endDate}
-            onChange={(date) => handleDateChange("end", date)}
-            renderInput={(params) => <TextField {...params} />}
-            format="DD/MM/YYYY"
-          />
-        </LocalizationProvider>
-        <Button variant="contained" color="primary" onClick={handleFilter}>
-          تطبيق الفلاتر
-        </Button>
-      </Box>
+        <DatePicker
+          label="تاريخ البدء"
+          value={startDate}
+          onChange={(date) => handleDateChange("start", date)}
+          renderInput={(params) => <TextField {...params} />}
+          format="DD/MM/YYYY"
+        />
+        <DatePicker
+          label="تاريخ الانتهاء"
+          value={endDate}
+          onChange={(date) => handleDateChange("end", date)}
+          renderInput={(params) => <TextField {...params} />}
+          format="DD/MM/YYYY"
+        />
+      </FilterPaperContainer>
       <ViewComponent
         inputs={defInputs}
         formTitle={"مصروف"}

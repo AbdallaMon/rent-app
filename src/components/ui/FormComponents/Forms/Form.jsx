@@ -8,10 +8,8 @@ import MuiFileField from "@/components/ui/FormComponents/MUIInputs/MuiFileField"
 import MuiSwitchField from "@/components/ui/FormComponents/MUIInputs/MuiSwitchField";
 import { useRef } from "react";
 import SimpleSelect from "@/components/ui/FormComponents/MUIInputs/SimpleSelect";
-
+import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-const locales = ["en-gb"];
 
 export function Form({
   formStyle,
@@ -56,7 +54,7 @@ export function Form({
         p: { xs: 2, md: 4 },
       }}
     >
-      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale={locales}>
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
         <form
           noValidate
           onSubmit={handleSubmit(onSubmit)}

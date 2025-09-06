@@ -5,7 +5,8 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { TabScrollButton } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 
@@ -14,7 +15,6 @@ import { alpha } from "@mui/material/styles";
 ========================= */
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
-
   return (
     <div
       role="tabpanel"
@@ -81,6 +81,7 @@ const requestLink = [
   { label: "تقارير الطلبات", href: "/request/contact" },
   { label: "تقارير الشكاوي", href: "/request/complaint" },
 ];
+
 const accountingLink = [
   { label: "حسابات الشركة", href: "/accounting/" },
   { label: "كشوف الحسابات", href: "/accounting/statements" },
@@ -89,13 +90,37 @@ const accountingLink = [
 ];
 
 /* =========================
-   Unchanged export name
+   New: LinkTab — renders Tab as a Next.js <Link>
+   -> Right-click / middle-click / open-in-new-tab supported
+========================= */
+const LinkTab = React.forwardRef(function LinkTab(props, ref) {
+  const { href, label, sx, ...rest } = props;
+  return (
+    <Tab
+      ref={ref}
+      component={Link}
+      href={href}
+      // Let the browser handle link behavior (open in new tab, etc.)
+      prefetch={false}
+      label={label}
+      sx={sx}
+      {...rest}
+    />
+  );
+});
+
+/* Normalize path so "/settings" matches "/settings/" */
+function normalizePath(p) {
+  if (!p) return "/";
+  return p !== "/" ? p.replace(/\/+$/, "") : "/";
+}
+
+/* =========================
+   Unchanged export name (with link behavior)
 ========================= */
 export function BasicTabs({ reports, settings, accounting }) {
-  const router = useRouter();
-  const currentPath = usePathname();
+  const currentPath = normalizePath(usePathname());
 
-  // keep same logic; just small guard for correct list
   const list = accounting
     ? accountingLink
     : reports
@@ -104,25 +129,30 @@ export function BasicTabs({ reports, settings, accounting }) {
         ? tabLinks
         : requestLink;
 
-  const currentIndex = list.findIndex((tab) => tab.href === currentPath);
+  // also normalize hrefs for matching
+  const normalizedList = React.useMemo(
+    () =>
+      list.map((t) => ({
+        ...t,
+        normHref: normalizePath(t.href),
+      })),
+    [list]
+  );
+
+  const currentIndex = normalizedList.findIndex(
+    (tab) => tab.normHref === currentPath
+  );
+
   const [value, setValue] = React.useState(
     currentIndex !== -1 ? currentIndex : 0
   );
 
   React.useEffect(() => {
-    if (currentIndex !== -1) {
-      setValue(currentIndex);
-    }
+    if (currentIndex !== -1) setValue(currentIndex);
   }, [currentIndex]);
 
-  const handleChange = (event, newValue) => {
-    setValue(newValue);
-    router.push(list[newValue].href);
-  };
-
-  const getScrollButtonDirection = (direction) => {
-    return direction === "left" ? "left" : "right";
-  };
+  const getScrollButtonDirection = (direction) =>
+    direction === "left" ? "left" : "right";
 
   return (
     <Box sx={{ width: "100%" }}>
@@ -135,7 +165,9 @@ export function BasicTabs({ reports, settings, accounting }) {
       >
         <Tabs
           value={value}
-          onChange={handleChange}
+          // We keep onChange only to update the selected state visually.
+          // Navigation is handled by the <a> (LinkTab) itself.
+          onChange={(_, newValue) => setValue(newValue)}
           aria-label="basic tabs"
           variant="scrollable"
           scrollButtons
@@ -143,13 +175,8 @@ export function BasicTabs({ reports, settings, accounting }) {
           textColor="primary"
           indicatorColor="primary"
           sx={{
-            "& .MuiTabs-flexContainer": {
-              justifyContent: "flex-start",
-            },
-            "& .MuiTabs-indicator": {
-              height: 3,
-              borderRadius: 3,
-            },
+            "& .MuiTabs-flexContainer": { justifyContent: "flex-start" },
+            "& .MuiTabs-indicator": { height: 3, borderRadius: 3 },
           }}
           ScrollButtonComponent={(props) => (
             <TabScrollButton
@@ -158,9 +185,10 @@ export function BasicTabs({ reports, settings, accounting }) {
             />
           )}
         >
-          {list.map((tab, index) => (
-            <Tab
-              key={tab.href}
+          {normalizedList.map((tab, index) => (
+            <LinkTab
+              key={tab.normHref}
+              href={tab.href}
               label={tab.label}
               {...a11yProps(index)}
               sx={(theme) => ({
@@ -168,8 +196,9 @@ export function BasicTabs({ reports, settings, accounting }) {
                 px: { xs: 1.5, sm: 2.5 },
                 mx: { xs: 0.25, sm: 0.5 },
                 borderRadius: 2,
-                // hover/selected purely via MUI palette
+                cursor: "pointer", // nice hover cursor like links
                 "&:hover": {
+                  textDecoration: "none",
                   backgroundColor: alpha(theme.palette.primary.main, 0.06),
                 },
                 "&.Mui-selected": {
@@ -188,4 +217,5 @@ export function BasicTabs({ reports, settings, accounting }) {
 BasicTabs.propTypes = {
   reports: PropTypes.bool,
   settings: PropTypes.bool,
+  accounting: PropTypes.bool,
 };

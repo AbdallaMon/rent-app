@@ -20,8 +20,6 @@ import {
   Divider,
   Skeleton,
 } from "@mui/material";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { alpha } from "@mui/material/styles";
 import {
@@ -29,6 +27,7 @@ import {
   AiOutlineArrowDown,
   AiOutlineMinus,
 } from "react-icons/ai";
+import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
 
 dayjs.locale("ar");
 
@@ -197,37 +196,22 @@ function TrialBalanceWrapper() {
   return (
     <>
       {/* أدوات التصفية بالأعلى */}
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          mb: 4,
-          pr: 8,
-          alignItems: "center",
-          flexWrap: "wrap",
-        }}
-        dir="rtl"
-      >
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DatePicker
-            label="تاريخ البدء"
-            value={startDate}
-            onChange={(d) => handleDateChange("start", d)}
-            renderInput={(params) => <TextField {...params} />}
-            format="DD/MM/YYYY"
-          />
-          <DatePicker
-            label="تاريخ الانتهاء"
-            value={endDate}
-            onChange={(d) => handleDateChange("end", d)}
-            renderInput={(params) => <TextField {...params} />}
-            format="DD/MM/YYYY"
-          />
-        </LocalizationProvider>
-        <Button variant="contained" onClick={applyFilters}>
-          تطبيق الفلاتر
-        </Button>
-      </Box>
+      <FilterPaperContainer handleFilter={applyFilters}>
+        <DatePicker
+          label="تاريخ البدء"
+          value={startDate}
+          onChange={(d) => handleDateChange("start", d)}
+          renderInput={(params) => <TextField {...params} />}
+          format="DD/MM/YYYY"
+        />
+        <DatePicker
+          label="تاريخ الانتهاء"
+          value={endDate}
+          onChange={(d) => handleDateChange("end", d)}
+          renderInput={(params) => <TextField {...params} />}
+          format="DD/MM/YYYY"
+        />
+      </FilterPaperContainer>
 
       <TrialBalanceSummary otherData={otherData} loading={loading} />
 

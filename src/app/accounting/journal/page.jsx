@@ -14,7 +14,9 @@ import TableJournalLine from "@/components/accounting/TableJournalLine";
 import TableJournalEntry from "@/components/accounting/TableJournalEntry";
 import CreateAJournalEntry from "@/components/accounting/CreateAJournalEntry";
 import DeleteModal from "@/components/ui/Modals/DeleteModal";
-import { fmt } from "../statements/page";
+import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
+import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
+
 dayjs.locale("ar");
 
 export default function JournalPage({ searchParams }) {
@@ -167,21 +169,21 @@ function JournalWrapper({ searchParams }) {
       },
       {
         label: "اجمالي المبلغ",
-        value: fmt(otherData.totalAmount),
+        value: formatCurrencyAED(otherData.totalAmount),
       },
       {
         label: "اجمالي المسدد",
-        value: fmt(otherData.totalSettled),
+        value: formatCurrencyAED(otherData.totalSettled),
       },
       {
         label: "اجمالي المتبقي",
-        value: fmt(otherData.totalLeft),
+        value: formatCurrencyAED(otherData.totalLeft),
       },
     ];
   }
   return (
     <>
-      <Box sx={{ display: "flex", gap: 2, mb: 4, pr: 8, alignItems: "center" }}>
+      <FilterPaperContainer handleFilter={handleFilter}>
         <FilterSelect
           label="الحسابات العامة"
           param={"glAccount"}
@@ -189,26 +191,21 @@ function JournalWrapper({ searchParams }) {
           apiPoint={"/api/fast-handler?id=glAccounts"}
         />
 
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <DatePicker
-            label="تاريخ البدء"
-            value={startDate}
-            onChange={(date) => handleDateChange("start", date)}
-            renderInput={(params) => <TextField {...params} />}
-            format="DD/MM/YYYY"
-          />
-          <DatePicker
-            label="تاريخ الانتهاء"
-            value={endDate}
-            onChange={(date) => handleDateChange("end", date)}
-            renderInput={(params) => <TextField {...params} />}
-            format="DD/MM/YYYY"
-          />
-        </LocalizationProvider>
-        <Button variant="contained" onClick={handleFilter}>
-          تطبيق الفلاتر
-        </Button>
-      </Box>
+        <DatePicker
+          label="تاريخ البدء"
+          value={startDate}
+          onChange={(date) => handleDateChange("start", date)}
+          renderInput={(params) => <TextField {...params} />}
+          format="DD/MM/YYYY"
+        />
+        <DatePicker
+          label="تاريخ الانتهاء"
+          value={endDate}
+          onChange={(date) => handleDateChange("end", date)}
+          renderInput={(params) => <TextField {...params} />}
+          format="DD/MM/YYYY"
+        />
+      </FilterPaperContainer>
       <Box>
         <CreateAJournalEntry onSuccess={() => setRender((old) => !old)} />
       </Box>

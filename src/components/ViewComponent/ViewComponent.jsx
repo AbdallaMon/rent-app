@@ -5,7 +5,15 @@ import DataGrid from "@/components/DataGrid/DataGrid";
 import CustomTable from "@/components/Tables/CustomTable";
 import { EditTableModal } from "@/components/ui/Modals/EditTableModal";
 import { useTableForm } from "@/app/context/TableFormProvider/TableFormProvider";
-import { Box, Button, Stack, Typography } from "@mui/material";
+import {
+  alpha,
+  Box,
+  Button,
+  Paper,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { CreateFormModal } from "@/components/ui/Modals/CreateFormModal";
 import { EditFormModal } from "@/components/ui/Modals/EditFormModal";
 
@@ -60,6 +68,7 @@ export default function ViewComponent({
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [currentId, setCurrentId] = useState(null);
+  const theme = useTheme();
   function openEditModal(data) {
     setCurrentId(data.id);
     setEditModalOpen(true);
@@ -91,8 +100,7 @@ export default function ViewComponent({
     const newData = submitFunction
       ? await submitFunction(data)
       : await submitData(data, null, null, "POST", null, "json", url);
-    console.log(newData, "newData");
-    console.log(parseNewData, "parseNewData");
+
     if (newData.status === 500) return;
     if (newData) {
       if ((rows.length < limit && newData) || parseNewData) {
@@ -118,132 +126,151 @@ export default function ViewComponent({
   const handleCloseCreateModal = () => setCreateModalOpen(false);
 
   return (
-    <Box>
-      {openModal && !noModal && (
-        <EditTableModal
-          fullWidth={fullWidth}
-          inputs={inputs}
-          formTitle={"تعديل " + formTitle}
-          rows={rows}
-          id={id}
-          setData={setData}
-          extraDataName={extraDataName}
-          setExtraData={setExtraData}
-          extraData={extraData}
-          handleEditBeforeSubmit={handleEditBeforeSubmit}
-          canEdit={canEdit}
-          rerender={rerender}
-        >
-          {children}
-        </EditTableModal>
-      )}
+    <Paper
+      elevation={1}
+      sx={{
+        p: 3,
+        mb: 3,
 
-      {!noTabs && (
-        <Stack
+        borderRadius: 2,
+      }}
+    >
+      <Box>
+        {openModal && !noModal && (
+          <EditTableModal
+            fullWidth={fullWidth}
+            inputs={inputs}
+            formTitle={"تعديل " + formTitle}
+            rows={rows}
+            id={id}
+            setData={setData}
+            extraDataName={extraDataName}
+            setExtraData={setExtraData}
+            extraData={extraData}
+            handleEditBeforeSubmit={handleEditBeforeSubmit}
+            canEdit={canEdit}
+            rerender={rerender}
+          >
+            {children}
+          </EditTableModal>
+        )}
+
+        <Box
           direction="row"
-          justifyContent="flex-end"
+          justifyContent="space-between"
+          flexWrap="wrap"
+          spacing={2}
           alignItems="center"
-          spacing={1.5}
+          display="flex"
           sx={{ mb: 2 }}
         >
-          {canCreate() && !noCreate && (
-            <Button
-              variant="outlined"
-              color="primary"
-              onClick={handleOpenCreateModal}
+          <Typography variant="h5" fontWeight={700}>
+            {title}
+          </Typography>
+          {!noTabs && (
+            <Stack
+              direction="row"
+              justifyContent="flex-end"
+              alignItems="center"
+              spacing={1.5}
             >
-              {showForm ? "إخفاء النموذج" : "انشاء"}
-            </Button>
+              {canCreate() && !noCreate && (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={handleOpenCreateModal}
+                >
+                  {showForm ? "إخفاء النموذج" : "انشاء"}
+                </Button>
+              )}
+
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={() => setView("table")}
+              >
+                عرض الجدول
+              </Button>
+
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={() => setView("dataGrid")}
+              >
+                عرض كارت
+              </Button>
+            </Stack>
           )}
+        </Box>
 
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={() => setView("table")}
+        {view === "table" && (
+          <CustomTable
+            columns={columns}
+            rows={rows}
+            page={page}
+            limit={limit}
+            setPage={setPage}
+            setLimit={setLimit}
+            loading={loading}
+            total={total}
+            setTotal={setTotal}
+            disablePagination={noPagination}
+            footerRow={footerRow}
+            edit={canEdit && withEdit}
+            openEditModal={openEditModal}
+          />
+        )}
+
+        {view === "dataGrid" && (
+          <DataGrid
+            columns={columns}
+            rows={rows}
+            page={page}
+            limit={limit}
+            setPage={setPage}
+            setLimit={setLimit}
+            loading={loading}
+            total={total}
+            setTotal={setTotal}
+          />
+        )}
+        {!noCreate && (
+          <CreateFormModal
+            open={createModalOpen}
+            handleClose={handleCloseCreateModal}
+            inputs={inputs}
+            formTitle={formTitle}
+            onSubmit={async (data) => {
+              const submit = await create(data);
+              if (submit) handleCloseCreateModal();
+            }}
+            extraComponent={extraComponent}
+            disabled={disabled}
+            createModalsData={createModalsData}
+            reFetch={reFetch}
           >
-            عرض الجدول
-          </Button>
-
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={() => setView("dataGrid")}
+            {children}
+          </CreateFormModal>
+        )}
+        {withEdit && canEdit && currentId && (
+          <EditFormModal
+            open={editModalOpen}
+            inputs={editInputs}
+            formTitle={formTitle}
+            onSubmit={onEdit}
+            extraComponent={extraComponent}
+            disabled={disabled}
+            setData={setData}
+            reFetch={reFetch}
+            rows={rows}
+            currentId={currentId}
+            closeEditModal={closeEditModal}
+            url={url}
           >
-            عرض كارت
-          </Button>
-        </Stack>
-      )}
-
-      <Typography variant="h5" fontWeight={700} sx={{ mb: -1, mt: 1 }}>
-        {title}
-      </Typography>
-      {view === "table" && (
-        <CustomTable
-          columns={columns}
-          rows={rows}
-          page={page}
-          limit={limit}
-          setPage={setPage}
-          setLimit={setLimit}
-          loading={loading}
-          total={total}
-          setTotal={setTotal}
-          disablePagination={noPagination}
-          footerRow={footerRow}
-          edit={canEdit && withEdit}
-          openEditModal={openEditModal}
-        />
-      )}
-
-      {view === "dataGrid" && (
-        <DataGrid
-          columns={columns}
-          rows={rows}
-          page={page}
-          limit={limit}
-          setPage={setPage}
-          setLimit={setLimit}
-          loading={loading}
-          total={total}
-          setTotal={setTotal}
-        />
-      )}
-      {!noCreate && (
-        <CreateFormModal
-          open={createModalOpen}
-          handleClose={handleCloseCreateModal}
-          inputs={inputs}
-          formTitle={formTitle}
-          onSubmit={async (data) => {
-            const submit = await create(data);
-            if (submit) handleCloseCreateModal();
-          }}
-          extraComponent={extraComponent}
-          disabled={disabled}
-          createModalsData={createModalsData}
-          reFetch={reFetch}
-        >
-          {children}
-        </CreateFormModal>
-      )}
-      {withEdit && canEdit && currentId && (
-        <EditFormModal
-          open={editModalOpen}
-          inputs={editInputs}
-          formTitle={formTitle}
-          onSubmit={onEdit}
-          extraComponent={extraComponent}
-          disabled={disabled}
-          setData={setData}
-          reFetch={reFetch}
-          rows={rows}
-          currentId={currentId}
-          closeEditModal={closeEditModal}
-          url={url}
-        >
-          {children}
-        </EditFormModal>
-      )}
-    </Box>
+            {children}
+          </EditFormModal>
+        )}
+      </Box>
+    </Paper>
   );
 }

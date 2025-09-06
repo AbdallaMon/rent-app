@@ -59,14 +59,14 @@ const MaintenanceForm = () => {
       if (propertyId) {
         setLoadingUnits(true);
         const res = await fetch(
-          `/api/fast-handler?id=unit&propertyId=${propertyId}`,
+          `/api/fast-handler?id=unit&propertyId=${propertyId}`
         );
         const data = await res.json();
         setUnits(
           data.map((item) => ({
             ...item,
             name: item.unitId,
-          })),
+          }))
         );
         setLoadingUnits(false);
       } else {
@@ -83,7 +83,7 @@ const MaintenanceForm = () => {
       null,
       "api/main/maintenance",
       false,
-      "جاري إنشاء الصيانة...",
+      "جاري إنشاء الصيانة..."
     );
     if (response.status === 200) {
       if (data.payEvery !== "ONCE") {
@@ -96,7 +96,7 @@ const MaintenanceForm = () => {
           null,
           "api/main/maintenance/installments",
           false,
-          "جاري إنشاء الدفعات...",
+          "جاري إنشاء الدفعات..."
         );
       }
       alert(response.message);
@@ -108,7 +108,7 @@ const MaintenanceForm = () => {
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <FormControl variant="outlined" fullWidth margin="normal">
             <InputLabel id="propertyId-label">العقار</InputLabel>
             <Controller
@@ -141,7 +141,7 @@ const MaintenanceForm = () => {
             />
           </FormControl>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <FormControl variant="outlined" fullWidth margin="normal">
             <InputLabel id="unitId-label">الوحدة</InputLabel>
             <Controller
@@ -171,7 +171,7 @@ const MaintenanceForm = () => {
             />
           </FormControl>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Controller
             name="description"
             control={control}
@@ -187,7 +187,7 @@ const MaintenanceForm = () => {
             )}
           />
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Controller
             name="cost"
             control={control}
@@ -204,11 +204,11 @@ const MaintenanceForm = () => {
             )}
           />
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Controller
             name="date"
             control={control}
-            defaultValue={new Date().toISOString().split('T')[0]} // تاريخ اليوم كقيمة افتراضية
+            defaultValue={new Date().toISOString().split("T")[0]} // تاريخ اليوم كقيمة افتراضية
             render={({ field }) => (
               <TextField
                 {...field}
@@ -222,7 +222,7 @@ const MaintenanceForm = () => {
             )}
           />
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <FormControl variant="outlined" fullWidth margin="normal">
             <InputLabel id="typeId-label">نوع المصروف</InputLabel>
             <Controller
@@ -247,7 +247,7 @@ const MaintenanceForm = () => {
             />
           </FormControl>
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Controller
             name="totalPrice"
             control={control}
@@ -264,7 +264,7 @@ const MaintenanceForm = () => {
             )}
           />
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <FormControl variant="outlined" fullWidth margin="normal">
             <InputLabel id="payEvery-label">الدفع كل</InputLabel>
             <Controller
@@ -285,7 +285,7 @@ const MaintenanceForm = () => {
         </Grid>
         {payEvery !== "ONCE" && (
           <>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name="installmentStartDate"
                 control={control}
@@ -303,7 +303,7 @@ const MaintenanceForm = () => {
                 )}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Controller
                 name="installmentEndDate"
                 control={control}

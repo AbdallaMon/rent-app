@@ -97,7 +97,7 @@ function PrivilegeRow({ area, label, privileges, onChange, onSelectAll }) {
       sx={{ borderBottom: 1, borderColor: "divider", pb: 2, mb: 1 }}
       key={area}
     >
-      <Grid item xs={12}>
+      <Grid size={12}>
         <Box display="flex" gap={2} alignItems="center" mt={2}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
             {label}
@@ -112,7 +112,7 @@ function PrivilegeRow({ area, label, privileges, onChange, onSelectAll }) {
         </Box>
       </Grid>
 
-      <Grid item xs={3}>
+      <Grid size={{ xs: 3 }}>
         <FormControlLabel
           control={
             <Checkbox
@@ -124,7 +124,7 @@ function PrivilegeRow({ area, label, privileges, onChange, onSelectAll }) {
         />
       </Grid>
 
-      <Grid item xs={3}>
+      <Grid size={{ xs: 3 }}>
         <FormControlLabel
           control={
             <Checkbox
@@ -136,7 +136,7 @@ function PrivilegeRow({ area, label, privileges, onChange, onSelectAll }) {
         />
       </Grid>
 
-      <Grid item xs={3}>
+      <Grid size={{ xs: 3 }}>
         <FormControlLabel
           control={
             <Checkbox
@@ -148,7 +148,7 @@ function PrivilegeRow({ area, label, privileges, onChange, onSelectAll }) {
         />
       </Grid>
 
-      <Grid item xs={3}>
+      <Grid size={{ xs: 3 }}>
         <FormControlLabel
           control={
             <Checkbox

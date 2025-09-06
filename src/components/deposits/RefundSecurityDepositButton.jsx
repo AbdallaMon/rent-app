@@ -103,12 +103,7 @@ export function RefundSecurityDepositButton({
 
   return (
     <>
-      <Button
-        variant="contained"
-        startIcon={<FiRotateCcw />}
-        onClick={handleOpen}
-        sx={{ borderRadius: 2 }}
-      >
+      <Button variant="contained" onClick={handleOpen} sx={{ borderRadius: 5 }}>
         {buttonText}
       </Button>
 

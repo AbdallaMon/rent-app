@@ -39,9 +39,9 @@ import { CancelRent } from "@/components/ui/Modals/CancelRentModal";
 import { RenewRent } from "@/components/ui/Modals/RenewRent";
 
 import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { useSubmitLoader } from "@/app/context/SubmitLoaderProvider/SubmitLoaderProvider";
 import AttachmentUploader from "@/components/Attatchment";
 import EditPaymentMethodModal from "@/components/ui/Modals/EditPaymentMethod";
@@ -56,6 +56,7 @@ const ViewWrapper = ({ urlId }) => {
   const { data, loading } = useDataFetcher("main/rentAgreements/" + urlId);
   const [contractExpenses, setContractExpenses] = useState(null);
   const [wait, setWait] = useState(true);
+  const componentRef = useRef();
 
   useEffect(() => {
     if (data && !loading && typeof data === "object") {
@@ -66,8 +67,14 @@ const ViewWrapper = ({ urlId }) => {
     }
   }, [data, loading]);
 
-  const componentRef = useRef();
-  const handlePrint = useReactToPrint({ content: () => componentRef.current });
+  const handlePrint = useReactToPrint({
+    contentRef: componentRef,
+
+    documentTitle: "rent",
+    pageStyle: `
+      @page { size: auto; margin: 10mm; }
+    `,
+  });
 
   if (loading || typeof data !== "object" || wait) {
     return (
@@ -89,63 +96,64 @@ const ViewWrapper = ({ urlId }) => {
   const fullData = { ...data, contractExpenses };
 
   return (
-    <Box ref={componentRef} sx={{ p: { xs: 1, sm: 2 } }}>
-      {/* MUI GlobalStyles for print instead of a <style> tag */}
-      <GlobalStyles
-        styles={{
-          "@media print": {
-            body: { padding: "15px" },
-            ".MuiButton-root": { display: "none !important" },
-          },
-        }}
-      />
-
-      <DataCard data={fullData} />
-
-      <TableFormProvider
-        url={
-          "main/payments/" +
-          urlId +
-          "?clientId=" +
-          data.unit.property.client.id +
-          "&"
-        }
-      >
-        <Box sx={{ display: "flex", gap: 2, py: 2 }}>
-          <RenewRent data={data} />
-          {data?.status === "ACTIVE" && <CancelRent data={data} />}
-        </Box>
-
-        <Payments
-          renter={data.renter}
-          rentData={data}
-          url={`main/rentAgreements/${urlId}/installments`}
-          description={"فاتورة دفعة ايجار"}
-          title={"فاتورة دفعة ايجار"}
-          heading={"الدفعات"}
+    <div ref={componentRef} className="print-root">
+      <Box sx={{ p: { xs: 1, sm: 2 } }}>
+        <GlobalStyles
+          styles={{
+            "@media print": {
+              body: { padding: "15px" },
+              ".MuiButton-root": { display: "none !important" },
+            },
+          }}
         />
 
-        <Payments
-          renter={data.renter}
-          rentData={data}
-          url={`main/rentAgreements/${urlId}/feeInvoices`}
-          description={"فاتورة رسوم العقد"}
-          title={"فاتورة رسوم العقد"}
-          heading={"رسوم العقد"}
-        />
-      </TableFormProvider>
+        <DataCard data={fullData} />
 
-      <AttachmentUploader rentAgreementId={urlId} />
+        <TableFormProvider
+          url={
+            "main/payments/" +
+            urlId +
+            "?clientId=" +
+            data.unit.property.client.id +
+            "&"
+          }
+        >
+          <Box sx={{ display: "flex", gap: 2, py: 2 }}>
+            <RenewRent data={data} />
+            {data?.status === "ACTIVE" && <CancelRent data={data} />}
+          </Box>
 
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={handlePrint}
-        sx={{ mt: 5 }}
-      >
-        طباعة الصفحة بالكامل
-      </Button>
-    </Box>
+          <Payments
+            renter={data.renter}
+            rentData={data}
+            url={`main/rentAgreements/${urlId}/installments`}
+            description={"فاتورة دفعة ايجار"}
+            title={"فاتورة دفعة ايجار"}
+            heading={"الدفعات"}
+          />
+
+          <Payments
+            renter={data.renter}
+            rentData={data}
+            url={`main/rentAgreements/${urlId}/feeInvoices`}
+            description={"فاتورة رسوم العقد"}
+            title={"فاتورة رسوم العقد"}
+            heading={"رسوم العقد"}
+          />
+        </TableFormProvider>
+
+        <AttachmentUploader rentAgreementId={urlId} />
+
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handlePrint}
+          sx={{ mt: 5 }}
+        >
+          طباعة الصفحة بالكامل
+        </Button>
+      </Box>
+    </div>
   );
 };
 
