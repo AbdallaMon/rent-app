@@ -96,7 +96,8 @@ export async function getInvioces(page, limit, searchParams) {
   const filters = searchParams.get("filters")
     ? JSON.parse(searchParams.get("filters"))
     : {};
-  const { startDate, endDate, propertyId, ownerId, invoiceType } = filters;
+  const { startDate, endDate, propertyId, ownerId, invoiceType, clientType } =
+    filters;
   const start = startDate ? new Date(startDate) : new Date();
   const end = endDate ? new Date(endDate) : new Date();
 
@@ -111,8 +112,19 @@ export async function getInvioces(page, limit, searchParams) {
       },
     ];
 
-    // إضافة فلتر نوع الفاتورة
-    if (invoiceType !== "ALL" && invoiceType) {
+    if (clientType === "OWNERS") {
+      conditions.push({
+        invoiceType: {
+          in: ["MANAGEMENT_COMMISSION", "MAINTENANCE"],
+        },
+      });
+    } else if (clientType === "RENTERS") {
+      conditions.push({
+        invoiceType: {
+          in: ["RENT", "TAX", "INSURANCE", "CONTRACT_EXPENSE"],
+        },
+      });
+    } else if (invoiceType !== "ALL" && invoiceType) {
       console.log(
         "DEBUG: invoiceType received:",
         invoiceType,
@@ -122,20 +134,13 @@ export async function getInvioces(page, limit, searchParams) {
         Array.isArray(invoiceType)
       );
 
-      // إذا كان invoiceType مصفوفة
       if (Array.isArray(invoiceType) && invoiceType.length > 0) {
-        console.log(
-          "DEBUG: Adding array filter with 'in' operator:",
-          invoiceType
-        );
         conditions.push({
           invoiceType: {
             in: invoiceType,
           },
         });
-      }
-      // إذا كان invoiceType قيمة واحدة (للتوافق مع الإصدار القديم)
-      else if (typeof invoiceType === "string" && invoiceType !== "ALL") {
+      } else if (typeof invoiceType === "string" && invoiceType !== "ALL") {
         console.log("DEBUG: Adding string filter:", invoiceType);
         conditions.push({
           invoiceType: invoiceType,
@@ -232,6 +237,12 @@ export async function getInvioces(page, limit, searchParams) {
           select: {
             rentAgreementNumber: true,
             status: true,
+            renter: {
+              select: {
+                name: true,
+                id: true,
+              },
+            },
             unit: {
               select: {
                 number: true,

@@ -466,6 +466,16 @@ function InvoiceWrapper() {
         />
 
         <FilterSelect
+          label="علاقة الدفعة بالعميل"
+          param={"clientType"}
+          loading={false}
+          setFilters={setFilters}
+          options={[
+            { name: "مالك", id: "OWNERS" },
+            { name: "مستاجر", id: "RENTERS" },
+          ]}
+        />
+        <FilterSelect
           label="نوع الدفعة"
           param={"invoiceType"}
           loading={false}
