@@ -1,5 +1,5 @@
-import prisma from "@/lib/prisma";
-import { LANG } from "./services/constants";
+import prisma from "../../../lib/prisma.js";
+import { LANG } from "./services/constants.js";
 
 const DEFAULT_CC = process.env.EG ? "+20" : "+971";
 

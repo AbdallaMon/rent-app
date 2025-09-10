@@ -943,6 +943,7 @@ model GLAccount {
   code         String         @unique
   name         String
   type         GLAccountType
+  openingBalance Float              @default(0)
   isActive     Boolean        @default(true)
   isSystem     Boolean        @default(false) 
   createdAt    DateTime       @default(now())

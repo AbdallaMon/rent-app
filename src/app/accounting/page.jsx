@@ -13,6 +13,7 @@ import AccountTypeChip from "@/components/accounting/AccountTypeChip";
 import { accountInputs } from "./inputs";
 import DeleteModal from "@/components/ui/Modals/DeleteModal";
 import { Typography } from "antd";
+import { fmtSigned } from "@/helpers/functions/convertMoneyToArabic";
 dayjs.locale("ar");
 
 export default function page() {
@@ -62,11 +63,30 @@ function AccountingWrapper() {
       ),
     },
     {
-      field: "balance",
+      field: "naturalBalance",
       headerName: "الرصيد",
       width: 100,
       printable: true,
       cardWidth: 48,
+      renderCell: (params) => {
+        const nb = params.row?.naturalBalance ?? 0; // natural balance
+        return (
+          <Typography
+            variant="body2"
+            sx={(theme) => ({
+              fontWeight: 700,
+              color:
+                nb > 0
+                  ? theme.palette.success.main
+                  : nb < 0
+                    ? theme.palette.error.main
+                    : theme.palette.text.primary,
+            })}
+          >
+            {fmtSigned(nb)}
+          </Typography>
+        );
+      },
     },
     {
       field: "actions",

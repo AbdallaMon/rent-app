@@ -343,8 +343,7 @@ function EditPropertyDialog({ urlId, onUpdated, open, setOpen }) {
       "json",
       "main/properties/" + urlId
     );
-    // setMeters(updated.electricityMeters);
-    // setData(updated);
+
     if (data.status === 500) return;
     if (onUpdated) {
       onUpdated(updated);

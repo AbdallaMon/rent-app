@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
-    "postinstall": "npx prisma generate",
+    "postinstall": "npm install @prisma/client && npx prisma generate",
     "start": "next start -p 3001",
     "lint": "next lint",
     "clean": "if exist .next rmdir /s /q .next && if exist node_modules\\.cache rmdir /s /q node_modules\\.cache",

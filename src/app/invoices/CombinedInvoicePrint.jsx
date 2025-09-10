@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/ar";
 import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 import { alpha, useTheme } from "@mui/material";
+import { getFromName } from "./utility";
 
 const invoiceTypeMapping = {
   RENT: "إيجار",
@@ -284,16 +285,7 @@ const CombinedInvoicePrint = forwardRef(({ invoices, summaryFnc }, ref) => {
                         border: `1px solid ${c.divider}`,
                       }}
                     >
-                      {invoice.invoiceType === "MAINTENANCE" ||
-                      invoice.invoiceType === "MANAGEMENT_COMMISSION"
-                        ? invoice.rentAgreement?.unit?.property?.owner?.name ||
-                          invoice.property?.owner?.name ||
-                          invoice.unit?.property?.owner?.name ||
-                          "غير محدد"
-                        : invoice.rentAgreement?.unit?.number ||
-                            invoice.unit?.number
-                          ? `الوحدة رقم: ${invoice.rentAgreement?.unit?.number || invoice.unit?.number}`
-                          : "غير محدد"}
+                      {getFromName(invoice)}
                     </td>
                     <td
                       style={{

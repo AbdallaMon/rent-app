@@ -145,7 +145,6 @@ function InvoiceWrapper() {
     otherData,
     setOtherData,
   } = useDataFetcher(`main/invoices`);
-
   const [startDate, setStartDate] = useState(dayjs().startOf("month"));
   const [endDate, setEndDate] = useState(dayjs().endOf("month"));
   const printRef = useRef();

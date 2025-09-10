@@ -5,6 +5,7 @@ import "dayjs/locale/ar";
 import { useTheme, alpha } from "@mui/material";
 import { PaymentType } from "@/config/Enums";
 import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
+import { getFromName } from "./utility";
 
 const InvoicePrint = forwardRef(({ invoice }, ref) => {
   const theme = useTheme();
@@ -19,19 +20,8 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
     softPrimaryBg: alpha(theme.palette.primary.main, 0.08),
     veryLightBg: theme.palette.grey[50],
   };
-  const getFromName = () => {
-    switch (invoice.invoiceType) {
-      case "RENT":
-      case "TAX":
-      case "INSURANCE":
-      case "REGISTRATION":
-        return invoice.rentAgreement?.renter?.name;
-      default:
-        return invoice.owner?.name || "غير معروف";
-    }
-  };
 
-  const from = getFromName();
+  const from = getFromName(invoice);
   return (
     <div
       ref={ref}
@@ -142,6 +132,13 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
                   ? "شيك"
                   : "غير محدد"}
           </div>
+          {invoice.invoiceType === "MAINTENANCE" &&
+            invoice.payment.maintenance?.description && (
+              <div>
+                <strong>وصف المصروف:</strong>{" "}
+                {invoice.payment.maintenance?.description}
+              </div>
+            )}
         </div>
       </div>
 
@@ -286,14 +283,8 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
           {invoice.invoiceType === "MAINTENANCE" ||
           invoice.invoiceType === "MANAGEMENT_COMMISSION" ? (
             <>
-              من المالك{" "}
-              <strong>
-                {invoice.rentAgreement?.unit?.property?.owner?.name ||
-                  invoice.property?.owner?.name ||
-                  invoice.unit?.property?.owner?.name ||
-                  "غير محدد"}
-              </strong>{" "}
-              لعقار <strong>{invoice.property?.name || "غير محدد"}</strong>
+              من المالك <strong>{from}</strong> لعقار{" "}
+              <strong>{invoice.property?.name || "غير محدد"}</strong>
             </>
           ) : (
             <>

@@ -1,12 +1,5 @@
-import React, { useEffect, useState } from "react";
-import {
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Box,
-} from "@mui/material";
+import React, { useEffect, useMemo, useState } from "react";
+import { Autocomplete, TextField, CircularProgress, Box } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { handleSearchParamsChange } from "@/helpers/functions/handleSearchParamsChange";
 
@@ -27,6 +20,7 @@ const FilterSelect = ({
   const searchParams = useSearchParams();
   const router = useRouter();
   const current = searchParams.get(param);
+
   useEffect(() => {
     if (searchParams.get(param) && localOptions?.length > 0) {
       if (reset) {
@@ -45,7 +39,6 @@ const FilterSelect = ({
       async function getOptions() {
         setLoading(true);
         const response = await fetch(apiPoint);
-        console.log(response, "response");
         const data = await response.json();
         setLocalOptions(data);
         setLoading(false);
@@ -53,58 +46,70 @@ const FilterSelect = ({
       getOptions();
     }
   }, [apiPoint]);
-  function handleChange(event) {
-    handleSearchParamsChange(event, param, searchParams, router, onChange);
+
+  const computedOptions = useMemo(() => {
+    const base = localOptions || [];
+    return withAll ? [{ id: "", name: "الكل" }, ...base] : base;
+  }, [withAll, localOptions]);
+
+  const selectedOption = useMemo(() => {
+    const found = computedOptions.find((o) => String(o.id) === String(current));
+    if (found) return found;
+    return withAll ? computedOptions[0] : null;
+  }, [computedOptions, current, withAll]);
+
+  function handleAutocompleteChange(_, newValue) {
+    const valueId = newValue ? newValue.id : "";
+    // Reuse your existing helper (expects an event-like shape)
+    const fakeEvent = { target: { value: valueId } };
+    handleSearchParamsChange(fakeEvent, param, searchParams, router, onChange);
+
     if (setCurrent) {
-      const current = localOptions?.find(
-        (option) => option.id === event.target.value
-      );
-      setCurrent(current);
+      const currObj =
+        localOptions?.find((option) => String(option.id) === String(valueId)) ||
+        null;
+      setCurrent(currObj);
     }
   }
 
   return (
     <Box>
-      <FormControl
-        variant="outlined"
-        margin="normal"
+      <Autocomplete
+        options={computedOptions}
+        value={selectedOption}
+        onChange={handleAutocompleteChange}
+        getOptionLabel={(option) => option?.name ?? ""}
+        isOptionEqualToValue={(option, value) =>
+          String(option.id) === String(value.id)
+        }
+        loading={localLoading}
+        loadingText="جاري التحميل..."
+        // Allow clearing to switch back to "الكل"
+        disableClearable={!withAll}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label={label}
+            margin="normal"
+            variant="outlined"
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {localLoading ? (
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                  ) : null}
+                  {params.InputProps.endAdornment}
+                </>
+              ),
+            }}
+          />
+        )}
         sx={{
           minWidth: "120px",
-          width: {
-            xs: "100%",
-            sm: 200,
-          },
+          width: { xs: "100%", sm: 200 },
         }}
-      >
-        <InputLabel>{label}</InputLabel>
-
-        <Select
-          value={
-            localOptions?.find((option) => option.id == current)?.name || "All"
-          }
-          onChange={handleChange}
-          label={label}
-          disabled={localLoading}
-          renderValue={(selected) => {
-            if (localLoading) {
-              return (
-                <Box display="flex" alignItems="center">
-                  <CircularProgress size={20} sx={{ marginRight: 2 }} />
-                  <span>جاري التحميل</span>
-                </Box>
-              );
-            }
-            return selected || "الكل";
-          }}
-        >
-          {withAll && <MenuItem value="">الكل</MenuItem>}
-          {localOptions.map((option) => (
-            <MenuItem key={option.id} value={option.id}>
-              {option.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      />
     </Box>
   );
 };

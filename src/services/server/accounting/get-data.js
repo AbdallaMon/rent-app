@@ -1,6 +1,69 @@
 import prisma from "@/lib/prisma";
 import { getGlAccountById, getGLIdByCode } from "./main";
+const DEBIT_NATURE = new Set(["ASSET", "EXPENSE"]);
+const CREDIT_NATURE = new Set(["LIABILITY", "EQUITY", "REVENUE"]);
+function calcBalanceAndReturnTrend(totalDebits, totalCredits) {
+  const totalBalance = calcBalance(totalDebits, totalCredits);
 
+  return totalBalance === 0 ? "flat" : totalBalance > 0 ? "up" : "down";
+}
+function calcBalance(totalDebits, totalCredits) {
+  return totalDebits - totalCredits;
+}
+async function getDebitAndCreditForAGlAccount({ code, extraWhere }) {
+  const where = {
+    ...extraWhere,
+    glAccount: {
+      code,
+    },
+  };
+
+  const debits = await prisma.journalLine.aggregate({
+    where: {
+      side: "DEBIT",
+      ...where,
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+
+  const credits = await prisma.journalLine.aggregate({
+    where: {
+      side: "CREDIT",
+      ...where,
+    },
+    _sum: {
+      amount: true,
+    },
+  });
+
+  return {
+    debits: debits._sum.amount || 0,
+    credits: credits._sum.amount || 0,
+  };
+}
+
+function getAccountNature(type) {
+  const t = String(type || "").toUpperCase();
+  if (DEBIT_NATURE.has(t)) return "DEBIT";
+  if (CREDIT_NATURE.has(t)) return "CREDIT";
+  return "DEBIT";
+}
+
+function getNaturalBalance({ debits = 0, credits = 0, accountType }) {
+  const nature = getAccountNature(accountType);
+  const d = Number(debits) || 0;
+  const c = Number(credits) || 0;
+  return nature === "DEBIT" ? d - c : c - d;
+}
+
+function getNaturalTrend({ debits = 0, credits = 0, accountType }) {
+  const nb = getNaturalBalance({ debits, credits, accountType });
+  if (nb > 0) return "up";
+  if (nb < 0) return "down";
+  return "flat";
+}
 export async function getJournalsEntries(page, limit, searchParams) {
   const offset = (page - 1) * limit;
 
@@ -100,6 +163,7 @@ export async function getJournalsEntries(page, limit, searchParams) {
         include: {
           glAccount: true,
           partyClient: true,
+          property: true,
           settlementLines: true,
         },
       },
@@ -142,7 +206,6 @@ export async function getPettyCashJournalEntries(page, limit, searchParams) {
     ? JSON.parse(searchParams.get("filters"))
     : {};
   const where = {};
-  const type = searchParams.get("type");
   let { startDate, endDate, glAccount, ownerId, renterId, propertyId, unitId } =
     filters;
   if (startDate && endDate) {
@@ -176,6 +239,7 @@ export async function getPettyCashJournalEntries(page, limit, searchParams) {
       lines: {
         include: {
           glAccount: true,
+          property: true,
           partyClient: true,
           settlementLines: true,
         },
@@ -185,27 +249,45 @@ export async function getPettyCashJournalEntries(page, limit, searchParams) {
 
   let totalAmount = 0;
   let totalSettled = 0;
-  let totalLeft = 0;
-  journals.map((journal) => {
+  let rows = [];
+  for (const journal of journals) {
     const debit = journal.lines.find((line) => line.side === "DEBIT");
     const credit = journal.lines.find((line) => line.side === "CREDIT");
+    const currentPart = getSearchPart({
+      credit,
+      debit,
+      linesWhere: { accountCode: "1130" },
+    });
+    const accountType = currentPart.glAccount?.type || "EXPENSE";
+
+    const signedChange = getNaturalBalance({
+      accountType,
+      debits: currentPart.side === "DEBIT" ? currentPart.amount : 0,
+      credits: currentPart.side === "CREDIT" ? currentPart.amount : 0,
+    });
+
+    const counterPart = currentPart?.id === credit?.id ? debit : credit;
+
     journal.debitAmount = debit ? debit.amount : 0;
     journal.creditAmount = credit ? credit.amount : 0;
-    journal.debit = debit ? debit : null;
-    journal.credit = credit ? credit : null;
+    journal.signedChange = signedChange;
+    journal.debit = counterPart.side === "DEBIT" ? counterPart : null;
+    journal.credit = counterPart.side === "CREDIT" ? counterPart : null;
     totalAmount += journal.debitAmount;
-    const settled = (debit?.settlementLines ?? []).reduce((sum, s) => {
-      const v = Number(s?.amountMatched ?? 0);
-      return sum + (isNaN(v) ? 0 : v);
-    }, 0);
-    totalSettled += settled;
-    totalLeft += journal.debitAmount - settled;
-    return journal;
-  });
+    const isCredit = credit.glAccount?.code === "1130";
+    if (isCredit) {
+      totalSettled += journal.creditAmount;
+    }
+
+    rows.push(journal);
+  }
+
+  let totalLeft = totalAmount - totalSettled;
+
   const total = await prisma.journalEntry.count({ where });
 
   return {
-    data: journals,
+    data: rows,
     page,
     total,
     otherData: { totalAmount, totalSettled, totalLeft },
@@ -296,6 +378,7 @@ export async function getJournals(page, limit, searchParams) {
           },
         },
       },
+      property: true,
       glAccount: true,
       partyClient: true,
       settlementLines: true,
@@ -487,19 +570,32 @@ export async function getAccountsBalance() {
   const data = accounts.map((acc) => {
     const totalDebit = debMap.get(acc.id) || 0;
     const totalCredit = credMap.get(acc.id) || 0;
-    const balance = calcBalance(totalDebit, totalCredit);
+    const naturalBalance = getNaturalBalance({
+      debits: totalDebit,
+      credits: totalCredit,
+      accountType: acc.type,
+    });
+    const naturalTrend = getNaturalTrend({
+      debits: totalDebit,
+      credits: totalCredit,
+      accountType: acc.type,
+    });
+
     return {
       ...acc,
       totalDebit,
       totalCredit,
-      balance,
+      balance: (Number(totalDebit) || 0) - (Number(totalCredit) || 0),
+      naturalBalance,
+      naturalTrend,
+      accountNature: getAccountNature(acc.type),
     };
   });
 
   return { data };
 }
-
 export async function getTrialBalance(page, limit, searchParams) {
+  // ===== فلترة التاريخ =====
   const filters = searchParams.get("filters")
     ? JSON.parse(searchParams.get("filters"))
     : {};
@@ -515,31 +611,57 @@ export async function getTrialBalance(page, limit, searchParams) {
     where.createdAt = { lte: new Date(endDate) };
   }
 
+  // ===== تجميعة الميزان =====
   const accountsBalance = [];
   let totalDebits = 0;
   let totalCredits = 0;
 
   const glAccounts = await prisma.GLAccount.findMany({});
+
   for (const acc of glAccounts) {
     const { debits, credits } = await getDebitAndCreditForAGlAccount({
       extraWhere: where,
       code: acc.code,
     });
+
+    const rawBalance = calcBalance(debits, credits); // عادة: debits - credits
+    const rawTrend = calcBalanceAndReturnTrend(debits, credits);
+
+    const accountNature = getAccountNature(acc.type);
+    const naturalBalance = getNaturalBalance({
+      debits,
+      credits,
+      accountType: acc.type,
+    });
+    const naturalTrend = getNaturalTrend({
+      debits,
+      credits,
+      accountType: acc.type,
+    });
+
     accountsBalance.push({
       accountType: acc.type,
+      accountNature,
       debits,
       credits,
       name: acc.name,
       type: acc.type,
       code: acc.code,
-      balanceTrend: calcBalanceAndReturnTrend(debits, credits),
-      balance: calcBalance(debits, credits),
+
+      balance: rawBalance,
+      balanceTrend: rawTrend,
+
+      naturalBalance,
+      naturalTrend,
     });
+
     totalDebits += debits;
     totalCredits += credits;
   }
+
   const totalBalance = totalDebits - totalCredits;
   const balanceTrend = calcBalanceAndReturnTrend(totalDebits, totalCredits);
+
   return {
     data: accountsBalance,
     otherData: {
@@ -550,44 +672,218 @@ export async function getTrialBalance(page, limit, searchParams) {
     },
   };
 }
-function calcBalanceAndReturnTrend(totalDebits, totalCredits) {
-  const totalBalance = calcBalance(totalDebits, totalCredits);
 
-  return totalBalance === 0 ? "flat" : totalBalance > 0 ? "up" : "down";
-}
-function calcBalance(totalDebits, totalCredits) {
-  return totalDebits - totalCredits;
-}
-async function getDebitAndCreditForAGlAccount({ code, extraWhere }) {
-  const where = {
-    ...extraWhere,
-    glAccount: {
-      code,
+export async function getLedgar(page, limit, searchParams) {
+  const filters = searchParams.get("filters")
+    ? JSON.parse(searchParams.get("filters"))
+    : {};
+
+  const emptyData = {
+    data: [],
+    otherData: {
+      openingBalance: 0,
+      totalDebits: 0,
+      totalCredits: 0,
+      totalBalance: 0,
     },
   };
 
-  const debits = await prisma.journalLine.aggregate({
-    where: {
-      side: "DEBIT",
-      ...where,
-    },
-    _sum: {
-      amount: true,
-    },
+  let { startDate, endDate, mode, ownerId, propertyId, glAccountId } = filters;
+
+  if (!startDate) return emptyData;
+
+  const where = {};
+  const dateWhere = {};
+  let linesWhere = {};
+  const openingBalanceDate = {};
+
+  if (startDate && endDate) {
+    dateWhere.entryDate = { gte: new Date(startDate), lte: new Date(endDate) };
+  } else if (startDate) {
+    dateWhere.entryDate = { gte: new Date(startDate) };
+  }
+
+  {
+    const s = new Date(startDate);
+    const prevMonthStart = new Date(
+      s.getFullYear(),
+      s.getMonth() - 1,
+      1,
+      0,
+      0,
+      0,
+      0
+    );
+    const prevMonthEnd = new Date(
+      s.getFullYear(),
+      s.getMonth(),
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+    openingBalanceDate.entryDate = { gte: prevMonthStart, lte: prevMonthEnd };
+  }
+
+  // Filters by mode
+  if (mode === "accounts") {
+    if (!glAccountId || glAccountId === "undefined" || glAccountId === "all")
+      return emptyData;
+    const gid = Number(glAccountId);
+    where.lines = { some: { glAccountId: gid } };
+    linesWhere = { glAccountId: gid };
+  }
+
+  if (mode === "owner") {
+    if (!ownerId || ownerId === "undefined" || ownerId === "all")
+      return emptyData;
+    const oid = Number(ownerId);
+    where.lines = { some: { partyClientId: oid, partyType: "OWNER" } };
+    linesWhere.partyClientId = oid;
+
+    if (!propertyId || propertyId === "undefined" || propertyId === "all") {
+      where.lines.some = { ...where.lines.some, partyType: "OWNER" };
+      linesWhere.partyType = "OWNER";
+    } else {
+      const pid = Number(propertyId);
+      where.lines.some = { ...where.lines.some, propertyId: pid };
+      linesWhere.propertyId = pid;
+      linesWhere.partyType = "OWNER";
+    }
+  }
+
+  // Opening balance first
+  const {
+    otherData: { totalBalance: prevMonthEndingBalance },
+  } = await getAmountAndTrendAndBalance({
+    dateWhere: openingBalanceDate,
+    where,
+    linesWhere,
+    mode,
   });
 
-  const credits = await prisma.journalLine.aggregate({
-    where: {
-      side: "CREDIT",
-      ...where,
-    },
-    _sum: {
-      amount: true,
-    },
+  // Then current period
+  return await getAmountAndTrendAndBalance({
+    dateWhere,
+    where,
+    linesWhere,
+    openingBalance: prevMonthEndingBalance,
+    mode,
+    page,
+    limit,
   });
+}
+
+function getSearchPart({ linesWhere, credit, debit }) {
+  // Be defensive
+  const c = credit || null;
+  const d = debit || null;
+
+  if (
+    c &&
+    linesWhere.propertyId != null &&
+    c.propertyId === linesWhere.propertyId
+  )
+    return c;
+
+  if (
+    c &&
+    linesWhere.glAccountId != null &&
+    c.glAccountId === linesWhere.glAccountId
+  )
+    return c;
+  if (
+    c &&
+    linesWhere.accountCode != null &&
+    c.glAccount?.code === linesWhere.accountCode
+  )
+    return c;
+
+  if (
+    c &&
+    linesWhere.partyClientId != null &&
+    c.partyClientId === linesWhere.partyClientId
+  )
+    return c;
+
+  return d || c;
+}
+
+async function getAmountAndTrendAndBalance({
+  openingBalance = 0,
+  where,
+  linesWhere,
+  dateWhere,
+  mode,
+  page,
+  limit,
+}) {
+  let runningBalance = Number(openingBalance) || 0;
+  let totalDebits = 0;
+  let totalCredits = 0;
+
+  const skip = page && limit ? (Number(page) - 1) * Number(limit) : undefined;
+  const take = limit ? Number(limit) : undefined;
+
+  const entries = await prisma.journalEntry.findMany({
+    where: { ...where, ...dateWhere },
+    include: {
+      lines: {
+        include: {
+          glAccount: true,
+          partyClient: true,
+          property: true,
+        },
+      },
+    },
+    orderBy: [{ entryDate: "asc" }, { id: "asc" }],
+    skip,
+    take,
+  });
+
+  const rows = [];
+
+  for (const entry of entries) {
+    const credit = entry.lines.find((l) => l.side === "CREDIT");
+    const debit = entry.lines.find((l) => l.side === "DEBIT");
+    if (!credit || !debit) continue; // keep it safe for malformed entries
+
+    const currentPart = getSearchPart({ credit, debit, linesWhere });
+    const counterPart = currentPart?.id === credit?.id ? debit : credit;
+
+    const accountType = currentPart.glAccount.type;
+    const signedChange = getNaturalBalance({
+      accountType,
+      debits: currentPart.side === "DEBIT" ? currentPart.amount : 0,
+      credits: currentPart.side === "CREDIT" ? currentPart.amount : 0,
+    });
+
+    runningBalance += signedChange;
+
+    // For display totals, we total the *visible* side (counterpart)
+    if (counterPart.side === "DEBIT") totalDebits += counterPart.amount;
+    else totalCredits += counterPart.amount;
+
+    rows.push({
+      id: entry.id,
+      entryDate: entry.entryDate,
+      description: entry.description,
+      debit: counterPart.side === "DEBIT" ? counterPart : null,
+      credit: counterPart.side === "CREDIT" ? counterPart : null,
+      amount: currentPart.amount, // display amount (positive)
+      signedChange, // +/− impact on the running balance
+      currentBalance: runningBalance,
+    });
+  }
 
   return {
-    debits: debits._sum.amount || 0,
-    credits: credits._sum.amount || 0,
+    data: rows,
+    otherData: {
+      openingBalance,
+      totalDebits,
+      totalCredits,
+      totalBalance: runningBalance,
+    },
   };
 }

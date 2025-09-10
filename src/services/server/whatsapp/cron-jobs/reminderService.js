@@ -14,9 +14,12 @@ import {
   isWithinWorkingHours,
   nowDubai,
 } from "./time.js";
-import { getSettings, getTeamSettings } from "../staff-notifications/settings";
+import {
+  getSettings,
+  getTeamSettings,
+} from "../staff-notifications/settings.js";
+import prisma from "../../../../lib/prisma.js";
 
-import prisma from "@/lib/prisma";
 // ===== language mapping =====
 function toWhatsAppLang(enumVal) {
   return enumVal === "ENGLISH" ? "en" : "ar_AE";

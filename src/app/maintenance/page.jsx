@@ -5,8 +5,8 @@ import { useEffect, useMemo, useCallback } from "react";
 import { Box, Tabs, Tab, Paper } from "@mui/material";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { FiTool, FiFileText } from "react-icons/fi";
-import NormalMaintenance from "@/components/NormalMaintenance";
-import MaintenanceContracts from "@/components/MaintenanceContracts";
+import NormalMaintenance from "@/components/maintenance/NormalMaintenance";
+import MaintenanceContracts from "@/components/maintenance/MaintenanceContracts";
 import TableFormProvider from "@/app/context/TableFormProvider/TableFormProvider";
 
 const TAB_KEYS = ["normal", "contract"];

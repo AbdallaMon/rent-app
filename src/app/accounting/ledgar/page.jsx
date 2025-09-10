@@ -10,41 +10,29 @@ import {
   Button,
   ToggleButtonGroup,
   ToggleButton,
+  Grid,
 } from "@mui/material";
 import { useState } from "react";
 import dayjs from "dayjs";
 import FilterSelect from "@/components/utility/FilterSelect.jsx";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import TableJournalLine from "@/components/accounting/TableJournalLine";
-import TableJournalEntry from "@/components/accounting/TableJournalEntry";
 import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
+import { AccountingSummaryCard } from "@/components/accounting/AccountingSummaryCard";
+import { FaArrowDown, FaArrowUp, FaPiggyBank } from "react-icons/fa";
+import { FaScaleBalanced } from "react-icons/fa6";
 dayjs.locale("ar");
 
-export default function StatementPage({ searchParams }) {
+export default function LedgarPage({ searchParams }) {
   return (
     <TableFormProvider url={"fast-handler"}>
-      <StatementWrapper searchParams={searchParams} />
+      <LedgarWrapper searchParams={searchParams} />
     </TableFormProvider>
   );
 }
-function getSettlementTotals(row) {
-  const total = Number(row?.amount ?? 0) || 0;
 
-  const settled = (row?.settlementLines ?? []).reduce((sum, s) => {
-    const v = Number(s?.amountMatched ?? 0);
-    return sum + (isNaN(v) ? 0 : v);
-  }, 0);
-  const leftRaw = total - settled;
-  const left = leftRaw > 0 ? leftRaw : 0; // never show negative "left"
-
-  const pct =
-    total > 0 ? Math.min(100, Math.max(0, (settled / total) * 100)) : 0;
-
-  return { total, settled, left, pct };
-}
-
-function StatementWrapper({ searchParams }) {
+function LedgarWrapper({ searchParams }) {
   const {
     data,
     loading,
@@ -59,13 +47,9 @@ function StatementWrapper({ searchParams }) {
     setData,
     otherData,
     setOtherData,
-  } = useDataFetcher(
-    `main/accounting/statements?type=statement&`,
-    null,
-    searchParams
-  );
+  } = useDataFetcher(`main/accounting/ledgar?`, null, searchParams);
 
-  const [mode, setMode] = useState("owner");
+  const [mode, setMode] = useState("accounts");
 
   const [startDate, setStartDate] = useState(dayjs().startOf("month"));
   const [endDate, setEndDate] = useState(dayjs().endOf("month"));
@@ -91,7 +75,7 @@ function StatementWrapper({ searchParams }) {
       ),
     },
     {
-      field: "memo",
+      field: "description",
       headerName: "الوصف",
       width: 200,
       printable: true,
@@ -118,70 +102,19 @@ function StatementWrapper({ searchParams }) {
       },
     },
     {
-      field: "debitAmount",
+      field: "signedChange",
       headerName: "الكمية",
       width: 100,
       printable: true,
       cardWidth: 48,
     },
-    {
-      field: "settlement",
-      headerName: "التسوية",
-      width: 220,
-      printable: true,
-      renderCell: (params) => {
-        // has settlement lines?
-        if (params.row?.settlementLines?.length > 0) {
-          const { settled, left } = getSettlementTotals(params.row);
-          return (
-            <Box
-              sx={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}
-            >
-              <Typography variant="body2" noWrap>
-                المسدد:{" "}
-                <Box component="span" sx={{ fontWeight: 600 }}>
-                  {formatCurrencyAED(settled)}
-                </Box>
-              </Typography>
-              <Typography
-                variant="caption"
-                noWrap
-                sx={{ color: left > 0 ? "warning.main" : "success.main" }}
-              >
-                المتبقي:{" "}
-                <Box component="span" sx={{ fontWeight: 600 }}>
-                  {formatCurrencyAED(left)}
-                </Box>
-              </Typography>
-            </Box>
-          );
-        }
-
-        const { left } = getSettlementTotals(params.row);
-        return (
-          <Typography variant="body2" color="text.secondary" noWrap>
-            غير مُسدد — المتبقي {formatCurrencyAED(left)}
-          </Typography>
-        );
-      },
-    },
 
     {
-      field: "actions",
-      headerName: "التفاصيل",
-      width: 250,
+      field: "currentBalance",
+      headerName: "الرصيد",
+      width: 100,
       printable: true,
-      renderCell: (params) => {
-        return (
-          <TableJournalEntry
-            entry={params.row.entry}
-            withMemo={false}
-            withSettlment={false}
-            label="تفاصيل القيد"
-            withLineChange={false}
-          />
-        );
-      },
+      cardWidth: 48,
     },
   ];
 
@@ -195,6 +128,7 @@ function StatementWrapper({ searchParams }) {
       ...filters,
       startDate: startDate?.toISOString(),
       endDate: endDate?.toISOString(),
+      mode,
     });
   };
 
@@ -204,30 +138,7 @@ function StatementWrapper({ searchParams }) {
 
     setFilters({ mode: next });
   };
-
-  let rowFooter = [];
-
-  if (otherData) {
-    rowFooter = [
-      {
-        label: "",
-        value: "",
-        colSpan: 3,
-      },
-      {
-        label: "اجمالي المبلغ",
-        value: formatCurrencyAED(otherData.totalAmount),
-      },
-      {
-        label: "اجمالي المسدد",
-        value: formatCurrencyAED(otherData.totalSettled),
-      },
-      {
-        label: "اجمالي المتبقي",
-        value: formatCurrencyAED(otherData.totalLeft),
-      },
-    ];
-  }
+  console.log(data, "data");
   return (
     <>
       {/* Top Controls */}
@@ -244,26 +155,17 @@ function StatementWrapper({ searchParams }) {
             color="primary"
           >
             <ToggleButton value="owner">المالك</ToggleButton>
-            <ToggleButton value="renter">المستأجر</ToggleButton>
+            <ToggleButton value="accounts">الحسابات</ToggleButton>
           </ToggleButtonGroup>
         </Box>
-
-        <FilterSelect
-          label="الحسابات العامة"
-          param={"glAccount"}
-          setFilters={setFilters}
-          apiPoint={"/api/fast-handler?id=glAccounts"}
-        />
-
-        <FilterSelect
-          label="حالة التسوية"
-          param={"isSettled"}
-          setFilters={setFilters}
-          options={[
-            { name: "مسوي", id: "SETTLED" },
-            { name: "غير مسوي", id: "NOTSETTLED" },
-          ]}
-        />
+        {mode === "accounts" && (
+          <FilterSelect
+            label="الحسابات العامة"
+            param={"glAccountId"}
+            setFilters={setFilters}
+            apiPoint={"/api/fast-handler?id=glAccounts"}
+          />
+        )}
 
         {mode === "owner" && (
           <>
@@ -294,16 +196,6 @@ function StatementWrapper({ searchParams }) {
           </>
         )}
 
-        {/* Renter mode filters (only renter + accounts) */}
-        {mode === "renter" && (
-          <FilterSelect
-            label="المستأجرين"
-            param={"renterId"}
-            setFilters={setFilters}
-            apiPoint={"/api/fast-handler?id=renter"}
-          />
-        )}
-
         <DatePicker
           label="تاريخ البدء"
           value={startDate}
@@ -320,7 +212,48 @@ function StatementWrapper({ searchParams }) {
         />
       </FilterPaperContainer>
 
-      {/* Table */}
+      <Grid container spacing={2} sx={{ mt: 0 }}>
+        <Grid size={{ sm: 6, md: 3 }}>
+          <AccountingSummaryCard
+            title="الرصيد الافتتاحي"
+            value={formatCurrencyAED(otherData?.openingBalance)}
+            icon={FaPiggyBank}
+            color="secondary"
+            subtitle="رصيد بداية الفترة"
+          />
+        </Grid>
+
+        <Grid size={{ sm: 6, md: 3 }}>
+          <AccountingSummaryCard
+            title="المدين"
+            value={formatCurrencyAED(otherData?.totalCredits)}
+            icon={FaArrowDown}
+            color="info"
+            subtitle="إجمالي المدين خلال الفترة"
+          />
+        </Grid>
+
+        <Grid size={{ sm: 6, md: 3 }}>
+          <AccountingSummaryCard
+            title="الدائن"
+            value={formatCurrencyAED(otherData?.totalDebits)}
+            icon={FaArrowUp}
+            color="warning"
+            subtitle="إجمالي الدائن خلال الفترة"
+          />
+        </Grid>
+
+        <Grid size={{ sm: 6, md: 3 }}>
+          <AccountingSummaryCard
+            title="الرصيد الختامي"
+            value={formatCurrencyAED(otherData?.totalBalance)}
+            icon={FaScaleBalanced}
+            color={otherData?.totalBalance > 0 ? "success" : "error"}
+            subtitle={`الرصيد الختامي لهذا الشهر`}
+          />
+        </Grid>
+      </Grid>
+
       <ViewComponent
         rows={data}
         columns={columns}
@@ -333,7 +266,6 @@ function StatementWrapper({ searchParams }) {
         setTotal={setTotal}
         total={total}
         noCreate
-        footerRow={rowFooter}
       />
     </>
   );

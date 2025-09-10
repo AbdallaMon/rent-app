@@ -35,7 +35,6 @@ function normalizeWorkingDays(rawDays) {
 }
 function isWithinWorkingHours(now, settings) {
   const days = normalizeWorkingDays(settings.workingDays);
-
   const dow = now.getDay();
 
   if (!days.includes(dow)) return false;
@@ -52,7 +51,13 @@ function isWithinWorkingHours(now, settings) {
   } = parseHMS(settings.workingHoursEnd || "18:00:00");
 
   const start = setTime(now, sh, sm, ss);
-  const end = setTime(now, eh, em, es);
+  let end = setTime(now, eh, em, es);
+
+  // If end is "earlier" than start, it means the window crosses midnight → push end to next day
+  if (end <= start) {
+    end = new Date(end);
+    end.setDate(end.getDate() + 1);
+  }
   return now >= start && now <= end;
 }
 

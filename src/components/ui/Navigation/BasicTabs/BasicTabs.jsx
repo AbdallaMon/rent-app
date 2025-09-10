@@ -87,12 +87,9 @@ const accountingLink = [
   { label: "كشوف الحسابات", href: "/accounting/statements" },
   { label: "دفتر اليومية", href: "/accounting/journal" },
   { label: "ميزان المراجعة", href: "/accounting/trial-balance" },
+  { label: "دفتر الاستاذ", href: "/accounting/ledgar" },
 ];
 
-/* =========================
-   New: LinkTab — renders Tab as a Next.js <Link>
-   -> Right-click / middle-click / open-in-new-tab supported
-========================= */
 const LinkTab = React.forwardRef(function LinkTab(props, ref) {
   const { href, label, sx, ...rest } = props;
   return (

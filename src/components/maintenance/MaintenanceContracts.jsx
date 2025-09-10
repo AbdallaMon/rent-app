@@ -24,8 +24,10 @@ import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
 import EditMaintenanceModal from "@/components/ui/Modals/EditMaintainceModal";
 import { useAuth } from "@/app/context/AuthProvider/AuthProvider";
 import { getCurrentPrivilege } from "@/helpers/functions/getUserPrivilege";
-import DeleteModal from "./ui/Modals/DeleteModal";
-import FilterPaperContainer from "./utility/FilterPaperContainer";
+import DeleteModal from "../ui/Modals/DeleteModal";
+import FilterPaperContainer from "../utility/FilterPaperContainer";
+import MaintenanceContractDialogButton from "./MaintenanceContractDialog";
+import FilterSelect from "../utility/FilterSelect";
 
 async function getPayEveryOptions() {
   const data = [
@@ -241,16 +243,11 @@ export default function MaintenanceContracts() {
     setTotal,
     setRender,
     setFilters,
+    filters,
   } = useDataFetcher("main/maintenance/contracts");
   const { id, submitData } = useTableForm();
-  const [propertyId, setPropertyId] = useState(null);
-  const [propertiesData, setPropertiesData] = useState([]);
-  const [selectProperties, setSelectProperties] = useState([]);
   const [startDate, setStartDate] = useState(dayjs().startOf("month"));
   const [endDate, setEndDate] = useState(dayjs().endOf("month"));
-  const [typesData, setTypesData] = useState(null);
-  const [selectProperty, setSelectProperty] = useState(null);
-  const [extraData, setExtraData] = useState({});
   const { setLoading: setSubmitLoading } = useToastContext();
   const { user } = useAuth();
   const pathName = usePathname();
@@ -260,27 +257,6 @@ export default function MaintenanceContracts() {
     return currentPrivilege?.privilege.canEdit;
   }
 
-  useEffect(() => {
-    async function get() {
-      const properties = await getProperties();
-      setSelectProperties(properties.data);
-    }
-
-    get();
-  }, []);
-
-  useEffect(() => {
-    const currentProperty = propertiesData?.find(
-      (property) => property.id === +propertyId
-    );
-    if (currentProperty) {
-      setExtraData({
-        ownerId: currentProperty.client.id,
-        ownerName: currentProperty.client.name,
-      });
-    }
-  }, [propertyId]);
-
   const handleDateChange = (type, date) => {
     if (type === "start") {
       setStartDate(date);
@@ -289,57 +265,14 @@ export default function MaintenanceContracts() {
     }
   };
 
-  const handlePropertySelectChange = (e) => {
-    setSelectProperty(e.target.value);
-  };
-
   const handleFilter = async () => {
-    const filters = {
-      propertyId: selectProperty,
+    const currentFilter = {
+      ...filters,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
     };
-    setFilters(filters);
+    setFilters(currentFilter);
   };
-
-  async function getProperties() {
-    const res = await fetch("/api/fast-handler?id=properties");
-    const data = await res.json();
-    setPropertiesData(data);
-    return { data };
-  }
-
-  async function getExpenseTypes() {
-    const res = await fetch("/api/fast-handler?id=expenseTypes");
-    const data = await res.json();
-    setTypesData(data);
-    return { data };
-  }
-
-  const [dataInputs, setDataInputs] = useState([]);
-  const [loadingInput, setInputLoading] = useState(true);
-
-  const defInputs = maintenanceContractInputs.map((input) => {
-    switch (input.data.id) {
-      case "propertyId":
-        return {
-          ...input,
-          getData: getProperties,
-          onChange: (value) => setPropertyId(value),
-        };
-      case "payEvery":
-        return { ...input, getData: getPayEveryOptions };
-      case "typeId":
-        return { ...input, getData: getExpenseTypes };
-      default:
-        return input;
-    }
-  });
-
-  useEffect(() => {
-    setDataInputs(defInputs);
-    setInputLoading(false);
-  }, []);
 
   const handleDelete = async (id) => {
     const filterData = data.filter((item) => +item.id !== +id);
@@ -463,7 +396,6 @@ export default function MaintenanceContracts() {
             <EditMaintenanceModal
               maintenance={params.row}
               onUpdate={handleUpdate}
-              types={typesData}
             />
           )}
           <DeleteModal
@@ -477,33 +409,18 @@ export default function MaintenanceContracts() {
   ];
 
   const submit = async (data) => {
-    const description = "عقد صيانة";
-    return await submitMaintenanceContract(
-      { ...data, description, extraData },
-      setSubmitLoading
-    );
+    return await submitMaintenanceContract({ ...data }, setSubmitLoading);
   };
-
-  if (loadingInput) {
-    return null;
-  }
 
   return (
     <Box>
       <FilterPaperContainer handleFilter={handleFilter}>
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel>العقارات</InputLabel>
-          <Select value={selectProperty} onChange={handlePropertySelectChange}>
-            <MenuItem value="">
-              <em>جميع العقارات</em>
-            </MenuItem>
-            {selectProperties.map((property) => (
-              <MenuItem key={property.id} value={property.id}>
-                {property.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <FilterSelect
+          label="العقارات"
+          param={"propertyId"}
+          setFilters={setFilters}
+          apiPoint={"/api/fast-handler?id=properties"}
+        />
         <DatePicker
           label="تاريخ البدء"
           value={startDate}
@@ -520,8 +437,6 @@ export default function MaintenanceContracts() {
         />
       </FilterPaperContainer>
       <ViewComponent
-        inputs={dataInputs}
-        formTitle={"إنشاء عقد صيانة"}
         title={"عقود الصيانة"}
         totalPages={totalPages}
         rows={data}
@@ -536,7 +451,9 @@ export default function MaintenanceContracts() {
         setTotal={setTotal}
         total={total}
         noModal={true}
+        noCreate={true}
         submitFunction={submit}
+        anotherComponent={MaintenanceContractDialogButton}
         url={"main/maintenance-contracts"}
       />
     </Box>

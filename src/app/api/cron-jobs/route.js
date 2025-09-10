@@ -1,4 +1,4 @@
-import { runAllReminders } from "@/services/server/whatsapp/cron-jobs/reminderService";
+import { runAllReminders } from "@/services/server/whatsapp/cron-jobs/reminderService.js";
 
 export async function GET(request, { params }) {
   try {

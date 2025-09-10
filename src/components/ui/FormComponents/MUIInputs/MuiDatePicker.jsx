@@ -36,6 +36,7 @@ export function MuiDatePicker({ control, input, errors, watch, setValue }) {
                     input.onChange(date, setValue);
                   }
                 }}
+                format="DD/MM/YYYY"
                 slotProps={{
                   textField: {
                     error: !!error,
@@ -61,6 +62,7 @@ export function MuiDatePicker({ control, input, errors, watch, setValue }) {
                     input.onChange(date, setValue);
                   }
                 }}
+                format="DD/MM/YYYY"
                 slotProps={{
                   textField: {
                     error: !!error,

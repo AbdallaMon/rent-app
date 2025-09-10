@@ -1,6 +1,32 @@
 import { PrismaClient } from "@prisma/client";
 
 let prisma;
+import fs from "node:fs";
+import path from "node:path";
+import dotenv from "dotenv";
+function loadEnv() {
+  const candidates = [
+    path.resolve("../../", ".env"),
+    path.resolve(process.cwd(), ".env"),
+    path.resolve(process.cwd(), ".env.local"),
+    path.resolve(__dirname, ".env"),
+    path.resolve(__dirname, "../../.env"),
+    path.resolve(__dirname, "../../../.env"),
+    path.resolve(__dirname, "../../../../.env"),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) {
+      dotenv.config({ path: p });
+      console.log(`[env] loaded: ${p}`);
+      return;
+    }
+  }
+  console.warn(
+    "[env] no .env file found in common locations; relying on process env"
+  );
+}
+
+loadEnv();
 
 // إعدادات محسنة لتجنب مشكلة max_user_connections
 const prismaConfig = {
@@ -9,8 +35,8 @@ const prismaConfig = {
       url: process.env.DATABASE_URL,
     },
   },
-  log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  errorFormat: 'pretty',
+  log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  errorFormat: "pretty",
 };
 
 if (process.env.NODE_ENV === "production") {
@@ -22,11 +48,11 @@ if (process.env.NODE_ENV === "production") {
       __internal: {
         engine: {
           connectionLimit: 1, // اتصال واحد فقط
-        }
-      }
+        },
+      },
     });
   }
-  
+
   prisma = global.prisma;
 } else {
   // إعدادات التطوير المحلي - نفس الطريقة لتجنب المشاكل
@@ -35,9 +61,9 @@ if (process.env.NODE_ENV === "production") {
       ...prismaConfig,
       __internal: {
         engine: {
-          connectionLimit: 1 // اتصال واحد فقط حتى في التطوير
-        }
-      }
+          connectionLimit: 1, // اتصال واحد فقط حتى في التطوير
+        },
+      },
     });
   }
   prisma = global.prisma;
@@ -52,22 +78,30 @@ export async function ensureConnection() {
       await prisma.$queryRaw`SELECT 1`;
       return prisma;
     } catch (error) {
-      console.error(`Database connection attempt failed, retries left: ${retries - 1}`, error.message);
-      
-      if (error.message.includes('max_user_connections') || error.message.includes('Too many connections')) {
+      console.error(
+        `Database connection attempt failed, retries left: ${retries - 1}`,
+        error.message
+      );
+
+      if (
+        error.message.includes("max_user_connections") ||
+        error.message.includes("Too many connections")
+      ) {
         // إغلاق الاتصال الحالي وإعادة المحاولة
         try {
           await prisma.$disconnect();
         } catch (disconnectError) {
-          console.error('Error disconnecting:', disconnectError.message);
+          console.error("Error disconnecting:", disconnectError.message);
         }
-        
+
         // انتظار قصير قبل إعادة المحاولة
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         retries--;
-        
+
         if (retries === 0) {
-          throw new Error('Database connection failed after multiple attempts due to connection limits');
+          throw new Error(
+            "Database connection failed after multiple attempts due to connection limits"
+          );
         }
       } else {
         throw error;
@@ -81,7 +115,7 @@ export async function closeConnection() {
   try {
     await prisma.$disconnect();
   } catch (error) {
-    console.error('Error closing database connection:', error.message);
+    console.error("Error closing database connection:", error.message);
   }
 }
 
@@ -91,7 +125,7 @@ export async function checkConnection() {
     await prisma.$queryRaw`SELECT 1`;
     return true;
   } catch (error) {
-    console.error('Database connection check failed:', error.message);
+    console.error("Database connection check failed:", error.message);
     return false;
   }
 }

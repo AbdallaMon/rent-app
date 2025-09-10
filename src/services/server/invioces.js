@@ -291,7 +291,11 @@ export async function getInvioces(page, limit, searchParams) {
           select: {
             amount: true,
             dueDate: true,
-            maintenance: true,
+            maintenance: {
+              select: {
+                description: true,
+              },
+            },
           },
         },
       },

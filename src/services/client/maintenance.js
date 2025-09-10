@@ -11,7 +11,7 @@ const PayEveryMonths = {
   ONE_YEAR: 12,
 };
 
-export async function submitMaintenance(data, setLoading, glAccount) {
+export async function submitMaintenance(data, setLoading) {
   const startDate = new Date(data.startDate);
   const endDate = new Date(data.endDate);
   data.payEvery = "ONCE";
@@ -20,15 +20,7 @@ export async function submitMaintenance(data, setLoading, glAccount) {
     (endDate.getFullYear() - startDate.getFullYear()) * 12 +
     (endDate.getMonth() - startDate.getMonth());
   const id = toast.loading("يتم مراجعة البيانات...");
-  if (data.payEvery === "ONCE") {
-    if (data.payer === "OWNER" && glAccount.code !== "1210") {
-      toast.update(id, Failed("رجاء اختيار مدين مناسب لمصروف علي المالك"));
-      return null;
-    } else if (data.payer === "COMPANY" && glAccount.code === "1210") {
-      toast.update(id, Failed("لا يمكن اختيار مدين علي المالك كمصروف للشركة"));
-      return null;
-    }
-  }
+
   if (
     data.payEvery !== "ONCE" &&
     (monthDifference % PayEveryMonths[data.payEvery] !== 0 ||
@@ -60,7 +52,8 @@ export async function submitMaintenance(data, setLoading, glAccount) {
       payEvery: data.payEvery,
       startDate: data.startDate,
       endDate: data.endDate,
-      glAccountId: data.glAccountId,
+      creditCompanyAccountId: data.creditCompanyAccountId,
+      debitGlAccountId: data.debitGlAccountId,
       payer: data.payer,
     };
     const req = await handleRequestSubmit(
@@ -134,6 +127,9 @@ export async function submitMaintenanceContract(data, setLoading) {
       payEvery: data.payEvery,
       startDate: data.startDate,
       endDate: data.endDate,
+      creditCompanyAccountId: data.creditCompanyAccountId,
+      debitGlAccountId: data.debitGlAccountId,
+      payer: data.payer,
     };
     const req = await handleRequestSubmit(
       installmentsData,

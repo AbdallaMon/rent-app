@@ -234,6 +234,12 @@ export async function updatePayment(id, data) {
                 unitId: true,
                 number: true,
                 propertyId: true,
+                property: {
+                  select: {
+                    name: true,
+                    id: true,
+                  },
+                },
                 client: {
                   select: {
                     id: true,
@@ -284,7 +290,6 @@ export async function updatePayment(id, data) {
         rentAgreement: {
           select: {
             id: true,
-
             rentAgreementNumber: true,
             renterId: true,
             unit: {
@@ -292,7 +297,12 @@ export async function updatePayment(id, data) {
                 id: true,
                 unitId: true,
                 number: true,
-
+                property: {
+                  select: {
+                    name: true,
+                    id: true,
+                  },
+                },
                 client: {
                   select: {
                     id: true,
@@ -369,10 +379,6 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
           amount: amount,
           glAccountId: checkingGlId,
           memo: "تحصيل عمولة إدارة - بنك",
-          rentAgreementId: payment.rentAgreement.id,
-          unitId: Number(payment.rentAgreement.unit.id),
-          propertyId: payment.rentAgreement.unit.propertyId,
-          paymentId: payment.id,
           createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
         },
         {
@@ -384,7 +390,7 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
           memo: "تسوية ذمم المالك - عمولة إدارة",
           rentAgreementId: payment.rentAgreement.id,
           unitId: Number(payment.rentAgreement.unit.id),
-          propertyId: payment.rentAgreement.unit.propertyId,
+          propertyId: payment.rentAgreement.unit.property.id,
           paymentId: payment.id,
           createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
         },
@@ -414,10 +420,6 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
           amount: amount,
           glAccountId: checkingGlId,
           memo: "تحصيل رسوم تسجيل - بنك",
-          rentAgreementId: payment.rentAgreement.id,
-          unitId: Number(payment.rentAgreement.unit.id),
-          propertyId: payment.rentAgreement.unit.propertyId,
-          paymentId: payment.id,
           createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
         },
         {
@@ -504,10 +506,6 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
           amount: amount,
           glAccountId: checkingGlId, // يرجع للحساب الجاري
           memo: "تحصيل صيانة - بنك",
-          unitId: Number(payment.unit?.id),
-          propertyId: payment.propertyId,
-          maintenanceId: payment.maintenanceId,
-          paymentId: payment.id,
           createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
         },
         {
@@ -549,10 +547,6 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
           amount: amount,
           glAccountId: savingsGlId,
           memo: "وديعة تأمين - بنك توفير",
-          rentAgreementId: payment.rentAgreement.id,
-          unitId: Number(payment.rentAgreement.unit.id),
-          propertyId: payment.rentAgreement.unit.propertyId,
-          paymentId: payment.id,
           createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
         },
         {

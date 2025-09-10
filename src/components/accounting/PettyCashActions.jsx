@@ -61,7 +61,6 @@ export default function PettyCashActions({ onSubmit }) {
 
         <Divider sx={{ mb: 2 }} />
 
-        {/* Replenishment Action */}
         <ListItem
           sx={{
             mb: 2,

@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import prisma from "../../../../lib/prisma.js";
 
 export async function getSettings() {
   const s = await prisma.reminderSettings.findUnique({

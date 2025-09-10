@@ -235,6 +235,9 @@ ALTER TABLE `Expense` ADD CONSTRAINT `Expense_propertyId_fkey`
   FOREIGN KEY (`propertyId`) REFERENCES `Property`(`id`)
   ON DELETE SET NULL ON UPDATE CASCADE;
 
+ALTER TABLE `GLAccount`
+  ADD COLUMN `openingBalance` DOUBLE NOT NULL DEFAULT 0;
+
 
 RENAME TABLE state TO State;
 RENAME TABLE city TO City;

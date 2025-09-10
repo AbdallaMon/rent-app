@@ -7,7 +7,6 @@ import {
 
 export async function createDeposit({ amount, rentAgreementId, receivedAt }) {
   amount = Number(amount);
-  console.log(receivedAt, "receivedAt");
   const date = receivedAt ? new Date(receivedAt) : new Date();
   const rentAgreement = await prisma.rentAgreement.findUnique({
     where: { id: rentAgreementId },
@@ -70,10 +69,6 @@ export async function createDeposit({ amount, rentAgreementId, receivedAt }) {
         amount: amount,
         glAccountId: savingsGlId,
         memo: "وديعة تأمين - بنك توفير",
-        rentAgreementId: rentAgreement.id,
-        unitId: Number(rentAgreement.unit.id),
-        propertyId: rentAgreement.unit.propertyId,
-        paymentId: paymentRequest.id,
         createdAt: date,
       },
       {
@@ -319,7 +314,7 @@ export async function refundDeposit({
     });
     if (moveDeductCash) {
       await createJournalEntry({
-        description: `تحويل المبلغ المصادَر من حساب التوفير إلى الجاري - SD#${sd.id}`,
+        description: `تحويل المبلغ المصادَر من الوديعة رقم ${sd.id} من حساب التوفير إلى الجاري - السبب :${reason}`,
         entryDate: date,
         lines: [
           {

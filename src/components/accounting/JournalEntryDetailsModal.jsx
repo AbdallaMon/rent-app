@@ -43,7 +43,6 @@ export default function JournalEntryDetailsModal({ open, entryId, onClose }) {
   const [loading, setLoading] = useState(false);
   const [payload, setPayload] = useState(null);
   const [error, setError] = useState("");
-
   async function load() {
     if (!open || !entryId) return;
     setLoading(true);
@@ -202,7 +201,6 @@ export default function JournalEntryDetailsModal({ open, entryId, onClose }) {
               ))}
             </Grid>
 
-            {/* Settlements */}
             <SectionCard title="التسويات المرتبطة">
               <CardContent sx={{ pt: 1 }}>
                 {payload?.settlements?.length ? (
@@ -471,7 +469,12 @@ function LineRelations({ p }) {
                 href={`/clients/${p.partyClient.id}`}
               />
             )}
-
+            {p.counterpartyLabel && (
+              <EntityRow
+                icon={<PersonOutlineIcon />}
+                primary={p.counterpartyLabel}
+              />
+            )}
             {p.property && (
               <EntityRow
                 icon={<HomeWorkIcon />}

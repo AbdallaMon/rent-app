@@ -1,6 +1,4 @@
-const {
-  runAllReminders,
-} = require("../src/services/server/whatsapp/cron-jobs/reminderService");
+import { runAllReminders } from "./reminderService.js";
 
 (async () => {
   try {

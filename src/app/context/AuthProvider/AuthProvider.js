@@ -131,7 +131,7 @@ export default function AuthProvider({ children }) {
       ) {
         return children;
       }
-      return null; // Don't render protected content for non-authenticated users
+      return null;
     } else {
       return !checkAccess ? children : null;
     }

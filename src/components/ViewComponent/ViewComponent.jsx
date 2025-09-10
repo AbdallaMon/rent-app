@@ -61,6 +61,7 @@ export default function ViewComponent({
   editInputs,
   onEdit,
   parseNewData,
+  anotherComponent: AnotherComponent,
 }) {
   const [view, setView] = useState("table");
   const [showForm, setShowForm] = useState(directEdit);
@@ -90,6 +91,7 @@ export default function ViewComponent({
     return currentPrivilege?.privilege.canWrite;
   }
 
+  const isAbleToCreate = canCreate();
   async function create(data) {
     if (handleEditBeforeSubmit) {
       const continueCreation = handleEditBeforeSubmit();
@@ -174,7 +176,7 @@ export default function ViewComponent({
               alignItems="center"
               spacing={1.5}
             >
-              {canCreate() && !noCreate && (
+              {isAbleToCreate && !noCreate && (
                 <Button
                   variant="outlined"
                   color="primary"
@@ -182,6 +184,9 @@ export default function ViewComponent({
                 >
                   {showForm ? "إخفاء النموذج" : "انشاء"}
                 </Button>
+              )}
+              {isAbleToCreate && AnotherComponent && (
+                <AnotherComponent onSaved={submitFunction} />
               )}
 
               <Button

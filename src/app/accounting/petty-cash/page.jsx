@@ -22,11 +22,11 @@ import TableJournalEntry from "@/components/accounting/TableJournalEntry";
 import DeleteModal from "@/components/ui/Modals/DeleteModal";
 import PettyCashActions from "@/components/accounting/PettyCashActions";
 import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
-import { Card } from "antd";
 import { FaCoins, FaMoneyCheckAlt, FaWallet } from "react-icons/fa";
 import { handleRequestSubmit } from "@/helpers/functions/handleRequestSubmit";
 import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
 import { formatCurrencyAED } from "@/helpers/functions/convertMoneyToArabic";
+import { AccountingSummaryCard } from "@/components/accounting/AccountingSummaryCard";
 dayjs.locale("ar");
 
 export default function PettyCashPage({ searchParams }) {
@@ -36,77 +36,7 @@ export default function PettyCashPage({ searchParams }) {
     </TableFormProvider>
   );
 }
-function SummaryCard({ title, value, icon: Icon, color, subtitle }) {
-  const theme = useTheme();
 
-  return (
-    <Card
-      sx={{
-        height: "100%",
-        background: `linear-gradient(135deg, ${alpha(theme.palette[color].main, 0.1)} 0%, ${alpha(theme.palette[color].main, 0.05)} 100%)`,
-        borderTop: `4px solid ${theme.palette[color].main}`,
-        transition: "all 0.3s ease",
-        "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: theme.shadows[8],
-        },
-      }}
-    >
-      <CardContent>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-          }}
-        >
-          <Box sx={{ flex: 1 }}>
-            <Typography
-              color="text.secondary"
-              gutterBottom
-              variant="subtitle2"
-              sx={{ fontWeight: 500 }}
-            >
-              {title}
-            </Typography>
-            <Typography
-              variant="h4"
-              component="div"
-              sx={{
-                fontWeight: 700,
-                color: theme.palette[color].main,
-                mb: 1,
-              }}
-            >
-              {value}
-            </Typography>
-            {subtitle && (
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ display: "block" }}
-              >
-                {subtitle}
-              </Typography>
-            )}
-          </Box>
-          <Box
-            sx={{
-              backgroundColor: alpha(theme.palette[color].main, 0.1),
-              borderRadius: "12px",
-              p: 1.5,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Icon size={28} color={theme.palette[color].main} />
-          </Box>
-        </Box>
-      </CardContent>
-    </Card>
-  );
-}
 function PettyCashWrapper({ searchParams }) {
   const {
     data,
@@ -124,7 +54,6 @@ function PettyCashWrapper({ searchParams }) {
     otherData,
   } = useDataFetcher(`main/accounting/petty-cash`, null, searchParams);
   const theme = useTheme();
-
   const [startDate, setStartDate] = useState(dayjs().startOf("month"));
   const [endDate, setEndDate] = useState(dayjs().endOf("month"));
   const { setLoading } = useToastContext();
@@ -194,7 +123,7 @@ function PettyCashWrapper({ searchParams }) {
       },
     },
     {
-      field: "debitAmount",
+      field: "signedChange",
       headerName: "الكمية",
       width: 100,
       printable: true,
@@ -209,7 +138,7 @@ function PettyCashWrapper({ searchParams }) {
       renderCell: (params) => {
         return (
           <Typography>
-            {params.row.debit.isSettled || params.row.credit.isSettled
+            {params.row.debit?.isSettled || params.row.credit?.isSettled
               ? "مُسوّى"
               : "غير مُسوّى"}
           </Typography>
@@ -241,29 +170,7 @@ function PettyCashWrapper({ searchParams }) {
       },
     },
   ];
-  let rowFooter = [];
 
-  if (otherData) {
-    rowFooter = [
-      {
-        label: "",
-        value: "",
-        colSpan: 3,
-      },
-      {
-        label: "اجمالي المبلغ",
-        value: formatCurrencyAED(otherData.totalAmount),
-      },
-      {
-        label: "اجمالي المسدد",
-        value: formatCurrencyAED(otherData.totalSettled),
-      },
-      {
-        label: "اجمالي المتبقي",
-        value: formatCurrencyAED(otherData.totalLeft),
-      },
-    ];
-  }
   async function onSubmit(data) {
     const response = await handleRequestSubmit(
       data,
@@ -301,7 +208,7 @@ function PettyCashWrapper({ searchParams }) {
 
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid size={{ xs: 12, md: 4 }}>
-              <SummaryCard
+              <AccountingSummaryCard
                 title="إجمالي المبلغ"
                 value={formatCurrencyAED(otherData?.totalAmount || 0)}
                 icon={FaWallet}
@@ -310,8 +217,8 @@ function PettyCashWrapper({ searchParams }) {
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <SummaryCard
-                title="إجمالي المسدد"
+              <AccountingSummaryCard
+                title="إجمالي المصروف"
                 value={formatCurrencyAED(otherData?.totalSettled || 0)}
                 icon={FaMoneyCheckAlt}
                 color="success"
@@ -319,7 +226,7 @@ function PettyCashWrapper({ searchParams }) {
               />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <SummaryCard
+              <AccountingSummaryCard
                 title="إجمالي المتبقي"
                 value={formatCurrencyAED(otherData?.totalLeft || 0)}
                 icon={FaCoins}

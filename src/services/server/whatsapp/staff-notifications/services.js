@@ -1,13 +1,14 @@
-import { normalizePhone } from "@/lib/phone";
+import { normalizePhone } from "../../../../lib/phone.js";
+
 import {
   formatDate,
   logWhatsApp,
   messageStatus,
   messageTypes,
   updateWhatsAppLog,
-} from "../utility";
-import { sendSmart } from "../whatsapp";
-import { getTeamSettings } from "./settings";
+} from "../utility.js";
+import { sendSmart } from "../whatsapp.js";
+import { getTeamSettings } from "./settings.js";
 
 function buildArabicMessageByType(type, extra = {}) {
   const { note } = extra || {};

@@ -19,6 +19,7 @@ import {
   CardContent,
   Divider,
   Skeleton,
+  Grid,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { alpha } from "@mui/material/styles";
@@ -28,6 +29,13 @@ import {
   AiOutlineMinus,
 } from "react-icons/ai";
 import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
+import { AccountingSummaryCard } from "@/components/accounting/AccountingSummaryCard";
+import {
+  fmtSigned,
+  formatCurrencyAED,
+} from "@/helpers/functions/convertMoneyToArabic";
+import { Scale, Wallet } from "@mui/icons-material";
+import { FaBalanceScale, FaDollarSign, FaWallet } from "react-icons/fa";
 
 dayjs.locale("ar");
 
@@ -37,6 +45,51 @@ const trendBase = {
   down: { colorKey: "error", icon: AiOutlineArrowDown, label: "هابط" },
   flat: { colorKey: "info", icon: AiOutlineMinus, label: "مستقر" },
 };
+
+// عرض الرقم بإشارة واضحة
+
+// تعريب نوع الحساب + ألوان خفيفة للـ Chip
+const typeLabels = {
+  ASSET: "أصل",
+  LIABILITY: "التزامات",
+  EQUITY: "حقوق ملكية",
+  REVENUE: "إيراد",
+  EXPENSE: "مصروف",
+};
+
+const typeColorKey = {
+  ASSET: "info",
+  LIABILITY: "error",
+  EQUITY: "secondary",
+  REVENUE: "success",
+  EXPENSE: "warning",
+};
+
+function TypeChip({ type, size = "small" }) {
+  const t = String(type || "").toUpperCase();
+  const label = typeLabels[t] || t || "غير معروف";
+  return (
+    <Chip
+      size={size}
+      label={label}
+      sx={(theme) => {
+        const key = typeColorKey[t];
+        const main = key
+          ? theme.palette[key].main
+          : theme.palette.text.secondary;
+        return {
+          borderRadius: "999px",
+          px: 1,
+          height: 24,
+          fontWeight: 600,
+          bgcolor: alpha(main, 0.1),
+          color: main,
+          border: `1px solid ${alpha(main, 0.25)}`,
+        };
+      }}
+    />
+  );
+}
 
 function normalizeTrend(trend, totalBalance) {
   const t = String(trend ?? "").toLowerCase();
@@ -117,6 +170,7 @@ function TrialBalanceWrapper() {
     `main/accounting/trial-balance`
   );
 
+  console.log(data, "data");
   const [startDate, setStartDate] = useState(dayjs().startOf("month"));
   const [endDate, setEndDate] = useState(dayjs().endOf("month"));
 
@@ -131,9 +185,32 @@ function TrialBalanceWrapper() {
     {
       field: "name",
       headerName: "اسم الحساب",
-      width: 220,
+      width: 50,
       printable: true,
       cardWidth: 48,
+    },
+    {
+      field: "name",
+      headerName: "نوع الحساب",
+      width: 260,
+      printable: true,
+      cardWidth: 48,
+      renderCell: (params) => {
+        const type = params.row?.accountType ?? params.row?.type;
+        return (
+          <Stack
+            direction="row"
+            spacing={1}
+            alignItems="center"
+            sx={{ width: "100%", overflow: "hidden" }}
+          >
+            <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
+              {params.value}
+            </Typography>
+            <TypeChip type={type} />
+          </Stack>
+        );
+      },
     },
     {
       field: "debits",
@@ -152,10 +229,31 @@ function TrialBalanceWrapper() {
     {
       field: "balance",
       headerName: "الرصيد",
-      width: 150,
+      width: 170,
       printable: true,
-      valueGetter: (params) => params.row?.balance ?? 0,
+
+      renderCell: (params) => {
+        const nb = params.row?.naturalBalance ?? 0; // natural balance
+        return (
+          <Typography
+            variant="body2"
+            sx={(theme) => ({
+              fontWeight: 700,
+              color:
+                nb > 0
+                  ? theme.palette.success.main
+                  : nb < 0
+                    ? theme.palette.error.main
+                    : theme.palette.text.primary,
+            })}
+          >
+            {fmtSigned(nb)}
+          </Typography>
+        );
+      },
     },
+
+    // اتجاه الرصيد حسب الطبيعة (up/down/flat) مع fallback للقديم
     {
       field: "balanceTrend",
       headerName: "اتجاه الرصيد",
@@ -163,20 +261,22 @@ function TrialBalanceWrapper() {
       printable: true,
       align: "center",
       headerAlign: "center",
-      renderCell: (params) => (
-        <Tooltip
-          title={`الاتجاه: ${trendBase[normalizeTrend(params.row.balanceTrend, params.row?.totalBalance)]?.label || "مستقر"}`}
-          arrow
-          placement="top"
-        >
-          <span>
-            <TrendChip
-              trend={params.row.balanceTrend}
-              totalBalance={params.row?.totalBalance}
-            />
-          </span>
-        </Tooltip>
-      ),
+      renderCell: (params) => {
+        const trend = params.row?.naturalTrend ?? params.row?.balanceTrend;
+        const total = params.row?.naturalBalance ?? params.row?.balance ?? 0;
+
+        return (
+          <Tooltip
+            title={`الاتجاه: ${trendBase[normalizeTrend(trend, total)]?.label || "مستقر"}`}
+            arrow
+            placement="top"
+          >
+            <span>
+              <TrendChip trend={trend} totalBalance={total} />
+            </span>
+          </Tooltip>
+        );
+      },
     },
   ];
 
@@ -294,12 +394,12 @@ function TrialBalanceSummary({ loading, otherData, currency = "AED" }) {
   const totalCredits = otherData?.totalCredits ?? 0;
   const totalBalance = otherData?.totalBalance ?? 0;
   const balanceTrend = otherData?.balanceTrend;
-
-  const fmt = (n) =>
-    new Intl.NumberFormat("ar-EG", { style: "currency", currency }).format(
-      Number(n) || 0
-    );
-
+  const netColor = (() => {
+    const key = normalizeTrend?.(balanceTrend, totalBalance);
+    if (key === "up") return "success";
+    if (key === "down") return "error";
+    return "primary";
+  })();
   return (
     <Card
       variant="outlined"
@@ -329,49 +429,38 @@ function TrialBalanceSummary({ loading, otherData, currency = "AED" }) {
         </Stack>
 
         <Divider sx={{ mb: 2 }} />
+        <Grid container spacing={2} sx={{ mt: 0 }}>
+          <Grid size={{ md: 4 }}>
+            <AccountingSummaryCard
+              title="إجمالي المدين"
+              value={formatCurrencyAED(totalDebits)}
+              icon={FaWallet}
+              color="info"
+              subtitle="إجمالي الحركة المدينة خلال الفترة"
+            />
+          </Grid>
 
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          useFlexGap
-          flexWrap="wrap"
-        >
-          <StatItem title="إجمالي المدين" value={fmt(totalDebits)} />
-          <StatItem title="إجمالي الدائن" value={fmt(totalCredits)} />
-          <StatItem
-            title="الصافي"
-            value={fmt(totalBalance)}
-            valueColor={(theme) => {
-              const key = normalizeTrend(balanceTrend, totalBalance);
-              if (key === "up") return theme.palette.success.main;
-              if (key === "down") return theme.palette.error.main;
-              return theme.palette.text.primary;
-            }}
-          />
-        </Stack>
+          <Grid size={{ md: 4 }}>
+            <AccountingSummaryCard
+              title="إجمالي الدائن"
+              value={formatCurrencyAED(totalCredits)}
+              icon={FaDollarSign}
+              color="warning"
+              subtitle="إجمالي الحركة الدائنة خلال الفترة"
+            />
+          </Grid>
+
+          <Grid size={{ md: 4 }}>
+            <AccountingSummaryCard
+              title="الصافي"
+              value={formatCurrencyAED(totalBalance)}
+              icon={FaBalanceScale}
+              color={netColor}
+              subtitle={balanceTrend ? `الاتجاه: ${balanceTrend}` : undefined}
+            />
+          </Grid>
+        </Grid>
       </CardContent>
     </Card>
-  );
-}
-
-function StatItem({ title, value, valueColor = "text.primary" }) {
-  return (
-    <Box
-      sx={{
-        flex: 1,
-        minWidth: 220,
-        p: 2,
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2,
-      }}
-    >
-      <Typography variant="caption" color="text.secondary">
-        {title}
-      </Typography>
-      <Typography variant="h6" sx={{ mt: 0.5 }} color={valueColor}>
-        {value}
-      </Typography>
-    </Box>
   );
 }

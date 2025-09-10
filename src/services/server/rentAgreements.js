@@ -5,7 +5,7 @@ import { sendNotifications } from "@/lib/notifications";
 import { createJournalEntry, getGLIdByCode } from "./accounting/main.js";
 import dayjs from "dayjs";
 
-async function generateRentAgreementNumber(startDate, unitId) {
+async function generateRentAgreementNumber(startDate) {
   const prefix = "CONTRACT";
   const month = dayjs(startDate).format("MM");
   const year = dayjs(startDate).format("YY");
@@ -13,7 +13,7 @@ async function generateRentAgreementNumber(startDate, unitId) {
 
   const seq = String(count + 1).padStart(3, "0");
 
-  return `${prefix}_${year}_${month}_${seq}_UN${unitId}`;
+  return `${prefix}_${year}_${month}_${seq}`;
 }
 export async function getRentAgreements(_, limit, searchParams, params) {
   const page = searchParams.get("?page") || 1;
@@ -628,9 +628,6 @@ async function handleRentagreementAccounting({
             amount: payment.amount,
             glAccountId: commissionRevenueGlId,
             memo: "عمولة إدارة",
-            rentAgreementId: rentAgreement.id,
-            unitId: Number(unitId),
-            propertyId: rentAgreement.unit.property.id,
             paymentId,
           },
         ],
@@ -658,9 +655,6 @@ async function handleRentagreementAccounting({
             amount: payment.amount,
             glAccountId: regRevenueGlId,
             memo: "إيرادات تسجيل عقد",
-            rentAgreementId: rentAgreement.id,
-            unitId: Number(unitId),
-            propertyId: rentAgreement.unit.property.id,
             paymentId,
           },
         ],
