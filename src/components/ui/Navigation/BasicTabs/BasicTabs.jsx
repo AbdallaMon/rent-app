@@ -81,6 +81,10 @@ const requestLink = [
   { label: "تقارير الطلبات", href: "/request/contact" },
   { label: "تقارير الشكاوي", href: "/request/complaint" },
 ];
+const invoiceLink = [
+  { label: "الفواتير الحالية", href: "/invoices" },
+  { label: "ارشيف الفواتير", href: "/invoices/archived" },
+];
 
 const accountingLink = [
   { label: "حسابات الشركة", href: "/accounting/" },
@@ -115,7 +119,7 @@ function normalizePath(p) {
 /* =========================
    Unchanged export name (with link behavior)
 ========================= */
-export function BasicTabs({ reports, settings, accounting }) {
+export function BasicTabs({ reports, settings, accounting, invoices }) {
   const currentPath = normalizePath(usePathname());
 
   const list = accounting
@@ -124,7 +128,9 @@ export function BasicTabs({ reports, settings, accounting }) {
       ? reportLink
       : settings
         ? tabLinks
-        : requestLink;
+        : invoices
+          ? invoiceLink
+          : requestLink;
 
   // also normalize hrefs for matching
   const normalizedList = React.useMemo(

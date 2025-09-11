@@ -28,43 +28,11 @@ function loadEnv() {
 
 loadEnv();
 
-// إعدادات محسنة لتجنب مشكلة max_user_connections
-const prismaConfig = {
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
-  log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  errorFormat: "pretty",
-};
-
 if (process.env.NODE_ENV === "production") {
-  // إعدادات Vercel المحسنة - منع تعدد الاتصالات
-  if (!global.prisma) {
-    global.prisma = new PrismaClient({
-      ...prismaConfig,
-      // إعدادات خاصة بـ Vercel
-      __internal: {
-        engine: {
-          connectionLimit: 1, // اتصال واحد فقط
-        },
-      },
-    });
-  }
-
-  prisma = global.prisma;
+  prisma = new PrismaClient();
 } else {
-  // إعدادات التطوير المحلي - نفس الطريقة لتجنب المشاكل
   if (!global.prisma) {
-    global.prisma = new PrismaClient({
-      ...prismaConfig,
-      __internal: {
-        engine: {
-          connectionLimit: 1, // اتصال واحد فقط حتى في التطوير
-        },
-      },
-    });
+    global.prisma = new PrismaClient();
   }
   prisma = global.prisma;
 }

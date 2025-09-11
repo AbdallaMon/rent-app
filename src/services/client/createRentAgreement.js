@@ -16,7 +16,6 @@ export async function submitRentAgreement(
   cancel,
   dontCheck
 ) {
-  console.log(data, "rent data");
   // if (!data.canceling && !dontCheck) {
   //     let startDate = new Date(data.startDate);
   //     let endDate = new Date(data.endDate);

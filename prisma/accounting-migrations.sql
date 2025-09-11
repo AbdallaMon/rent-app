@@ -237,6 +237,73 @@ ALTER TABLE `Expense` ADD CONSTRAINT `Expense_propertyId_fkey`
 
 ALTER TABLE `GLAccount`
   ADD COLUMN `openingBalance` DOUBLE NOT NULL DEFAULT 0;
+  
+ALTER TABLE Client ADD COLUMN altPhone VARCHAR(191) NULL;
+ALTER TABLE Client ADD COLUMN licenceNumber VARCHAR(191) NULL;
+
+ALTER TABLE `Payment`
+  ADD COLUMN `billingInvoiceId` INT NULL,
+  ADD INDEX `Payment_billingInvoiceId_fkey` (`billingInvoiceId`);
+
+CREATE TABLE IF NOT EXISTS `BillingInvoice` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `invoiceNumber` VARCHAR(191) NOT NULL UNIQUE,
+  `dueDate` DATETIME NULL,
+  `paymentTerms` VARCHAR(255) NULL,
+  `periodStart` DATETIME NULL,
+  `periodEnd` DATETIME NULL,
+  `category` ENUM('RENT','TAX','INSURANCE','REGISTRATION','MAINTENANCE','CONTRACT_EXPENSE','OTHER_EXPENSE','MANAGEMENT_COMMISSION','OTHER') NULL,
+  `amount` DOUBLE NOT NULL,
+  `paidAmount` DOUBLE NOT NULL DEFAULT 0,
+  `description` TEXT NULL,
+  `billedClientId` INT NOT NULL,
+  `propertyId` INT NULL,
+  `unitId` INT NULL,
+  `maintenanceId` INT NULL,
+  `status` ENUM('DRAFT','SENT','PARTIALLY_PAID','PAID','OVERDUE','CANCELED') NOT NULL DEFAULT 'DRAFT',
+  `posted` BOOLEAN NOT NULL DEFAULT 0,
+  `createdAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updatedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  INDEX `idx_billedClientId` (`billedClientId`),
+  INDEX `idx_propertyId` (`propertyId`),
+  INDEX `idx_unitId` (`unitId`),
+  INDEX `idx_maintenanceId` (`maintenanceId`),
+  INDEX `idx_status` (`status`),
+  INDEX `idx_dueDate` (`dueDate`),
+
+  CONSTRAINT `fk_bi_client`      FOREIGN KEY (`billedClientId`) REFERENCES `Client`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_bi_property`    FOREIGN KEY (`propertyId`)     REFERENCES `Property`(`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_bi_unit`        FOREIGN KEY (`unitId`)         REFERENCES `Unit`(`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_bi_maintenance` FOREIGN KEY (`maintenanceId`)  REFERENCES `Maintenance`(`id`) ON DELETE SET NULL
+);
+
+ALTER TABLE `Payment`
+  ADD CONSTRAINT `fk_payment_billingInvoice`
+  FOREIGN KEY (`billingInvoiceId`) REFERENCES `BillingInvoice`(`id`)
+  ON DELETE SET NULL ON UPDATE CASCADE;
+
+CREATE TABLE IF NOT EXISTS `InvoicePaymentBilling` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `billingInvoiceId` INT NOT NULL,
+  `paymentId` INT NOT NULL,
+  `amountApplied` DOUBLE NOT NULL,
+  `linkedAt` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_ipb` (`billingInvoiceId`, `paymentId`),
+  KEY `idx_ipb_paymentId` (`paymentId`),
+  CONSTRAINT `fk_ipb_bi`  FOREIGN KEY (`billingInvoiceId`) REFERENCES `BillingInvoice`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_ipb_pay` FOREIGN KEY (`paymentId`)        REFERENCES `Payment`(`id`)        ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+INSERT IGNORE INTO `InvoicePaymentBilling` (`billingInvoiceId`, `paymentId`, `amountApplied`, `linkedAt`)
+SELECT p.`billingInvoiceId`, p.`id`, p.`amount`, COALESCE(p.`timeOfPayment`, NOW())
+FROM `Payment` p
+WHERE p.`billingInvoiceId` IS NOT NULL;
+
+ALTER TABLE `Payment` DROP FOREIGN KEY `fk_payment_billingInvoice`;
+DROP INDEX `Payment_billingInvoiceId_fkey` ON `Payment`;
+ALTER TABLE `Payment` DROP COLUMN `billingInvoiceId`;
 
 
 RENAME TABLE state TO State;

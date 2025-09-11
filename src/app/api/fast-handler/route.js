@@ -34,6 +34,7 @@ import {
   getCompanyBankAccounts,
   getFastRentAgreements,
   getClients,
+  getPayments,
 } from "@/services/server/fastHandlers";
 import { createNewBankAccount } from "@/services/server/payments";
 
@@ -118,6 +119,9 @@ const handlerObject = {
   },
   expenseTypes: {
     GET: getExpenseTypes,
+  },
+  payments: {
+    GET: getPayments,
   },
   contractPayments: {
     GET: getContractPayments,

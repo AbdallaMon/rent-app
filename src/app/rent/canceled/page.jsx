@@ -61,7 +61,7 @@ const RentWrapper = ({ propperty }) => {
   const { id, submitData } = useTableForm();
 
   async function handleDelete(id) {
-    await submitData(
+    const req = await submitData(
       null,
       null,
       id,
@@ -70,6 +70,9 @@ const RentWrapper = ({ propperty }) => {
       null,
       "main/rentAgreements"
     );
+    if (req.status === 200) {
+      setNonRentedRender((old) => !old);
+    }
   }
 
   const [propertyId, setPropertyId] = useState(null);

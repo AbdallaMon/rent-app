@@ -175,172 +175,177 @@ export async function updatePaymentMethodType(data, params, searchParams) {
 
 export async function updatePayment(id, data) {
   let payment;
-
-  const restPayment =
-    +data.amount - (+data.currentPaidAmount + +data.paidAmount);
+  console.log(data, "data");
 
   const paymentData = await prisma.payment.findUnique({
     where: {
       id: Number(id),
     },
   });
-  if (paymentData.paymentType === "INSURANCE") {
-    if (restPayment > 0) {
-      throw new Error(
-        "يجب ادخال المبلغ كاملا اذا كانت دفعة تامين حتي يتم انشاء وديعه بالمبلغ كاملا"
-      );
+  const restPayment =
+    +paymentData.amount - (+paymentData.paidAmount + +data.paidAmount);
+  try {
+    if (paymentData.paymentType === "INSURANCE") {
+      if (restPayment > 0) {
+        throw new Error(
+          "يجب ادخال المبلغ كاملا اذا كانت دفعة تامين حتي يتم انشاء وديعه بالمبلغ كاملا"
+        );
+      }
     }
-  }
-  if (restPayment > 1) {
-    payment = await prisma.payment.update({
-      where: { id: +id },
-      data: {
-        paidAmount: +data.paidAmount + +data.currentPaidAmount,
-        status: "PENDING",
-        timeOfPayment: new Date(data.timeOfPayment),
-      },
-      include: {
-        installment: true,
-        property: {
-          select: {
-            id: true,
-            name: true,
-            bankId: true,
-            clientId: true,
-            bankAccount: {
-              select: {
-                accountNumber: true,
-                id: true,
-              },
-            },
-          },
-        },
-        unit: {
-          select: {
-            unitId: true,
-            number: true,
-            propertyId: true,
-            id: true,
-          },
-        },
-        rentAgreement: {
-          select: {
-            rentAgreementNumber: true,
-            renterId: true,
-            id: true,
-            unit: {
-              select: {
-                id: true,
-                unitId: true,
-                number: true,
-                propertyId: true,
-                property: {
-                  select: {
-                    name: true,
-                    id: true,
-                  },
-                },
-                client: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        client: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        invoices: {
-          include: {
-            bankAccount: true,
-          },
-        },
-      },
-    });
-  } else {
-    payment = await prisma.payment.update({
-      where: { id: +id },
-      data: {
-        paidAmount: +data.paidAmount + +data.currentPaidAmount,
-        status: "PAID",
-        timeOfPayment: new Date(data.timeOfPayment),
-      },
-      include: {
-        installment: true,
-        property: {
-          select: {
-            name: true,
-            clientId: true,
-          },
-        },
-        unit: {
-          select: {
-            unitId: true,
-            number: true,
-            propertyId: true,
-            id: true,
-          },
-        },
-        rentAgreement: {
-          select: {
-            id: true,
-            rentAgreementNumber: true,
-            renterId: true,
-            unit: {
-              select: {
-                id: true,
-                unitId: true,
-                number: true,
-                property: {
-                  select: {
-                    name: true,
-                    id: true,
-                  },
-                },
-                client: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        client: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        invoices: {
-          include: {
-            bankAccount: true,
-          },
-        },
-      },
-    });
-    if (data.paymentType === "RENT") {
-      await prisma.installment.update({
-        where: { id: +payment.installmentId },
+    if (restPayment > 1) {
+      payment = await prisma.payment.update({
+        where: { id: +id },
         data: {
-          status: true,
+          paidAmount: +data.paidAmount + +paymentData.paidAmount,
+          status: "PENDING",
+          timeOfPayment: new Date(data.timeOfPayment),
+        },
+        include: {
+          installment: true,
+          property: {
+            select: {
+              id: true,
+              name: true,
+              bankId: true,
+              clientId: true,
+              bankAccount: {
+                select: {
+                  accountNumber: true,
+                  id: true,
+                },
+              },
+            },
+          },
+          unit: {
+            select: {
+              unitId: true,
+              number: true,
+              propertyId: true,
+              id: true,
+            },
+          },
+          rentAgreement: {
+            select: {
+              rentAgreementNumber: true,
+              renterId: true,
+              id: true,
+              unit: {
+                select: {
+                  id: true,
+                  unitId: true,
+                  number: true,
+                  propertyId: true,
+                  property: {
+                    select: {
+                      name: true,
+                      id: true,
+                    },
+                  },
+                  client: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          client: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          invoices: {
+            include: {
+              bankAccount: true,
+            },
+          },
         },
       });
+    } else {
+      payment = await prisma.payment.update({
+        where: { id: +id },
+        data: {
+          paidAmount: +data.paidAmount + +paymentData.paidAmount,
+          status: "PAID",
+          timeOfPayment: new Date(data.timeOfPayment),
+        },
+        include: {
+          installment: true,
+          property: {
+            select: {
+              name: true,
+              clientId: true,
+            },
+          },
+          unit: {
+            select: {
+              unitId: true,
+              number: true,
+              propertyId: true,
+              id: true,
+            },
+          },
+          rentAgreement: {
+            select: {
+              id: true,
+              rentAgreementNumber: true,
+              renterId: true,
+              unit: {
+                select: {
+                  id: true,
+                  unitId: true,
+                  number: true,
+                  property: {
+                    select: {
+                      name: true,
+                      id: true,
+                    },
+                  },
+                  client: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          client: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          invoices: {
+            include: {
+              bankAccount: true,
+            },
+          },
+        },
+      });
+      if (data.paymentType === "RENT") {
+        await prisma.installment.update({
+          where: { id: +payment.installmentId },
+          data: {
+            status: true,
+          },
+        });
+      }
     }
+    await handlePaymentAccounting({
+      payment,
+      amount: +data.paidAmount,
+      timeOfPayment: data.timeOfPayment,
+    });
+    return payment;
+  } catch (e) {
+    console.log(data, "data");
+    throw new Error(e.message);
   }
-  await handlePaymentAccounting({
-    payment,
-    amount: +data.paidAmount,
-    timeOfPayment: data.timeOfPayment,
-  });
-  return payment;
 }
 
 async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {

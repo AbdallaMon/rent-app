@@ -36,10 +36,9 @@ import { CancelRent } from "@/components/ui/Modals/CancelRentModal";
 import { useAuth } from "@/app/context/AuthProvider/AuthProvider";
 import { usePathname } from "next/navigation";
 import { getCurrentPrivilege } from "@/helpers/functions/getUserPrivilege";
-import { RefreshOutlined } from "@mui/icons-material";
 import { getDataAndSet } from "@/helpers/functions/getDataAndSet";
 
-moment.locale("ar"); // Set moment locale globally to Arabic
+moment.locale("ar");
 
 const HomePage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -252,7 +251,7 @@ const PaymentSection = ({
                   zIndex: 1, // Help with layering
                 }}
               >
-                دفعه رقم
+                معرف الدفعة
               </TableCell>
               <TableCell
                 sx={{
@@ -336,7 +335,7 @@ const PaymentSection = ({
               >
                 {maintenance ? "اسم المالك" : "اسم المستأجر"}
               </TableCell>
-              <TableCell
+              {/* <TableCell
                 sx={{
                   color: "white",
                   backgroundColor: "primary.main",
@@ -344,7 +343,7 @@ const PaymentSection = ({
                 }}
               >
                 دفع
-              </TableCell>
+              </TableCell> */}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -449,7 +448,7 @@ const PaymentRow = ({
 
   return (
     <TableRow hover sx={{ backgroundColor: "inherit" }}>
-      <TableCell>{index}</TableCell>
+      <TableCell>#{item.id}</TableCell>
       <TableCell>{dayjs(item.dueDate).format("DD/MM/YYYY")}</TableCell>
       <TableCell>{formatCurrencyAED(item.amount)}</TableCell>
       <TableCell>{formatCurrencyAED(item.paidAmount.toFixed(2))}</TableCell>
@@ -485,7 +484,7 @@ const PaymentRow = ({
       <TableCell>
         {item.rentAgreement?.unit.client.name || item.client?.name + "(مالك)"}
       </TableCell>
-      <TableCell>
+      {/* <TableCell>
         {item.status !== "PAID" && canCreate() && (
           <Button
             variant="contained"
@@ -501,7 +500,7 @@ const PaymentRow = ({
             دفع
           </Button>
         )}
-      </TableCell>
+      </TableCell> */}
     </TableRow>
   );
 };

@@ -22,6 +22,22 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
   };
 
   const from = getFromName(invoice);
+
+  const hasProperty = Boolean(invoice?.property?.name);
+  const unitNumber =
+    invoice?.rentAgreement?.unit?.number || invoice?.unit?.number || null;
+  const hasUnit = Boolean(unitNumber);
+  const collectorName = invoice?.property?.collector?.name || null;
+
+  // تنسيقات مساعدة للطباعة
+  const fmtDate = (d) => (d ? dayjs(d).format("DD/MM/YYYY") : "—");
+  const safe = (v) => (v == null || v === "" ? "—" : v);
+
+  // جدول الدفعات (من الفاتورة)
+  const lines = Array.isArray(invoice?.invoicePayments)
+    ? invoice.invoicePayments
+    : [];
+
   return (
     <div
       ref={ref}
@@ -81,15 +97,15 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
           معلومات السند
         </h3>
 
+        {/* عرض رقم السند + رقم الفاتورة */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr",
-            gap: "15px",
+            gap: "10px",
             marginBottom: "15px",
           }}
         >
-          {/* full-width receipt number */}
           <div
             style={{
               backgroundColor: c.veryLightBg,
@@ -97,12 +113,13 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
               border: `2px solid ${c.primary}`,
               borderRadius: "8px",
               textAlign: "center",
-              fontSize: "18px",
+              fontSize: "16px",
               fontWeight: "bold",
               color: c.primary,
             }}
           >
-            <strong>رقم السند:</strong> {invoice.displayId || `#${invoice.id}`}
+            <strong>رقم السند:</strong>{" "}
+            {invoice.invoiceNumber || `#${invoice.id}`}
           </div>
         </div>
 
@@ -115,34 +132,20 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
           }}
         >
           <div>
-            <strong>التاريخ:</strong>{" "}
-            {dayjs(invoice.createdAt).format("DD/MM/YYYY")}
+            <strong>تاريخ الاصدار:</strong> {fmtDate(invoice?.createdAt)}
           </div>
           <div>
             <strong>نوع العملية:</strong>{" "}
-            {PaymentType[invoice.invoiceType] || "دفعة"}
+            {PaymentType[invoice?.category] || "عام"}
           </div>
-          <div>
-            <strong>طريقة الدفع:</strong>{" "}
-            {invoice.paymentTypeMethod === "CASH"
-              ? "نقداً"
-              : invoice.paymentTypeMethod === "BANK"
-                ? "تحويل بنكي"
-                : invoice.paymentTypeMethod === "CHEQUE"
-                  ? "شيك"
-                  : "غير محدد"}
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <strong>الوصف:</strong> {safe(invoice?.description)}
           </div>
-          {invoice.invoiceType === "MAINTENANCE" &&
-            invoice.payment.maintenance?.description && (
-              <div>
-                <strong>وصف المصروف:</strong>{" "}
-                {invoice.payment.maintenance?.description}
-              </div>
-            )}
         </div>
       </div>
 
-      {/* payment details table */}
+      {/* payment summary */}
       <table
         style={{
           width: "100%",
@@ -180,7 +183,7 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
               مستلم من
             </td>
             <td style={{ padding: "10px", border: `1px solid ${c.divider}` }}>
-              {from}
+              {safe(from)}
             </td>
           </tr>
 
@@ -193,7 +196,7 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
                 backgroundColor: c.veryLightBg,
               }}
             >
-              المبلغ
+              المبلغ الكلي للفاتورة
             </td>
             <td
               style={{
@@ -204,25 +207,27 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
                 fontSize: "16px",
               }}
             >
-              {invoice.amount ? formatCurrencyAED(invoice.amount) : "غير محدد"}
+              {formatCurrencyAED(invoice?.amount || 0)}
             </td>
           </tr>
 
-          <tr>
-            <td
-              style={{
-                padding: "10px",
-                border: `1px solid ${c.divider}`,
-                fontWeight: "bold",
-                backgroundColor: c.veryLightBg,
-              }}
-            >
-              العقار
-            </td>
-            <td style={{ padding: "10px", border: `1px solid ${c.divider}` }}>
-              {invoice.property?.name || "غير محدد"}
-            </td>
-          </tr>
+          {hasProperty && (
+            <tr>
+              <td
+                style={{
+                  padding: "10px",
+                  border: `1px solid ${c.divider}`,
+                  fontWeight: "bold",
+                  backgroundColor: c.veryLightBg,
+                }}
+              >
+                العقار
+              </td>
+              <td style={{ padding: "10px", border: `1px solid ${c.divider}` }}>
+                {invoice.property.name}
+              </td>
+            </tr>
+          )}
 
           <tr>
             <td
@@ -236,29 +241,181 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
               تاريخ الاستحقاق
             </td>
             <td style={{ padding: "10px", border: `1px solid ${c.divider}` }}>
-              {invoice.payment?.dueDate
-                ? dayjs(invoice.payment.dueDate).format("DD/MM/YYYY")
-                : "غير محدد"}
+              {fmtDate(invoice?.dueDate)}
             </td>
           </tr>
 
-          <tr>
-            <td
-              style={{
-                padding: "10px",
-                border: `1px solid ${c.divider}`,
-                fontWeight: "bold",
-                backgroundColor: c.veryLightBg,
-              }}
-            >
-              المحصل
-            </td>
-            <td style={{ padding: "10px", border: `1px solid ${c.divider}` }}>
-              {invoice.property?.collector?.name || "غير محدد"}
-            </td>
-          </tr>
+          {collectorName && (
+            <tr>
+              <td
+                style={{
+                  padding: "10px",
+                  border: `1px solid ${c.divider}`,
+                  fontWeight: "bold",
+                  backgroundColor: c.veryLightBg,
+                }}
+              >
+                المحصل
+              </td>
+              <td style={{ padding: "10px", border: `1px solid ${c.divider}` }}>
+                {collectorName}
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
+
+      {/* ===== جديد: جدول تفاصيل الدفعات المرتبطة ===== */}
+      {lines.length > 0 && (
+        <>
+          <h3
+            style={{
+              margin: "0 0 10px 0",
+              color: c.primary,
+              fontSize: "16px",
+            }}
+          >
+            تفاصيل الدفعات المرتبطة
+          </h3>
+
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              marginBottom: "25px",
+              border: `1px solid ${c.divider}`,
+            }}
+          >
+            <thead>
+              <tr
+                style={{
+                  backgroundColor: alpha(c.primary, 0.08),
+                  color: c.text,
+                }}
+              >
+                {[
+                  "#",
+                  "نوع الدفعة",
+                  "تاريخ الاستحقاق",
+                  "التفاصيل",
+                  "إجمالي",
+                  "مدفوع",
+                  "محمّل على الفاتورة",
+                ].map((h) => (
+                  <th
+                    key={h}
+                    style={{
+                      padding: "10px",
+                      textAlign: "right",
+                      borderBottom: `2px solid ${alpha(c.divider, 0.6)}`,
+                      fontWeight: 700,
+                      fontSize: "12px",
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((ln) => {
+                // حاول نجيب الدفعة سواء موجودة داخل ln.payment أو الحقل نفسه
+                const p = ln?.payment ?? ln;
+                const remain = Math.max(
+                  0,
+                  (p?.amount || 0) - (p?.paidAmount || 0)
+                );
+
+                const details = [
+                  p?.rentAgreement?.rentAgreementNumber
+                    ? `عقد: ${p.rentAgreement.rentAgreementNumber}`
+                    : null,
+                  p?.property?.name ? `عقار: ${p.property.name}` : null,
+                  p?.unit?.number ? `وحدة: ${p.unit.number}` : null,
+                  p?.maintenance?.description
+                    ? `صيانة: ${p.maintenance.description}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" | ");
+
+                return (
+                  <tr key={ln.id || p?.id}>
+                    <td
+                      style={{
+                        padding: "8px",
+                        borderBottom: `1px solid ${alpha(c.divider, 0.4)}`,
+                      }}
+                    >
+                      {p?.id ?? "—"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px",
+                        borderBottom: `1px solid ${alpha(c.divider, 0.4)}`,
+                      }}
+                    >
+                      {PaymentType[p?.paymentType] || p?.paymentType || "—"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px",
+                        borderBottom: `1px solid ${alpha(c.divider, 0.4)}`,
+                      }}
+                    >
+                      {fmtDate(p?.dueDate)}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px",
+                        borderBottom: `1px solid ${alpha(c.divider, 0.4)}`,
+                        maxWidth: 260,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        color: theme.palette.text.secondary,
+                      }}
+                      title={details}
+                    >
+                      {details || "—"}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px",
+                        borderBottom: `1px solid ${alpha(c.divider, 0.4)}`,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {formatCurrencyAED(p?.amount || 0)}
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px",
+                        borderBottom: `1px solid ${alpha(c.divider, 0.4)}`,
+                        fontWeight: 700,
+                        color: theme.palette.success.main,
+                      }}
+                    >
+                      {formatCurrencyAED(p?.paidAmount || 0)}
+                    </td>
+
+                    <td
+                      style={{
+                        padding: "8px",
+                        borderBottom: `1px solid ${alpha(c.divider, 0.4)}`,
+                        fontWeight: 800,
+                        color: theme.palette.primary.main,
+                      }}
+                    >
+                      {formatCurrencyAED(ln?.amountApplied || 0)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </>
+      )}
 
       {/* description */}
       <div
@@ -274,29 +431,39 @@ const InvoicePrint = forwardRef(({ invoice }, ref) => {
         >
           تفاصيل العملية
         </h3>
+
         <div style={{ lineHeight: 1.8 }}>
           <strong>الوصف:</strong>{" "}
           {"دفعة " +
-            (PaymentType[invoice.invoiceType] || "دفعة") +
-            " " +
-            (invoice.description || "")}{" "}
-          {invoice.invoiceType === "MAINTENANCE" ||
-          invoice.invoiceType === "MANAGEMENT_COMMISSION" ? (
+            (PaymentType[invoice?.invoiceType] || "دفعة") +
+            (invoice?.description ? " " + invoice.description : "")}{" "}
+          {invoice?.invoiceType === "MAINTENANCE" ||
+          invoice?.invoiceType === "MANAGEMENT_COMMISSION" ? (
             <>
-              من المالك <strong>{from}</strong> لعقار{" "}
-              <strong>{invoice.property?.name || "غير محدد"}</strong>
+              {" "}
+              من المالك <strong>{from}</strong>
+              {hasProperty && (
+                <>
+                  {" "}
+                  لعقار <strong>{invoice.property.name}</strong>
+                </>
+              )}
             </>
           ) : (
             <>
-              للوحدة رقم{" "}
-              <strong>
-                {invoice.rentAgreement?.unit?.number ||
-                  invoice.unit?.number ||
-                  "غير محدد"}
-              </strong>{" "}
-              التابعة لعقار{" "}
-              <strong>{invoice.property?.name || "غير محدد"}</strong>
-              {invoice.rentAgreement?.rentAgreementNumber && (
+              {hasUnit && (
+                <>
+                  {" "}
+                  للوحدة رقم <strong>{unitNumber}</strong>
+                </>
+              )}
+              {hasProperty && (
+                <>
+                  {" "}
+                  التابعة لعقار <strong>{invoice.property.name}</strong>
+                </>
+              )}
+              {invoice?.rentAgreement?.rentAgreementNumber && (
                 <>
                   {" "}
                   عن عقد إيجار رقم{" "}

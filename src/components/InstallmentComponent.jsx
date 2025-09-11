@@ -329,6 +329,7 @@ export function InstallmentComponent({
                       onChange={(date) => {
                         onChange(date ? date.format("YYYY-MM-DD") : null);
                       }}
+                      format="DD/MM/YYYY"
                       renderInput={(params) => (
                         <TextField
                           {...params}

@@ -99,6 +99,7 @@ model Property {
   deletedAt            DateTime?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
+  BillingInvoices BillingInvoice[]
   attachments          Attachment[]
   complaints           Complaint[]
   electricityMeters    ElectricityMeter[]
@@ -178,6 +179,7 @@ model Unit {
   deletedAt           DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+  BillingInvoices BillingInvoice[]
   complaints          Complaint[]
   maintenances        Maintenance[]
   maintenanceRequests MaintenanceRequest[]
@@ -318,6 +320,7 @@ model Maintenance {
   payEvery      PayEvery?
   createdAt     DateTime                 @default(now())
   updatedAt     DateTime                 @updatedAt
+  BillingInvoices BillingInvoice[]
   invoices      Invoice[]
   client        Client?                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   property      Property                 @relation(fields: [propertyId], references: [id], onDelete: Cascade)
@@ -415,6 +418,8 @@ model Client {
   name                  String
   nationalId            String
   phone                 String?
+  altPhone              String?
+  licenceNumber        String?
   email                 String?
   role                  ClientRole
   language              Language                  @default(ARABIC)
@@ -437,6 +442,7 @@ model Client {
   whatsappIncoming      WhatsappIncomingMessage[]
   whatsappMessages      WhatsappMessageLog[]
   journalLines JournalLine[]
+  BillingInvoices BillingInvoice[]
   securityDeposits SecurityDeposit[]
 }
 
@@ -540,6 +546,7 @@ model Payment {
   rentAgreementId          Int?
   contractExpenseId        Int?
   paymentType              PaymentType?
+  billingInvoices InvoicePaymentBilling[] 
   createdAt                DateTime                        @default(now())
   updatedAt                DateTime                        @updatedAt
   invoices                 Invoice[]
@@ -774,6 +781,68 @@ model WhatsAppTeamSettings {
   updatedBy                          String?
   createdAt                          DateTime @default(now())
   updatedAt                          DateTime @default(now())
+}
+
+model BillingInvoice {
+  id            Int                   @id @default(autoincrement())
+  invoiceNumber String                @unique
+  dueDate       DateTime?             // تاريخ المطالبة/الاستحقاق
+  paymentTerms  String?               // شروط الدفع (مثلاً: Net 30)
+  periodStart   DateTime?             // من
+  periodEnd     DateTime?             // إلى
+  category      PaymentType?          // فئة الفاتورة (اختياري: RENT/MAINTENANCE/...)
+  amount        Float
+  paidAmount    Float                 @default(0) // يتحدث حسب الربط بالدفعات
+  description   String?
+  invoicePayments InvoicePaymentBilling[]
+  billedClientId Int
+  billedClient   Client               @relation(fields: [billedClientId], references: [id], onDelete: Cascade)
+
+  // ربط اختياري بسياق تشغيلي
+  propertyId  Int?
+  property    Property?               @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  unitId      Int?
+  unit        Unit?                   @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  maintenanceId Int?
+  maintenance   Maintenance?          @relation(fields: [maintenanceId], references: [id], onDelete: SetNull)
+
+  status     BillingInvoiceStatus     @default(DRAFT)
+  posted     Boolean                  @default(false) // لا نرحّل لليومية إلا بعد السداد والتسوية
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
+
+  @@index([billedClientId])
+  @@index([propertyId])
+  @@index([unitId])
+  @@index([maintenanceId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model InvoicePaymentBilling {
+  id               Int            @id @default(autoincrement())
+  billingInvoiceId Int
+  paymentId        Int
+  amountApplied    Float
+  linkedAt         DateTime       @default(now())
+
+  billingInvoice BillingInvoice   @relation(fields: [billingInvoiceId], references: [id], onDelete: Cascade)
+  payment        Payment          @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@unique([billingInvoiceId, paymentId])
+  @@index([paymentId])
+}
+
+
+enum BillingInvoiceStatus {
+  DRAFT
+  SENT
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELED
 }
 
 enum RentAgreementStatus {

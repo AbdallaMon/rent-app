@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { updateWhereClauseWithUserProperties } from "@/app/api/utlis/userProperties";
-
+import dayjs from "dayjs";
 async function getCitiesByStateId(searchParams) {
   try {
     const stateId = searchParams.get("stateId");
@@ -634,9 +634,87 @@ async function getCompanyBankAccounts() {
   const companyBankAccounts = await prisma.CompanyBankAccount.findMany();
   return companyBankAccounts;
 }
+async function getPayments(searchParams) {
+  const filters = JSON.parse(searchParams.get("filters") || "{}");
+  try {
+    const {
+      role,
+      ownerId,
+      renterId,
+      propertyId,
+      unitId,
+      rentAgreementId,
+      types,
+      from,
+      to,
+    } = filters;
+
+    const AND = [
+      {
+        status: {
+          notIn: ["PAID"],
+        },
+      },
+    ];
+    if (role === "OWNER" && ownerId) {
+      AND.push({ clientId: Number(ownerId) });
+    }
+    if (role === "RENTER" && renterId) {
+      AND.push({
+        rentAgreement: {
+          renterId: Number(renterId),
+        },
+      });
+    }
+    if (propertyId) AND.push({ propertyId: Number(propertyId) });
+    if (unitId) AND.push({ unitId: Number(unitId) });
+    if (rentAgreementId) AND.push({ rentAgreementId: Number(rentAgreementId) });
+    const fromDate = from ? dayjs(from).toDate() : null;
+    const toDate = to ? dayjs(to).toDate() : null;
+
+    if (fromDate || toDate) {
+      AND.push({
+        dueDate: { gte: fromDate || undefined, lte: toDate || undefined },
+      });
+    }
+    if (Array.isArray(types) && types.length) {
+      AND.push({ paymentType: { in: types } });
+    }
+
+    const payments = await prisma.payment.findMany({
+      where: {
+        AND,
+      },
+      include: {
+        client: true,
+        property: true,
+        maintenance: true,
+        unit: true,
+        billingInvoices: {
+          include: {
+            billingInvoice: true,
+          },
+        },
+        rentAgreement: {
+          include: {
+            unit: true,
+            renter: true,
+          },
+        },
+      },
+    });
+    console.log(payments, "payments");
+    return payments;
+  } catch (e) {
+    console.log(filters, "filters");
+
+    console.log(e.message, "in searching");
+  }
+}
 
 export {
   createState,
+  getPayments,
   getCompanyBankAccounts,
   getStates,
   createCity,

@@ -30,6 +30,19 @@ const PaymentType = {
   MANAGEMENT_COMMISSION: "عمولة إدارة",
   OTHER: "أخرى",
 };
+const InvoiceBillingStatus = {
+  DRAFT: "مسودة",
+  SENT: "مرسلة",
+  PARTIALLY_PAID: "مدفوعة جزئيًا",
+  PAID: "مدفوعة",
+  OVERDUE: "متأخرة",
+  CANCELED: "ملغاة",
+};
+const PaymentMethodType = {
+  CASH: "كاش",
+  BANK: "تحويل بنكي",
+  CHEQUE: "شيك",
+};
 
 const accountType = {
   ASSET: "أصل",
@@ -108,4 +121,6 @@ module.exports = {
   MaintenanceType,
   ComplaintCategory,
   RequestStatusTypes,
+  PaymentMethodType,
+  InvoiceBillingStatus,
 };

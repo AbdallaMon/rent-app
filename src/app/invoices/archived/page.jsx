@@ -36,20 +36,18 @@ import {
 import { useRef, useState } from "react";
 import { useDataFetcher } from "@/helpers/hooks/useDataFetcher";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import InvoicePrint from "./InvoicePrint";
-import CombinedInvoicePrint from "./CombinedInvoicePrint";
+import InvoicePrint from "../InvoicePrint";
+import CombinedInvoicePrint from "../CombinedInvoicePrint";
 
 import ViewComponent from "@/components/ViewComponent/ViewComponent";
 import { useReactToPrint } from "react-to-print";
-import TableFormProvider from "../context/TableFormProvider/TableFormProvider";
 import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
 import FilterSelect from "@/components/utility/FilterSelect";
 import { PaymentType } from "@/config/Enums";
-import BillingInvoiceDialogButton from "./BillingInvoiceDialog";
 import { handleRequestSubmit } from "@/helpers/functions/handleRequestSubmit";
-import { useToastContext } from "../context/ToastLoading/ToastLoadingProvider";
-import BillingInvoiceViewDialogButton from "./ViewBillingInvoice";
-import MarkInvoicePaidDialog from "./MarkInvoiceAsPaid";
+import BillingInvoiceViewDialogButton from "../ViewBillingInvoice";
+import TableFormProvider from "@/app/context/TableFormProvider/TableFormProvider";
+import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
 
 // إعداد dayjs
 dayjs.extend(utc);
@@ -132,8 +130,6 @@ export default function InvoicePage() {
   );
 }
 function InvoiceWrapper() {
-  const theme = useTheme();
-
   const {
     data,
     loading,
@@ -150,7 +146,7 @@ function InvoiceWrapper() {
     otherData,
     setOtherData,
     setRender,
-  } = useDataFetcher(`main/billing-invoices`);
+  } = useDataFetcher(`main/billing-invoices?isArchived=true&`);
   const [startDate, setStartDate] = useState(dayjs().startOf("month"));
   const [endDate, setEndDate] = useState(dayjs().endOf("month"));
   const printRef = useRef();
@@ -181,7 +177,6 @@ function InvoiceWrapper() {
       cardWidth: 48,
       renderCell: (params) => {
         const invoiceConfig = getInvoiceTypeConfig(params.row.category);
-        const IconComponent = invoiceConfig.icon;
 
         return (
           <Box display="flex" alignItems="center" gap={2}>
@@ -359,14 +354,6 @@ function InvoiceWrapper() {
             >
               طباعة
             </Button>
-
-            <MarkInvoicePaidDialog
-              invoiceId={params.row.id}
-              invoiceNumber={params.row.invoiceNumber}
-              onSuccess={() => {
-                setData((old) => old.filter((inv) => inv.id !== params.row.id));
-              }}
-            />
           </Box>
         );
       },
@@ -418,20 +405,6 @@ function InvoiceWrapper() {
     return summary;
   };
 
-  async function onSubmit(payload) {
-    const req = await handleRequestSubmit(
-      payload,
-      setLoading,
-      `main/billing-invoices`,
-      false,
-      "جاري انشاء فاتورة"
-    );
-    if (req.status === 200) {
-      setRender((old) => !old);
-    }
-    return req;
-  }
-  console.log(partyType, "partyType");
   return (
     <>
       <FilterPaperContainer
@@ -615,8 +588,6 @@ function InvoiceWrapper() {
         total={total}
         noModal={true}
         noCreate
-        submitFunction={onSubmit}
-        anotherComponent={BillingInvoiceDialogButton}
       />
     </>
   );

@@ -30,7 +30,7 @@ import dayjs from "dayjs";
 import { getData } from "@/helpers/functions/getData";
 import { PaymentModal } from "@/components/ui/Modals/PaymentModal";
 import { DataCard } from "@/components/RentDataCard";
-import { PaymentStatus, PaymentType } from "@/config/Enums";
+import { PaymentMethodType, PaymentStatus, PaymentType } from "@/config/Enums";
 import { updatePayment } from "@/services/client/updatePayment";
 import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
 import { useReactToPrint } from "react-to-print";
@@ -166,7 +166,6 @@ const Payments = ({
   heading,
   showName,
 }) => {
-  const theme = useTheme();
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [id, setId] = useState(null);
@@ -177,7 +176,6 @@ const Payments = ({
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const { setLoading: setEditLoading } = useToastContext();
-
   useEffect(() => {
     async function fetchData() {
       const data = await getData({ url, setLoading, others: "" });
@@ -347,7 +345,7 @@ const Payments = ({
           <Table sx={{ minWidth: 650 }} aria-label="payment table">
             <TableHead>
               <TableRow sx={{ backgroundColor: "action.hover" }}>
-                <TableCell>دفعه رقم</TableCell>
+                <TableCell> معرف الدفعة</TableCell>
                 <TableCell>ميعاد الدفع</TableCell>
                 {showName && <TableCell>اسم المصروف</TableCell>}
                 <TableCell>قيمة الدفعه</TableCell>
@@ -355,8 +353,10 @@ const Payments = ({
                 <TableCell>الباقي</TableCell>
                 <TableCell>النوع</TableCell>
                 <TableCell>الحالة</TableCell>
+                <TableCell>طريقة الدفع</TableCell>
+                <TableCell>رقم الشيك</TableCell>
                 <TableCell>تعديل طريقة الدفع</TableCell>
-                <TableCell>دفع</TableCell>
+                {/* <TableCell>دفع</TableCell> */}
               </TableRow>
             </TableHead>
 
@@ -581,7 +581,7 @@ const PaymentRow = ({
   return (
     <>
       <TableRow hover>
-        <TableCell>{index}</TableCell>
+        <TableCell>#{item.id}</TableCell>
         <TableCell>{dayjs(item.dueDate).format("DD/MM/YYYY")}</TableCell>
         {showName && <TableCell>{item.title}</TableCell>}
         <TableCell>{formatCurrencyAED(item.amount.toFixed(2))}</TableCell>
@@ -599,6 +599,22 @@ const PaymentRow = ({
           </Typography>
         </TableCell>
         <TableCell>
+          <Typography
+            variant="body2"
+            sx={{ color: "priamry", fontWeight: "bold" }}
+          >
+            {PaymentMethodType[item.paymentTypeMethod || "CASH"]}
+          </Typography>
+        </TableCell>
+        <TableCell>
+          <Typography
+            variant="body2"
+            sx={{ color: "secondary", fontWeight: "bold" }}
+          >
+            {item.chequeNumber || "لا يوجد"}
+          </Typography>
+        </TableCell>
+        <TableCell>
           <Button
             variant="contained"
             color="primary"
@@ -612,7 +628,7 @@ const PaymentRow = ({
             طريقة الدفع
           </Button>
         </TableCell>
-        <TableCell>
+        {/* <TableCell>
           {item.status !== "PAID" && (
             <Button
               variant="contained"
@@ -626,7 +642,7 @@ const PaymentRow = ({
               دفع
             </Button>
           )}
-        </TableCell>
+        </TableCell> */}
       </TableRow>
 
       <EditPaymentMethodModal
@@ -643,7 +659,6 @@ const PaymentRow = ({
 };
 
 const InvoiceRows = ({ invoices, index }) => {
-  const theme = useTheme();
   return invoices.map((invoice) => (
     <TableRow key={invoice.id} sx={{ backgroundColor: "action.selected" }}>
       <TableCell colSpan={8} sx={{ p: 0 }}>

@@ -77,6 +77,21 @@ const OwnerWrapper = () => {
       printable: true,
       cardWidth: 48,
     },
+
+    {
+      field: "altPhone",
+      headerName: "رقم هاتف اخر",
+      width: 200,
+      printable: true,
+      cardWidth: 48,
+    },
+    {
+      field: "licenceNumber",
+      headerName: "رقم الرخصة",
+      width: 200,
+      printable: true,
+      cardWidth: 48,
+    },
     {
       field: "email",
       headerName: "الإيميل",

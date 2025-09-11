@@ -37,6 +37,38 @@ export const renterInputs = [
   },
   {
     data: {
+      id: "altPhone",
+      type: "number",
+      label: "رقم هاتف اخر",
+      name: "altPhone",
+    },
+    sx: {
+      width: {
+        xs: "100%",
+        sm: "48%",
+        md: "47%",
+        lg: "48%",
+      },
+    },
+  },
+  {
+    data: {
+      id: "licenceNumber",
+      type: "text",
+      label: "رقم الرخصة",
+      name: "licenceNumber",
+    },
+    sx: {
+      width: {
+        xs: "100%",
+        sm: "48%",
+        md: "47%",
+        lg: "48%",
+      },
+    },
+  },
+  {
+    data: {
       id: "email",
       type: "text",
       label: "الإيميل",
@@ -74,7 +106,7 @@ export const renterInputs = [
       labelPlacement: "start",
       transformValue: {
         fromDb: (value) => value === "ENGLISH",
-        toDb: (value) => value ? "ENGLISH" : "ARABIC"
+        toDb: (value) => (value ? "ENGLISH" : "ARABIC"),
       },
       sx: {
         width: {
@@ -83,6 +115,6 @@ export const renterInputs = [
         },
         mr: "auto",
       },
-    }
-  }
+    },
+  },
 ];

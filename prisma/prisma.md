@@ -99,6 +99,7 @@ collectorId Int?
 deletedAt DateTime?
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
+BillingInvoices BillingInvoice[]
 attachments Attachment[]
 complaints Complaint[]
 electricityMeters ElectricityMeter[]
@@ -178,6 +179,7 @@ clientId Int?
 deletedAt DateTime?
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
+BillingInvoices BillingInvoice[]
 complaints Complaint[]
 maintenances Maintenance[]
 maintenanceRequests MaintenanceRequest[]
@@ -216,7 +218,8 @@ insuranceFees Int?
 unitId Int
 totalPrice Float
 totalContractPrice Float?
-rentCollectionType RentCollectionType
+rentCollectionType RentCollectionType @default(NUMBER)
+rentCollectionNumber Int? // optional key for NUMBER
 status RentAgreementStatus @default(ACTIVE)
 customDescription Json?
 createdAt DateTime @default(now())
@@ -310,12 +313,14 @@ propertyId Int
 ownerId Int?
 unitId Int?
 typeId Int
+payer MaintenancePayer @default(OWNER)
 totalPrice Float
 currentStatus Float @default(0)
 isPaid Boolean
 payEvery PayEvery?
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
+BillingInvoices BillingInvoice[]
 invoices Invoice[]
 client Client? @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
@@ -413,6 +418,8 @@ id Int @id @default(autoincrement())
 name String
 nationalId String
 phone String?
+altPhone String?
+licenceNumber String?
 email String?
 role ClientRole
 language Language @default(ARABIC)
@@ -435,6 +442,7 @@ whatsappConversations WhatsappConversation[]
 whatsappIncoming WhatsappIncomingMessage[]
 whatsappMessages WhatsappMessageLog[]
 journalLines JournalLine[]
+BillingInvoices BillingInvoice[]
 securityDeposits SecurityDeposit[]
 }
 
@@ -482,20 +490,24 @@ property Property @relation(fields: [propertyId], references: [id], onDelete: Ca
 @@index([invoiceId], map: "Income_invoiceId_fkey")
 @@index([propertyId], map: "Income_propertyId_fkey")
 }
-
 model Expense {
 id Int @id @default(autoincrement())
 amount Float
 date DateTime
 description String
-propertyId Int
-clientId Int
+
+// made optional ↓↓↓
+propertyId Int?
+clientId Int?
+
 invoiceId Int
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
-client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+// make relations optional + SET NULL on delete
+client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
 invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+property Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
 
 @@index([clientId], map: "Expense_clientId_fkey")
 @@index([invoiceId], map: "Expense_invoiceId_fkey")
@@ -533,6 +545,7 @@ maintenanceId Int?
 rentAgreementId Int?
 contractExpenseId Int?
 paymentType PaymentType?
+billingInvoices InvoicePaymentBilling[]
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
 invoices Invoice[]
@@ -671,7 +684,12 @@ sentAt DateTime @default(now())
 updatedAt DateTime @default(now())
 clientId Int?
 client Client? @relation(fields: [clientId], references: [id])
+sendSchema String?
 
+relationKey String?  
+ relationId String?  
+ @@index([relationKey, relationId])
+@@index([status, sentAt])
 @@index([clientId], map: "WhatsappMessageLog_clientId_fkey")
 }
 
@@ -681,7 +699,8 @@ messageId String @unique
 sender String
 messageType String
 content String? @db.Text
-language String?
+status String?  
+ language String?
 metadata Json?
 receivedAt DateTime @default(now())
 clientId Int?
@@ -763,6 +782,67 @@ createdAt DateTime @default(now())
 updatedAt DateTime @default(now())
 }
 
+model BillingInvoice {
+id Int @id @default(autoincrement())
+invoiceNumber String @unique
+dueDate DateTime? // تاريخ المطالبة/الاستحقاق
+paymentTerms String? // شروط الدفع (مثلاً: Net 30)
+periodStart DateTime? // من
+periodEnd DateTime? // إلى
+category PaymentType? // فئة الفاتورة (اختياري: RENT/MAINTENANCE/...)
+amount Float
+paidAmount Float @default(0) // يتحدث حسب الربط بالدفعات
+description String?
+invoicePayments InvoicePaymentBilling[]
+billedClientId Int
+billedClient Client @relation(fields: [billedClientId], references: [id], onDelete: Cascade)
+
+// ربط اختياري بسياق تشغيلي
+propertyId Int?
+property Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+unitId Int?
+unit Unit? @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+maintenanceId Int?
+maintenance Maintenance? @relation(fields: [maintenanceId], references: [id], onDelete: SetNull)
+
+status BillingInvoiceStatus @default(DRAFT)
+posted Boolean @default(false) // لا نرحّل لليومية إلا بعد السداد والتسوية
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+@@index([billedClientId])
+@@index([propertyId])
+@@index([unitId])
+@@index([maintenanceId])
+@@index([status])
+@@index([dueDate])
+}
+
+model InvoicePaymentBilling {
+id Int @id @default(autoincrement())
+billingInvoiceId Int
+paymentId Int
+amountApplied Float
+linkedAt DateTime @default(now())
+
+billingInvoice BillingInvoice @relation(fields: [billingInvoiceId], references: [id], onDelete: Cascade)
+payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+@@unique([billingInvoiceId, paymentId])
+@@index([paymentId])
+}
+
+enum BillingInvoiceStatus {
+DRAFT
+SENT
+PARTIALLY_PAID
+PAID
+OVERDUE
+CANCELED
+}
+
 enum RentAgreementStatus {
 CANCELED
 EXPIRED
@@ -770,7 +850,8 @@ ACTIVE
 }
 
 enum RentCollectionType {
-TWO_MONTHS
+NUMBER  
+ TWO_MONTHS
 THREE_MONTHS
 FOUR_MONTHS
 SIX_MONTHS
@@ -877,6 +958,11 @@ SERVICE_QUALITY
 OTHER
 }
 
+enum MaintenancePayer {
+COMPANY  
+ OWNER  
+}
+
 enum MaintenanceType {
 ELECTRICAL
 PLUMBING
@@ -922,7 +1008,9 @@ id Int @id @default(autoincrement())
 code String @unique
 name String
 type GLAccountType
+openingBalance Float @default(0)
 isActive Boolean @default(true)
+isSystem Boolean @default(false)
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
 
@@ -952,6 +1040,7 @@ entryDate DateTime @default(now())
 description String?
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
+manull Boolean @default(false)
 
 lines JournalLine[]
 
@@ -1063,9 +1152,9 @@ REFUNDED
 
 model SecurityDeposit {
 id Int @id @default(autoincrement())
-amount Float // مبلغ الوديعة المستَلم
-deductedAmount Float? @default(0) // المبلغ المخصوم (اختياري)
-deductionReason String? @db.Text // سبب الخصم (اختياري)
+amount Float  
+ deductedAmount Float? @default(0)  
+ deductionReason String? @db.Text
 
 status SecurityDepositStatus @default(HELD)
 receivedAt DateTime @default(now())

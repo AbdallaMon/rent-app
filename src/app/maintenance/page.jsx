@@ -68,11 +68,10 @@ export default function MaintenancePage() {
             indicatorColor="primary"
             sx={{
               "& .MuiTab-root": {
-                py: 1.5,
+                py: 2,
                 minHeight: 0,
                 fontWeight: 500,
                 gap: 1,
-                // subtle bg for hover
                 "&:hover": { bgcolor: "action.hover" },
               },
               "& .Mui-selected": {

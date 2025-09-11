@@ -45,11 +45,6 @@ import TableFormProvider from "../context/TableFormProvider/TableFormProvider";
 import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
 import FilterSelect from "@/components/utility/FilterSelect";
 import { PaymentType } from "@/config/Enums";
-import BillingInvoiceDialogButton from "./BillingInvoiceDialog";
-import { handleRequestSubmit } from "@/helpers/functions/handleRequestSubmit";
-import { useToastContext } from "../context/ToastLoading/ToastLoadingProvider";
-import BillingInvoiceViewDialogButton from "./ViewBillingInvoice";
-import MarkInvoicePaidDialog from "./MarkInvoiceAsPaid";
 
 // إعداد dayjs
 dayjs.extend(utc);
@@ -149,8 +144,7 @@ function InvoiceWrapper() {
     totalPages,
     otherData,
     setOtherData,
-    setRender,
-  } = useDataFetcher(`main/billing-invoices`);
+  } = useDataFetcher(`main/invoices`);
   const [startDate, setStartDate] = useState(dayjs().startOf("month"));
   const [endDate, setEndDate] = useState(dayjs().endOf("month"));
   const printRef = useRef();
@@ -159,35 +153,42 @@ function InvoiceWrapper() {
   const [combinedPrintLoading, setCombinedPrintLoading] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState(null);
   const [selectedOwner, setSelectedOwner] = useState();
-  const [selectedRenter, setSelectedRenter] = useState();
-
   const [selectedProperty, setSelectedProperty] = useState();
-  const [partyType, setPartyType] = useState("OWNERS");
-  const { setLoading } = useToastContext();
-
   const columns = [
     {
-      field: "invoiceNumber",
+      field: "displayId",
       headerName: "معرف",
       width: 50,
       printable: true,
       cardWidth: 48,
     },
     {
-      field: "category",
+      field: "invoiceType",
       headerName: "نوع الدفعة",
       width: 200,
       printable: true,
       cardWidth: 48,
       renderCell: (params) => {
-        const invoiceConfig = getInvoiceTypeConfig(params.row.category);
+        const invoiceConfig = getInvoiceTypeConfig(params.row.invoiceType);
         const IconComponent = invoiceConfig.icon;
 
         return (
-          <Box display="flex" alignItems="center" gap={2}>
+          <Box display="flex" alignItems="center" gap={2} sx={{ py: 1 }}>
+            <Avatar
+              sx={{
+                bgcolor: invoiceConfig.bgColor,
+                color:
+                  theme.palette[invoiceConfig.color]?.main ||
+                  theme.palette.primary.main,
+                width: 40,
+                height: 40,
+              }}
+            >
+              <IconComponent fontSize="small" />
+            </Avatar>
             <Box>
               <Typography variant="body2" fontWeight="medium" noWrap>
-                {PaymentType[params.row.category] || "لا يوجد نوع محدد"}
+                {PaymentType[params.row.invoiceType]}
               </Typography>
               <Chip
                 label={invoiceConfig.type}
@@ -237,7 +238,6 @@ function InvoiceWrapper() {
         </Box>
       ),
     },
-
     {
       field: "relatedClients",
       headerName: "العملاء المرتبطين",
@@ -245,25 +245,73 @@ function InvoiceWrapper() {
       printable: true,
       cardWidth: 48,
       renderCell: (params) => (
-        <Box>
+        <Box sx={{ py: 1 }}>
+          <Stack spacing={1}>
+            <Box display="flex" alignItems="center" gap={1}>
+              <Avatar
+                sx={{
+                  width: 24,
+                  height: 24,
+                  fontSize: "0.75rem",
+                  bgcolor: theme.palette.info.light,
+                }}
+              >
+                م
+              </Avatar>
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  مالك
+                </Typography>
+                <Typography variant="body2" fontWeight="medium" noWrap>
+                  {params.row.owner?.name || "لا يوجد"}
+                </Typography>
+              </Box>
+            </Box>
+            {params.row.renter?.name && (
+              <Box display="flex" alignItems="center" gap={1}>
+                <Avatar
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    fontSize: "0.75rem",
+                    bgcolor: theme.palette.success.light,
+                  }}
+                >
+                  ت
+                </Avatar>
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    مستاجر
+                  </Typography>
+                  <Typography variant="body2" fontWeight="medium" noWrap>
+                    {params.row.renter.name}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+          </Stack>
+        </Box>
+      ),
+    },
+    {
+      field: "createdAt",
+      headerName: "تاريخ الدفع",
+      width: 140,
+      printable: true,
+      cardWidth: 48,
+      renderCell: (params) => (
+        <Box sx={{ py: 1 }}>
           <Box display="flex" alignItems="center" gap={1}>
+            <ScheduleIcon color="action" fontSize="small" />
             <Box>
-              <Typography variant="caption" color="text.secondary">
-                {params.row.billedClient
-                  ? params.row.billedClient.role === "OWNER"
-                    ? "مالك"
-                    : "مستاجر"
-                  : null}
-              </Typography>
-              <Typography variant="body2" fontWeight="medium" noWrap>
-                {params.row.billedClient?.name || "لا يوجد"}
+              <Typography variant="body2" fontWeight="medium">
+                {dayjs(params.row.createdAt).format("DD/MM/YYYY")}
               </Typography>
             </Box>
           </Box>
         </Box>
       ),
     },
-
     {
       field: "description",
       headerName: "الوصف",
@@ -293,52 +341,13 @@ function InvoiceWrapper() {
       ),
     },
     {
-      field: "dueDate",
-      headerName: "تاريخ المطالبة",
-      width: 140,
-      printable: true,
-      cardWidth: 48,
-      renderCell: (params) => (
-        <Box sx={{ py: 1 }}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <ScheduleIcon color="action" fontSize="small" />
-            <Box>
-              <Typography variant="body2" fontWeight="medium">
-                {dayjs(params.row.dueDate).format("DD/MM/YYYY")}
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      field: "createdAt",
-      headerName: "تاريخ الاصدار",
-      width: 140,
-      printable: true,
-      cardWidth: 48,
-      renderCell: (params) => (
-        <Box sx={{ py: 1 }}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <ScheduleIcon color="action" fontSize="small" />
-            <Box>
-              <Typography variant="body2" fontWeight="medium">
-                {dayjs(params.row.createdAt).format("DD/MM/YYYY")}
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-      ),
-    },
-    {
       field: "actions",
       headerName: "الاجراءات",
       width: 150,
       printable: true,
       renderCell: (params) => {
         return (
-          <Box sx={{ py: 1, display: "flex", gap: 1, alignItems: "center" }}>
-            <BillingInvoiceViewDialogButton invoice={params.row} />
+          <Box sx={{ py: 1 }}>
             <Button
               variant="contained"
               color="primary"
@@ -359,14 +368,6 @@ function InvoiceWrapper() {
             >
               طباعة
             </Button>
-
-            <MarkInvoicePaidDialog
-              invoiceId={params.row.id}
-              invoiceNumber={params.row.invoiceNumber}
-              onSuccess={() => {
-                setData((old) => old.filter((inv) => inv.id !== params.row.id));
-              }}
-            />
           </Box>
         );
       },
@@ -418,20 +419,6 @@ function InvoiceWrapper() {
     return summary;
   };
 
-  async function onSubmit(payload) {
-    const req = await handleRequestSubmit(
-      payload,
-      setLoading,
-      `main/billing-invoices`,
-      false,
-      "جاري انشاء فاتورة"
-    );
-    if (req.status === 200) {
-      setRender((old) => !old);
-    }
-    return req;
-  }
-  console.log(partyType, "partyType");
   return (
     <>
       <FilterPaperContainer
@@ -462,58 +449,31 @@ function InvoiceWrapper() {
         }}
       >
         <FilterSelect
+          label="المالك"
+          param={"ownerId"}
+          setFilters={setFilters}
+          apiPoint={"/api/fast-handler?id=owners"}
+          setCurrent={setSelectedOwner}
+        />
+
+        <FilterSelect
+          label="العقار"
+          param={"propertyId"}
+          setFilters={setFilters}
+          apiPoint={"/api/fast-handler?id=properties"}
+          setCurrent={setSelectedProperty}
+        />
+
+        <FilterSelect
           label="علاقة الدفعة بالعميل"
           param={"clientType"}
           loading={false}
           setFilters={setFilters}
-          setCurrent={setPartyType}
           options={[
             { name: "مالك", id: "OWNERS" },
             { name: "مستاجر", id: "RENTERS" },
           ]}
         />
-        {partyType === "OWNERS" ||
-          (partyType?.id === "OWNERS" && (
-            <>
-              <FilterSelect
-                label="المالك"
-                param={"ownerId"}
-                setFilters={setFilters}
-                apiPoint={"/api/fast-handler?id=owners"}
-                setCurrent={setSelectedOwner}
-              />
-              {selectedOwner && (
-                <FilterSelect
-                  label="العقار"
-                  param={"propertyId"}
-                  setFilters={setFilters}
-                  apiPoint={`/api/fast-handler?id=properties&clientId=${selectedOwner.id}&`}
-                  setCurrent={setSelectedProperty}
-                />
-              )}
-            </>
-          ))}
-        {partyType === "RENTERS" ||
-          (partyType?.id === "RENTERS" && (
-            <>
-              <FilterSelect
-                label="المستاجر"
-                param={"renterId"}
-                setFilters={setFilters}
-                apiPoint={"/api/fast-handler?id=renter"}
-                setCurrent={setSelectedRenter}
-              />
-              {selectedRenter && (
-                <FilterSelect
-                  label="عقد الايجار"
-                  param={"renterId"}
-                  setFilters={setFilters}
-                  apiPoint={`/api/fast-handler?id=rentAgreements&renterId=${selectedRenter.id}`}
-                  setCurrent={setSelectedRenter}
-                />
-              )}
-            </>
-          ))}
         <FilterSelect
           label="نوع الدفعة"
           param={"invoiceType"}
@@ -615,8 +575,6 @@ function InvoiceWrapper() {
         total={total}
         noModal={true}
         noCreate
-        submitFunction={onSubmit}
-        anotherComponent={BillingInvoiceDialogButton}
       />
     </>
   );

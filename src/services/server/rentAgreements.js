@@ -458,7 +458,10 @@ export async function createInstallmentsAndPayments(rentAgreement) {
       //     installmentAmount = Math.round(installmentBaseAmount / 50) * 50;
       //     remainingAmount -= installmentAmount;
       // }
-
+      const chequeNumber =
+        installments[i].chequeNumber?.length > 0
+          ? installments[i].chequeNumber
+          : null;
       return {
         startDate: convertToISO(start),
         dueDate: convertToISO(dueDate),
@@ -466,6 +469,8 @@ export async function createInstallmentsAndPayments(rentAgreement) {
         status: false,
         rentAgreementId: rentAgreement.id,
         amount: installments[i].amount,
+        type: installments[i].paymentTypeMethod,
+        chequeNumber,
       };
     });
 
@@ -473,8 +478,10 @@ export async function createInstallmentsAndPayments(rentAgreement) {
       const installment = installmentsData[i];
       const dueDate = new Date(installment.dueDate);
       const amount = +installment.amount;
+      const chequeNumber = installment.chequeNumber;
       delete installment.dueDate;
       delete installment.amount;
+      delete installment.chequeNumber;
 
       const createdInstallment = await prisma.installment.create({
         data: installment,
@@ -490,6 +497,8 @@ export async function createInstallmentsAndPayments(rentAgreement) {
           rentAgreementId: rentAgreement.id,
           installmentId: createdInstallment.id,
           paymentType: "RENT",
+          chequeNumber,
+          paymentTypeMethod: installment.type,
         },
       });
     }

@@ -212,10 +212,9 @@ const CombinedInvoicePrint = forwardRef(({ invoices, summaryFnc }, ref) => {
                 >
                   {[
                     "رقم الفاتورة",
-                    "تاريخ المطالبة",
+                    "التاريخ",
                     "نوع الفاتورة",
                     "العقار",
-                    "الوصف",
                     "مستلم من",
                     "المبلغ",
                   ].map((h) => (
@@ -248,7 +247,7 @@ const CombinedInvoicePrint = forwardRef(({ invoices, summaryFnc }, ref) => {
                         textAlign: "center",
                       }}
                     >
-                      {invoice.invoiceNumber || `#${invoice.id}`}
+                      {invoice.displayId || `#${invoice.id}`}
                     </td>
                     <td
                       style={{
@@ -257,7 +256,7 @@ const CombinedInvoicePrint = forwardRef(({ invoices, summaryFnc }, ref) => {
                         textAlign: "center",
                       }}
                     >
-                      {dayjs(invoice.dueDate).format("DD/MM/YYYY")}
+                      {dayjs(invoice.createdAt).format("DD/MM/YYYY")}
                     </td>
                     <td
                       style={{
@@ -266,9 +265,9 @@ const CombinedInvoicePrint = forwardRef(({ invoices, summaryFnc }, ref) => {
                         textAlign: "center",
                       }}
                     >
-                      {invoiceTypeMapping[invoice.category] ||
-                        invoice.category ||
-                        "عام"}
+                      {invoiceTypeMapping[invoice.invoiceType] ||
+                        invoice.invoiceType ||
+                        "غير محدد"}
                     </td>
                     <td
                       style={{
@@ -279,14 +278,6 @@ const CombinedInvoicePrint = forwardRef(({ invoices, summaryFnc }, ref) => {
                       {invoice.property?.name ||
                         invoice.rentAgreement?.unit?.property?.name ||
                         "-"}
-                    </td>
-                    <td
-                      style={{
-                        padding: "10px",
-                        border: `1px solid ${c.divider}`,
-                      }}
-                    >
-                      {invoice.description}
                     </td>
                     <td
                       style={{
@@ -313,7 +304,7 @@ const CombinedInvoicePrint = forwardRef(({ invoices, summaryFnc }, ref) => {
                 {/* type total */}
                 <tr style={{ backgroundColor: c.softPrimaryBg }}>
                   <td
-                    colSpan={6}
+                    colSpan={5}
                     style={{
                       padding: "12px",
                       border: `1px solid ${c.divider}`,
