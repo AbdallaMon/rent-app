@@ -22,6 +22,7 @@ import FilterPaperContainer from "@/components/utility/FilterPaperContainer";
 import { AccountingSummaryCard } from "@/components/accounting/AccountingSummaryCard";
 import { FaArrowDown, FaArrowUp, FaPiggyBank } from "react-icons/fa";
 import { FaScaleBalanced } from "react-icons/fa6";
+import JournalLineRelations from "@/components/accounting/JournalLineRelations";
 dayjs.locale("ar");
 
 export default function LedgarPage({ searchParams }) {
@@ -99,6 +100,16 @@ function LedgarWrapper({ searchParams }) {
       cardWidth: 48,
       renderCell: (params) => {
         return <TableJournalLine line={params.row.credit} />;
+      },
+    },
+    {
+      field: "relations",
+      headerName: "الروابط",
+      width: 100,
+      printable: true,
+      cardWidth: 48,
+      renderCell: (params) => {
+        return <JournalLineRelations line={params.row.relation} />;
       },
     },
     {

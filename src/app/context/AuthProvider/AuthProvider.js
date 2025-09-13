@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { Failed, Success } from "@/components/loading/ToastUpdate";
+import { pathMap } from "@/helpers/functions/getUserPrivilege";
 
 export const AuthContext = createContext(null);
 
@@ -65,30 +66,6 @@ export default function AuthProvider({ children }) {
           acc[priv.area] = priv.privilege;
           return acc;
         }, {});
-        const pathMap = {
-          "/login": "HOME",
-          "/": "HOME",
-          "/follow-up": "FOLLOW_UP",
-          "/properties": "PROPERTY",
-          "/units": "UNIT",
-          "/rent": "RENT",
-          "/invoices": "INVOICE",
-          "/maintenance": "MAINTENANCE",
-          "/request": "MAINTENANCE",
-          "/reports": "REPORT",
-          "/owners": "OWNER",
-          "/renters": "RENTER",
-          "/settings": "SETTING", // نظام الواتساب الموحد
-          "/whatsapp": "WHATSAPP", // المسار الرئيسي للهيكل الجديد
-          "/whatsapp/dashboard": "WHATSAPP",
-          "/whatsapp/reminders": "WHATSAPP",
-          "/whatsapp/settings": "WHATSAPP",
-          // مسارات الإدارة
-          "/admin": "SETTING",
-          "/admin/whatsapp": "SETTING",
-          "/accounting": "ACCOUNTING",
-          "/security-deposits": "SECURITY_DEPOSIT",
-        };
 
         if (pathName.split("/").length > 2) {
           pathName = "/" + pathName.split("/")[1];

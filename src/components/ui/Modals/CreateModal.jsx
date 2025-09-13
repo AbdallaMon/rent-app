@@ -132,7 +132,6 @@ export function CreateModal({
                     "POST",
                     { id, extraId }
                   );
-                  // keep your original setData logic
                   setData([...oldData, newData]);
                 }}
                 variant="outlined"

@@ -6,7 +6,7 @@ import { MuiSelect } from "@/components/ui/FormComponents/MUIInputs/MuiSelect";
 import { MuiDatePicker } from "@/components/ui/FormComponents/MUIInputs/MuiDatePicker";
 import MuiFileField from "@/components/ui/FormComponents/MUIInputs/MuiFileField";
 import MuiSwitchField from "@/components/ui/FormComponents/MUIInputs/MuiSwitchField";
-import { useRef } from "react";
+import { useId, useRef } from "react";
 import SimpleSelect from "@/components/ui/FormComponents/MUIInputs/SimpleSelect";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -30,6 +30,8 @@ export function Form({
 }) {
   const ExtraComponent = extraComponent;
   const d = useForm();
+  const autoId = useId();
+  const formId = `form-${autoId}`;
   const {
     formState,
     register,
@@ -57,9 +59,13 @@ export function Form({
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <form
           noValidate
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={(e) => {
+            e.stopPropagation();
+            handleSubmit(onSubmit)(e);
+          }}
           style={{ ...formStyle }}
           ref={formRef}
+          id={formId}
         >
           <Typography
             variant="h4"
@@ -206,6 +212,7 @@ export function Form({
                 <Button
                   type="submit"
                   variant="contained"
+                  form={formId}
                   sx={{ mt: 3, px: 4, py: 1.25, borderRadius: 2 }}
                 >
                   {btnText}

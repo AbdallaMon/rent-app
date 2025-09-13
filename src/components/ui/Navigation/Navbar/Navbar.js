@@ -28,28 +28,44 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import MenuIcon from "@mui/icons-material/Menu";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import GroupIcon from "@mui/icons-material/Group";
-import NotificationsIcon from "@mui/icons-material/Notifications";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import BarChartIcon from "@mui/icons-material/BarChart";
 import { alpha } from "@mui/material/styles";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthProvider/AuthProvider";
 import { handleRequestSubmit } from "@/helpers/functions/handleRequestSubmit";
 import { useToastContext } from "@/app/context/ToastLoading/ToastLoadingProvider";
-import { BalanceOutlined } from "@mui/icons-material";
+import {
+  BalanceOutlined,
+  CreditScoreOutlined,
+  DashboardOutlined,
+  HolidayVillageOutlined,
+  PendingActionsOutlined,
+} from "@mui/icons-material";
 
 const drawerWidth = 240;
 
 const navItems = [
-  { href: "/", Icon: HomeIcon, text: "الرئيسيه", area: "HOME" },
+  { href: "/", Icon: DashboardOutlined, text: "الرئيسيه", area: "HOME" },
   {
     href: "/follow-up",
-    Icon: HomeIcon,
+    Icon: PendingActionsOutlined,
     text: "متابعة المستحقات",
     area: "FOLLOW_UP",
   },
-  { href: "/properties", Icon: HouseIcon, text: "العقارات", area: "PROPERTY" },
+  {
+    href: "/payments",
+    Icon: CreditScoreOutlined,
+    text: "صفحة الشيكات",
+    area: "FOLLOW_UP",
+  },
+  {
+    href: "/properties",
+    Icon: HolidayVillageOutlined,
+    text: "العقارات",
+    area: "PROPERTY",
+  },
+
   { href: "/units", Icon: ApartmentIcon, text: "الوحدات", area: "UNIT" },
   { href: "/rent", Icon: PaymentIcon, text: "عقود الايجار", area: "RENT" },
   { href: "/invoices", Icon: ReceiptIcon, text: "الفواتير", area: "INVOICE" },

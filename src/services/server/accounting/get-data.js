@@ -1,5 +1,10 @@
 import prisma from "@/lib/prisma";
 import { getGlAccountById, getGLIdByCode } from "./main";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+dayjs.extend(utc);
+dayjs.extend(timezone);
 const DEBIT_NATURE = new Set(["ASSET", "EXPENSE"]);
 const CREDIT_NATURE = new Set(["LIABILITY", "EQUITY", "REVENUE"]);
 function calcBalanceAndReturnTrend(totalDebits, totalCredits) {
@@ -249,6 +254,7 @@ export async function getPettyCashJournalEntries(page, limit, searchParams) {
 
   let totalAmount = 0;
   let totalSettled = 0;
+  let totalLeft = 0;
   let rows = [];
   for (const journal of journals) {
     const debit = journal.lines.find((line) => line.side === "DEBIT");
@@ -273,7 +279,10 @@ export async function getPettyCashJournalEntries(page, limit, searchParams) {
     journal.signedChange = signedChange;
     journal.debit = counterPart.side === "DEBIT" ? counterPart : null;
     journal.credit = counterPart.side === "CREDIT" ? counterPart : null;
-    totalAmount += journal.debitAmount;
+    if (debit.maintenanceId) {
+    } else {
+      totalAmount += journal.debitAmount;
+    }
     const isCredit = credit.glAccount?.code === "1130";
     if (isCredit) {
       totalSettled += journal.creditAmount;
@@ -282,8 +291,8 @@ export async function getPettyCashJournalEntries(page, limit, searchParams) {
     rows.push(journal);
   }
 
-  let totalLeft = totalAmount - totalSettled;
-
+  totalLeft = totalAmount < 0 ? 0 : totalAmount - totalSettled;
+  totalLeft = totalLeft < 0 ? 0 : totalLeft;
   const total = await prisma.journalEntry.count({ where });
 
   return {
@@ -673,6 +682,20 @@ export async function getTrialBalance(page, limit, searchParams) {
   };
 }
 
+export function getPrevMonthRangeFromStart(startDate) {
+  const s = dayjs.tz(startDate, "Asia/Dubai");
+  const isLastDay = s.date() === s.daysInMonth();
+  const base = (isLastDay ? s.add(1, "day") : s).startOf("day");
+
+  const prev = base.subtract(1, "month");
+  const prevMonthStart = prev.startOf("month");
+  const prevMonthEnd = prev.endOf("month");
+
+  return {
+    gte: prevMonthStart.toDate(),
+    lte: prevMonthEnd.toDate(),
+  };
+}
 export async function getLedgar(page, limit, searchParams) {
   const filters = searchParams.get("filters")
     ? JSON.parse(searchParams.get("filters"))
@@ -704,26 +727,9 @@ export async function getLedgar(page, limit, searchParams) {
   }
 
   {
-    const s = new Date(startDate);
-    const prevMonthStart = new Date(
-      s.getFullYear(),
-      s.getMonth() - 1,
-      1,
-      0,
-      0,
-      0,
-      0
-    );
-    const prevMonthEnd = new Date(
-      s.getFullYear(),
-      s.getMonth(),
-      0,
-      23,
-      59,
-      59,
-      999
-    );
-    openingBalanceDate.entryDate = { gte: prevMonthStart, lte: prevMonthEnd };
+    // usage:
+    const range = getPrevMonthRangeFromStart(startDate);
+    openingBalanceDate.entryDate = range;
   }
 
   // Filters by mode
@@ -834,6 +840,13 @@ async function getAmountAndTrendAndBalance({
           glAccount: true,
           partyClient: true,
           property: true,
+          unit: true,
+          maintenance: true,
+          rentAgreement: {
+            include: {
+              unit: true,
+            },
+          },
         },
       },
     },
@@ -871,6 +884,10 @@ async function getAmountAndTrendAndBalance({
       description: entry.description,
       debit: counterPart.side === "DEBIT" ? counterPart : null,
       credit: counterPart.side === "CREDIT" ? counterPart : null,
+      relation:
+        currentPart.propertyId || currentPart.partyClientId || currentPart.unit
+          ? currentPart
+          : counterPart,
       amount: currentPart.amount, // display amount (positive)
       signedChange, // +/− impact on the running balance
       currentBalance: runningBalance,

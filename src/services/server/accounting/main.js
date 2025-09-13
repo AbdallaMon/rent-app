@@ -89,8 +89,14 @@ export async function getDebitLineByPaymentId({ paymentId }) {
       paymentId: Number(paymentId),
     },
   });
+  const cred = await prisma.journalLine.findFirst({
+    where: {
+      side: "CREDIT",
+      entryId: debitLine.entryId,
+    },
+  });
 
-  return debitLine;
+  return { debitLine, cred };
 }
 export async function settleLines({ matches, note, forceSettle }) {
   if (!Array.isArray(matches) || matches.length === 0) {

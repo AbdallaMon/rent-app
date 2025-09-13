@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -37,20 +37,56 @@ export default function EditPaymentMethodModal({
   currentChequeNumber,
   onSave,
   item,
+  editBankId,
 }) {
   const [paymentMethod, setPaymentMethod] = useState(currentMethod);
-  const [chequeNumber, setChequeNumber] = useState(currentChequeNumber);
+  const [chequeNumber, setChequeNumber] = useState(currentChequeNumber || "");
+  const [banks, setBanks] = useState([]);
+  const [selectedBank, setSelectedBank] = useState(editBankId);
+  const [loadingData, setLoadingData] = useState(true);
   const { setLoading: setSubmitLoading } = useToastContext();
 
+  useEffect(() => {
+    if (open) {
+      setPaymentMethod(currentMethod);
+      setChequeNumber(currentChequeNumber || "");
+      setSelectedBank(editBankId);
+    }
+  }, [open, currentMethod, currentChequeNumber, editBankId]);
+
+  useEffect(() => {
+    async function getBanksData() {
+      setLoadingData(true);
+      try {
+        const res = await fetch("/api/fast-handler?id=bank");
+        const data = await res.json();
+        setBanks(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setBanks([]);
+      } finally {
+        setLoadingData(false);
+      }
+    }
+    getBanksData();
+  }, []);
+
+  // if user switches to CASH, clear bank & cheque
+  useEffect(() => {
+    if (paymentMethod === "CASH") {
+      setSelectedBank(null);
+      setChequeNumber("");
+    }
+  }, [paymentMethod]);
+  console.log(selectedBank, "selectedBank");
   const handleSave = async () => {
-    const data = {
+    const payload = {
       paymentTypeMethod: paymentMethod,
-      chequeNumber: paymentMethod === "CHEQUE" ? chequeNumber : null,
-      bankId: item.property.bankId,
+      chequeNumber: paymentMethod === "CHEQUE" ? chequeNumber || null : null,
+      bankId: paymentMethod === "CASH" ? null : selectedBank || null,
     };
 
     const updatedPayment = await handleRequestSubmit(
-      data,
+      payload,
       setSubmitLoading,
       `/main/payments/${paymentId}/edit`,
       false,
@@ -63,6 +99,8 @@ export default function EditPaymentMethodModal({
     }
   };
 
+  const showBankSelect = paymentMethod !== "CASH";
+
   return (
     <Modal open={open} onClose={handleClose}>
       <Box sx={modalBoxSx}>
@@ -73,7 +111,7 @@ export default function EditPaymentMethodModal({
         <FormControl fullWidth margin="normal">
           <InputLabel>طريقة الدفع</InputLabel>
           <Select
-            value={paymentMethod}
+            value={paymentMethod || ""}
             label="طريقة الدفع"
             onChange={(e) => setPaymentMethod(e.target.value)}
           >
@@ -91,6 +129,31 @@ export default function EditPaymentMethodModal({
             fullWidth
             margin="normal"
           />
+        )}
+
+        {showBankSelect && (
+          <FormControl fullWidth margin="normal" disabled={loadingData}>
+            <InputLabel id="bank">البنك</InputLabel>
+            <Select
+              labelId="bank"
+              value={selectedBank || ""}
+              label="البنك"
+              onChange={(e) => setSelectedBank(e.target.value)}
+              displayEmpty
+            >
+              {banks.map((b) => (
+                <MenuItem key={b.id} value={b.id}>
+                  {b.name} — {b.city}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+
+        {showBankSelect && item?.property?.bank?.name && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            ملاحظة: هذا العقار مرتبط ببنك «{item.property.bank.name}».
+          </Typography>
         )}
 
         <Button

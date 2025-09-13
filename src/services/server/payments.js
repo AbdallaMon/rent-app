@@ -163,11 +163,44 @@ export async function createNewBankAccount(data, params, searchParams) {
 }
 
 export async function updatePaymentMethodType(data, params, searchParams) {
+  console.log(data, "data");
   const payment = await prisma.payment.update({
     where: { id: +params.id },
     data: {
       paymentTypeMethod: data.paymentTypeMethod,
       chequeNumber: data.chequeNumber ? data.chequeNumber : null,
+      bankId: data.bankId ? data.bankId : null,
+    },
+    include: {
+      installment: true,
+      property: {
+        select: {
+          name: true,
+          bankId: true,
+          bank: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          bankAccount: {
+            select: {
+              accountNumber: true,
+              id: true,
+              bank: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      invoices: {
+        include: {
+          bankAccount: true,
+        },
+      },
     },
   });
   return payment;
@@ -175,7 +208,6 @@ export async function updatePaymentMethodType(data, params, searchParams) {
 
 export async function updatePayment(id, data) {
   let payment;
-  console.log(data, "data");
 
   const paymentData = await prisma.payment.findUnique({
     where: {
@@ -354,7 +386,9 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
   const checkingGlId = await getGLIdByCode("1110");
   const ownerId = payment.property.clientId;
   const renterId = payment.rentAgreement?.renterId;
-  const debitLine = await getDebitLineByPaymentId({ paymentId: payment.id });
+  const { debitLine, cred } = await getDebitLineByPaymentId({
+    paymentId: payment.id,
+  });
   const savingsGlId = await getGLIdByCode("1120");
   const paymentStatus = await checkForFullPaidByPaymentId({
     paymentId: payment.id,
@@ -377,7 +411,6 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
     const { creditLine } = await createJournalEntry({
       description: "تحصيل عمولة إدارة من المالك",
       entryDate: timeOfPayment ? new Date(timeOfPayment) : new Date(),
-
       lines: [
         {
           side: "DEBIT",
@@ -450,54 +483,6 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
     creditNote = "تسوية رسوم تسجيل - تحصيل";
   }
 
-  // // =========================
-  // // 3) TAX (on renter)
-  // // =========================
-  // if (payment.paymentType === "TAX") {
-  //   if (!debitLine) return;
-
-  //   const { creditLine } = await createJournalEntry({
-  //     description: "تحصيل ضريبة من المستأجر",
-  //     entryDate: timeOfPayment ? new Date(timeOfPayment) : new Date(),
-
-  //     lines: [
-  //       {
-  //         side: "DEBIT",
-  //         amount: amount,
-  //         glAccountId: checkingGlId,
-  //         memo: "تحصيل ضريبة - بنك",
-  //         rentAgreementId: payment.rentAgreement.id,
-  //         unitId: Number(payment.rentAgreement.unit.id),
-  //         propertyId: payment.rentAgreement.unit.propertyId,
-  //         paymentId: payment.id,
-  //         createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
-  //       },
-  //       {
-  //         side: "CREDIT",
-  //         amount: amount,
-  //         glAccountId: rentersGlId,
-  //         partyType: "RENTER",
-  //         partyClientId: renterId,
-  //         memo: "تسوية ذمم المستأجر - ضريبة",
-  //         rentAgreementId: payment.rentAgreement.id,
-  //         unitId: Number(payment.rentAgreement.unit.id),
-  //         propertyId: payment.rentAgreement.unit.propertyId,
-  //         paymentId: payment.id,
-  //         createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
-  //       },
-  //     ],
-  //   });
-
-  //   credit = creditLine;
-  //   debit = debitLine;
-  //   note = `تسوية ضريبة - RA#${payment.rentAgreement.id}`;
-  //   debitNote = "تسوية ضريبة - استحقاق";
-  //   creditNote = "تسوية ضريبة - تحصيل";
-  // }
-
-  // =========================
-  // 4) MAINTENANCE (owner reimburses)
-  // =========================
   if (payment.paymentType === "MAINTENANCE") {
     if (!debitLine) return;
 
@@ -509,7 +494,7 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
         {
           side: "DEBIT",
           amount: amount,
-          glAccountId: checkingGlId, // يرجع للحساب الجاري
+          glAccountId: cred.glAccountId || checkingGlId,
           memo: "تحصيل صيانة - بنك",
           createdAt: timeOfPayment ? new Date(timeOfPayment) : new Date(),
         },
@@ -627,4 +612,58 @@ async function handlePaymentAccounting({ payment, amount, timeOfPayment }) {
     ];
     await settleLines({ matches, note });
   }
+}
+
+export async function getSearchedPayments(page, limit, searchParams) {
+  const filters = searchParams.get("filters")
+    ? JSON.parse(searchParams.get("filters"))
+    : {};
+  const offset = (page - 1) * limit;
+
+  let { bankId, mode, q } = filters;
+  if (bankId === "undefined" || bankId === "all") bankId = null;
+  if (bankId) {
+    bankId = Number(bankId);
+  }
+  if (!q && !bankId) {
+    const err = new Error("You must provide at least q or bankId.");
+    err.status = 400;
+    throw err;
+  }
+  // Build conditions
+  const chequeCond = q ? { chequeNumber: { contains: q } } : null;
+  const bankCond = bankId ? { bankId: bankId } : null;
+
+  let where = {};
+  if (mode === "AND" && chequeCond && bankCond) {
+    where = { AND: [chequeCond, bankCond] };
+  } else {
+    // default OR: include only the provided ones
+    const OR = [];
+    if (chequeCond) OR.push(chequeCond);
+    if (bankCond) OR.push(bankCond);
+    where = OR.length === 1 ? OR[0] : { OR };
+  }
+  console.log(where, "where");
+  const payments = await prisma.payment.findMany({
+    where,
+    skip: offset,
+    take: limit,
+    orderBy: { id: "desc" },
+    include: {
+      bank: true,
+      property: true,
+      unit: true,
+      rentAgreement: {
+        include: {
+          renter: true,
+          unit: true,
+        },
+      },
+      maintenance: true,
+    },
+  });
+  const total = await prisma.payment.count({ where });
+
+  return { data: payments, page, total };
 }

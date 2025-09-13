@@ -529,15 +529,15 @@ function calcAppliedViaBilling(payment) {
 // ========================
 const PaymentRow = React.memo(
   function PaymentRow({ row, idx, onToggle, onAmount }) {
+    console.log(row, "row");
     const applied = React.useMemo(
       () => calcAppliedViaBilling(row),
       [row.billingInvoices]
     );
     const remaining = React.useMemo(
-      () => Math.max(0, (row.amount || 0) - (row.paidAmount || 0)),
+      () => Math.max(0, (row.amount || 0) - (row.paidAmount || 0)) - applied,
       [row.amount, row.paidAmount]
     );
-    console.log(remaining, "remaining");
     const details = React.useMemo(
       () =>
         [
@@ -562,7 +562,7 @@ const PaymentRow = React.memo(
             <FormControlLabel
               control={
                 <Checkbox
-                  checked={!!row.checked}
+                  checked={!!row.checked && remaining > 0}
                   onChange={(e) => onToggle(idx, e.target.checked)}
                   color="primary"
                 />
@@ -627,6 +627,12 @@ const PaymentRow = React.memo(
                     >
                       مرتبط بـ فواتير مُطالبة:
                     </Typography>
+                    {remaining <= 0 && (
+                      <Alert severity="error">
+                        لا يمكن اضافة دفعه اذا كانت مرتطبة بمبلغ كامل بفاتورة
+                        اخري
+                      </Alert>
+                    )}
                     <Stack direction="row" spacing={1} flexWrap="wrap">
                       {row.billingInvoices.map((bi, idx2) => (
                         <Chip
@@ -1002,8 +1008,9 @@ export default function BillingInvoiceDialogButton({ onSaved }) {
 
       const mapped = (data || []).map((p) => {
         const applied = calcAppliedViaBilling(p);
-        const remaining = Math.max(0, (p.amount || 0) - (p.paidAmount || 0));
-        return { ...p, checked: true, amountToBill: remaining };
+        const remaining =
+          Math.max(0, (p.amount || 0) - (p.paidAmount || 0)) - applied;
+        return { ...p, checked: remaining > 0, amountToBill: remaining };
       });
       setRows(mapped);
     } catch (e) {

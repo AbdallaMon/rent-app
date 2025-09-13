@@ -6,7 +6,7 @@ import { createJournalEntry, getGLIdByCode } from "./accounting/main.js";
 import dayjs from "dayjs";
 
 async function generateRentAgreementNumber(startDate) {
-  const prefix = "CONTRACT";
+  const prefix = "CON";
   const month = dayjs(startDate).format("MM");
   const year = dayjs(startDate).format("YY");
   const count = await prisma.rentAgreement.count({});
@@ -614,6 +614,7 @@ async function handleRentagreementAccounting({
     const commissionRevenueGlId = await getGLIdByCode("4000");
     const ownerId = rentAgreement.unit.property.client.id;
     const renterId = rentAgreement.renterId;
+    // const rentAgreementId = rentAgreement.id;
     const rentersGlId = await getGLIdByCode("1220");
     const regRevenueGlId = await getGLIdByCode("4100");
     if (payment.paymentType === "MANAGEMENT_COMMISSION") {
@@ -788,15 +789,28 @@ export async function getRentAgreementPaymentsForInstallments(
         },
       },
       include: {
+        bank: true,
+
         installment: true,
         property: {
           select: {
             name: true,
             bankId: true,
+            bank: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
             bankAccount: {
               select: {
                 accountNumber: true,
                 id: true,
+                bank: {
+                  select: {
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -833,14 +847,27 @@ export async function gentRentAgreementPaymentsForFees(
         },
       },
       include: {
+        bank: true,
         property: {
           select: {
             name: true,
             bankId: true,
+            bank: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
             bankAccount: {
               select: {
                 accountNumber: true,
                 id: true,
+                bank: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },

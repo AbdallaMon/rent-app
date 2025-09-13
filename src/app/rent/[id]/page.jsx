@@ -355,6 +355,8 @@ const Payments = ({
                 <TableCell>الحالة</TableCell>
                 <TableCell>طريقة الدفع</TableCell>
                 <TableCell>رقم الشيك</TableCell>
+                <TableCell>اسم البنك</TableCell>
+
                 <TableCell>تعديل طريقة الدفع</TableCell>
                 {/* <TableCell>دفع</TableCell> */}
               </TableRow>
@@ -519,6 +521,7 @@ const PaymentRow = ({
   const [editChequeNumber, setEditChequeNumber] = useState(
     item.chequeNumber ? item.chequeNumber : ""
   );
+  const [editBankId, setEditBankId] = useState(item.bankId);
 
   async function handleSavePaymentMethod(newItem) {
     const editedData = data.map((row) =>
@@ -527,6 +530,7 @@ const PaymentRow = ({
             ...row,
             paymentTypeMethod: newItem.paymentTypeMethod,
             chequeNumber: newItem.chequeNumber,
+            bank: newItem.bank,
           }
         : row
     );
@@ -615,6 +619,14 @@ const PaymentRow = ({
           </Typography>
         </TableCell>
         <TableCell>
+          <Typography
+            variant="body2"
+            sx={{ color: "secondary", fontWeight: "bold" }}
+          >
+            {item.bank?.name || "لا يوجد"}
+          </Typography>
+        </TableCell>
+        <TableCell>
           <Button
             variant="contained"
             color="primary"
@@ -623,6 +635,7 @@ const PaymentRow = ({
               setEditPaymentMethod(item.paymentTypeMethod || "CASH");
               setEditChequeNumber(item.chequeNumber || "");
               setPaymentMethodModal(true);
+              setEditBankId(item.bankId);
             }}
           >
             طريقة الدفع
@@ -653,6 +666,7 @@ const PaymentRow = ({
         currentMethod={editPaymentMethod}
         currentChequeNumber={editChequeNumber}
         onSave={handleSavePaymentMethod}
+        editBankId={editBankId}
       />
     </>
   );

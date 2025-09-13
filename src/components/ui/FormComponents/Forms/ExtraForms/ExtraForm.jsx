@@ -41,12 +41,11 @@ export const ExtraForm = ({
   resetNames = [],
 }) => {
   const { openModal } = useTableForm();
-
+  console.log("are we here?");
   useEffect(() => {
     if (!isEditing[name]) {
       setIsEditing({ ...isEditing, [name]: items?.map(() => false) || [] });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -56,7 +55,6 @@ export const ExtraForm = ({
     } else {
       setIsEditing({ ...isEditing, [name]: items.map(() => false) });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openModal]);
 
   useEffect(() => {
@@ -127,7 +125,7 @@ export const ExtraForm = ({
 
       <Divider sx={{ my: 2 }} />
 
-      <Button onClick={handleAddItem} variant="contained">
+      <Button onClick={handleAddItem} variant="contained" type="button">
         إضافة {title}
       </Button>
 
